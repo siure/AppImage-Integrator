@@ -1,0 +1,40 @@
+window,
+.background {
+  background:
+    radial-gradient(circle at top left, rgba(44, 74, 108, 0.24), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(148, 84, 56, 0.18), transparent 28%),
+    linear-gradient(180deg, #0f1218 0%, #121722 100%);
+}
+
+.card,
+.drop-zone,
+.status-stepper {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+}
+
+.drop-zone {
+  border-style: dashed;
+}
+
+.pending {
+  color: #95a0b5;
+}
+
+.running {
+  color: #7ec8ff;
+}
+
+.success {
+  color: #79d7a6;
+}
+
+.warning {
+  color: #f0c56e;
+}
+
+.error {
+  color: #ff8a8a;
+}
