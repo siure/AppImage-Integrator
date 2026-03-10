@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import subprocess
-
 import gi
 
+gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 
@@ -11,12 +10,14 @@ from appimage_integrator.models import ManagedAppRecord
 
 
 class LibraryView(Gtk.Box):
-    def __init__(self, on_show_details, on_repair, on_uninstall) -> None:
+    def __init__(self, on_launch, on_update, on_show_details, on_repair, on_uninstall) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self.set_margin_top(16)
         self.set_margin_bottom(16)
         self.set_margin_start(16)
         self.set_margin_end(16)
+        self._on_launch = on_launch
+        self._on_update = on_update
         self._on_show_details = on_show_details
         self._on_repair = on_repair
         self._on_uninstall = on_uninstall
@@ -58,17 +59,20 @@ class LibraryView(Gtk.Box):
         title = Gtk.Label(label=record.display_name, xalign=0)
         title.add_css_class("title-4")
         labels.append(title)
+        subtitle_text = record.last_validation_messages[0] if record.last_validation_messages else record.last_validation_status
         subtitle = Gtk.Label(
-            label=f"{record.version or 'version unknown'}   {record.last_validation_status}",
+            label=f"{record.version or 'version unknown'}   {subtitle_text}",
             xalign=0,
         )
         subtitle.add_css_class("dim-label")
+        subtitle.set_wrap(True)
         labels.append(subtitle)
         box.append(labels)
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         for label, callback in (
-            ("Launch", lambda _btn: subprocess.Popen([record.managed_appimage_path])),
+            ("Launch", lambda _btn: self._on_launch(record)),
+            ("Update", lambda _btn: self._on_update(record)),
             ("Details", lambda _btn: self._on_show_details(record)),
             ("Repair", lambda _btn: self._on_repair(record)),
             ("Uninstall", lambda _btn: self._on_uninstall(record)),

@@ -3,7 +3,7 @@ from __future__ import annotations
 APP_ID = "io.github.appimageintegrator"
 APP_NAME = "AppImage Integrator"
 APP_DATA_DIR_NAME = "appimage-integrator"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 PRESET_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "none": (),

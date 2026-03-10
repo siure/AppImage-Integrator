@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import gi
@@ -39,12 +40,13 @@ class ApplicationWindow(Adw.ApplicationWindow):
         header.pack_end(refresh_button)
 
         stack = Adw.ViewStack()
-        self.stack = stack
         self.view_switcher = Adw.ViewSwitcher()
         self.view_switcher.set_stack(stack)
         header.set_title_widget(self.view_switcher)
 
         self.library_view = LibraryView(
+            on_launch=self.launch_record,
+            on_update=self.update_record,
             on_show_details=self.show_details,
             on_repair=self.repair_record,
             on_uninstall=self.uninstall_record,
@@ -67,22 +69,38 @@ class ApplicationWindow(Adw.ApplicationWindow):
     def refresh_library(self) -> None:
         records = []
         for record in self.services.library_manager.list_records():
-            status, messages = self.services.library_manager.validate_record(record)
-            if status != record.last_validation_status or messages != record.last_validation_messages:
-                record = ManagedAppRecord.from_dict(
-                    {
-                        **record.to_dict(),
-                        "last_validation_status": status,
-                        "last_validation_messages": messages,
-                    }
-                )
-                self.services.store.save(record)
+            record = self._sync_record_validation(record)
             records.append(record)
         self.library_view.set_records(records)
+
+    def launch_record(self, record: ManagedAppRecord) -> None:
+        record = self._sync_record_validation(record)
+        if record.last_validation_status == "error":
+            self.refresh_library()
+            self._prompt_issue_resolution(
+                record,
+                title="This AppImage needs attention",
+                intro="The managed integration is not healthy enough to launch right now.",
+            )
+            return
+        try:
+            subprocess.Popen([record.managed_appimage_path])
+        except OSError as exc:
+            issue = self._format_launch_error(exc)
+            record = self._update_record_validation(record, "error", [issue])
+            self.refresh_library()
+            self._prompt_issue_resolution(
+                record,
+                title="Launching failed",
+                intro="AppImage Integrator could not start this managed AppImage.",
+            )
 
     def show_details(self, record: ManagedAppRecord) -> None:
         dialog = DetailsDialog(self, record)
         dialog.present(self)
+
+    def update_record(self, record: ManagedAppRecord) -> None:
+        self.install_view.update_record(record)
 
     def repair_record(self, record: ManagedAppRecord) -> None:
         _, report = self.services.repair_manager.repair(record)
@@ -138,20 +156,15 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_default_response("reinstall")
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
-        dialog.choose(
-            self,
-            None,
-            self._on_failed_repair_reinstall_response,
-            record,
-        )
+        dialog.connect("response", self._on_failed_repair_reinstall_response, record)
+        dialog.present(self)
 
     def _on_failed_repair_reinstall_response(
         self,
         dialog: Adw.AlertDialog,
-        result,
+        response: str,
         record: ManagedAppRecord,
     ) -> None:
-        response = dialog.choose_finish(result)
         if response != "reinstall":
             return
         self.reinstall_record(record)
@@ -162,6 +175,80 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
         dialog.present(self)
+
+    def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
+        validated_record, status, messages = self.services.library_manager.validate_record(record)
+        if status == validated_record.last_validation_status and messages == validated_record.last_validation_messages:
+            if validated_record != record:
+                self.services.store.save(validated_record)
+            return validated_record
+        return self._update_record_validation(validated_record, status, messages)
+
+    def _update_record_validation(
+        self,
+        record: ManagedAppRecord,
+        status: str,
+        messages: list[str],
+    ) -> ManagedAppRecord:
+        updated_record = ManagedAppRecord.from_dict(
+            {
+                **record.to_dict(),
+                "last_validation_status": status,
+                "last_validation_messages": messages,
+            }
+        )
+        self.services.store.save(updated_record)
+        return updated_record
+
+    def _prompt_issue_resolution(
+        self,
+        record: ManagedAppRecord,
+        title: str,
+        intro: str,
+    ) -> None:
+        appimage_exists = Path(record.managed_appimage_path).exists()
+        source_exists = Path(record.source_path_last_seen).exists()
+
+        lines = [intro, "", *record.last_validation_messages]
+        if appimage_exists:
+            lines.extend(("", "Choose Repair to restore executable permissions and recreate launcher files."))
+        elif source_exists:
+            lines.extend(("", "Repair needs the managed AppImage. Reinstall from the original source instead."))
+        else:
+            lines.extend(("", "Automatic recovery is not possible because the original source file is unavailable."))
+
+        dialog = Adw.AlertDialog.new(title, "\n".join(lines))
+        dialog.add_response("cancel", "Cancel")
+        if appimage_exists:
+            dialog.add_response("repair", "Repair")
+            dialog.set_default_response("repair")
+            dialog.set_response_appearance("repair", Adw.ResponseAppearance.SUGGESTED)
+        if not appimage_exists and source_exists:
+            dialog.add_response("reinstall", "Reinstall")
+            dialog.set_default_response("reinstall")
+            dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._on_issue_resolution_response, record)
+        dialog.present(self)
+
+    def _on_issue_resolution_response(
+        self,
+        dialog: Adw.AlertDialog,
+        response: str,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == "repair":
+            self.repair_record(record)
+            return
+        if response == "reinstall":
+            self.reinstall_record(record)
+
+    def _format_launch_error(self, exc: OSError) -> str:
+        if isinstance(exc, FileNotFoundError):
+            return "Managed AppImage is missing."
+        if isinstance(exc, PermissionError):
+            return "Managed AppImage is not executable."
+        return f"Launching failed: {exc}"
 
     def _open_appimage(self, _button: Gtk.Button) -> None:
         self.install_view._open_file_chooser(_button)

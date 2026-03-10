@@ -130,7 +130,10 @@ class InstallView(Gtk.Box):
         self.reset(clear_selection=False)
         self.current_source_path = path
         if not path.exists():
-            self.toast("The selected AppImage does not exist.")
+            self._show_alert_dialog(
+                "AppImage not found",
+                "The selected AppImage does not exist.",
+            )
             self.reset()
             return
         if not os.access(path, os.X_OK):
@@ -151,17 +154,26 @@ class InstallView(Gtk.Box):
         self.install_button.set_label("Reinstall")
 
         if not source_path.exists():
-            self.toast("Original source file is no longer available.")
+            self._show_alert_dialog(
+                "Original AppImage not found",
+                "The original source file is no longer available.",
+            )
             self.reset()
             return
         if not os.access(source_path, os.X_OK):
             try:
                 self.install_manager.ensure_source_executable(source_path)
             except OSError as exc:
-                self.toast(f"Could not mark the AppImage as executable: {exc}")
+                self._show_alert_dialog(
+                    "Reinstall failed",
+                    f"Could not mark the AppImage as executable:\n\n{exc}",
+                )
                 self.reset()
                 return
-            self.toast("Marked the original AppImage as executable for reinstall.")
+            self._show_alert_dialog(
+                "Executable permission updated",
+                "Marked the original AppImage as executable for reinstall.",
+            )
 
         self._submit_install_request(
             InstallRequest(
@@ -174,6 +186,9 @@ class InstallView(Gtk.Box):
                 allow_reinstall=True,
             )
         )
+
+    def update_record(self, record: ManagedAppRecord) -> None:
+        self.reinstall_record(record)
 
     def _begin_inspection(self, path: Path) -> None:
         self.current_source_path = path
@@ -209,16 +224,25 @@ class InstallView(Gtk.Box):
     ) -> None:
         response = dialog.choose_finish(result)
         if response != "trust":
-            self.toast("Inspection cancelled. The AppImage was left unchanged.")
+            self._show_alert_dialog(
+                "Inspection cancelled",
+                "The AppImage was left unchanged.",
+            )
             self.reset()
             return
         try:
             self.install_manager.ensure_source_executable(path)
         except OSError as exc:
-            self.toast(f"Could not mark the AppImage as executable: {exc}")
+            self._show_alert_dialog(
+                "Inspection failed",
+                f"Could not mark the AppImage as executable:\n\n{exc}",
+            )
             self.reset()
             return
-        self.toast("Marked the AppImage as executable. Review the metadata before installing.")
+        self._show_alert_dialog(
+            "Executable permission updated",
+            "Marked the AppImage as executable. Review the metadata before installing.",
+        )
         self._begin_inspection(path)
 
     def _apply_inspection(
@@ -266,14 +290,14 @@ class InstallView(Gtk.Box):
             return
         self._submit_install_request(
             InstallRequest(
-            source_path=self.current_source_path,
-            display_name_override=self.name_entry.get_text().strip() or None,
-            comment_override=self.comment_entry.get_text().strip() or None,
-            extra_args=shlex.split(self.args_entry.get_text().strip()) if self.args_entry.get_text().strip() else [],
-            arg_preset_id=self._preset_index_to_id.get(self.preset_combo.get_selected(), "none"),
-            allow_update=True,
-            allow_reinstall=True,
-        )
+                source_path=self.current_source_path,
+                display_name_override=self.name_entry.get_text().strip() or None,
+                comment_override=self.comment_entry.get_text().strip() or None,
+                extra_args=shlex.split(self.args_entry.get_text().strip()) if self.args_entry.get_text().strip() else [],
+                arg_preset_id=self._preset_index_to_id.get(self.preset_combo.get_selected(), "none"),
+                allow_update=True,
+                allow_reinstall=True,
+            )
         )
 
     def _submit_install_request(self, request: InstallRequest) -> None:
@@ -295,9 +319,14 @@ class InstallView(Gtk.Box):
     def _apply_install_result(self, result) -> bool:
         for step in STEPPER_STEPS[2:]:
             self.status_stepper.set_step(step, "success")
-        self.toast(f"{result.mode.capitalize()} completed for {result.record.display_name}")
-        if result.warnings or result.validation_messages:
-            self.toast("Install completed with warnings. Review the metadata panel for details.")
+        messages = [*result.warnings, *result.validation_messages]
+        body = f"{result.record.display_name} was processed successfully."
+        if messages:
+            body += "\n\nWarnings:\n" + "\n".join(messages)
+        self._show_alert_dialog(
+            f"{result.mode.capitalize()} completed",
+            body,
+        )
         self.on_installed()
         self.reset(clear_selection=True)
         return False
@@ -305,9 +334,19 @@ class InstallView(Gtk.Box):
     def _apply_install_error(self, message: str) -> bool:
         for step in STEPPER_STEPS[2:]:
             self.status_stepper.set_step(step, "error")
-        self.toast(f"Install failed: {message}")
+        self._show_alert_dialog(
+            "Install failed",
+            message,
+        )
         self.install_button.set_sensitive(True)
         return False
+
+    def _show_alert_dialog(self, title: str, body: str) -> None:
+        dialog = Adw.AlertDialog.new(title, body)
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.present(self.get_root())
 
     def reset(self, clear_selection: bool = True) -> None:
         self.status_stepper.reset()

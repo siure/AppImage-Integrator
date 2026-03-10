@@ -17,6 +17,7 @@ from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.install_manager import InstallManager
 from appimage_integrator.services.library_manager import LibraryManager
+from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.services.repair_manager import RepairManager
 from appimage_integrator.services.tooling import Tooling
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -31,6 +32,7 @@ class ServiceContainer:
     store: MetadataStore
     install_manager: InstallManager
     library_manager: LibraryManager
+    runtime_service: ManagedAppRuntimeService
     repair_manager: RepairManager
 
 
@@ -46,20 +48,33 @@ class AppImageIntegratorApplication(Adw.Application):
         self.inspector = AppImageInspector(self.paths, self.tooling, self.icon_resolver)
         self.desktop_service = DesktopEntryService(self.tooling)
         self.id_resolver = IdResolver()
+        self.runtime_service = ManagedAppRuntimeService(
+            self.paths,
+            self.inspector,
+            self.desktop_service,
+            self.icon_resolver,
+            self.id_resolver,
+        )
         self.install_manager = InstallManager(
             self.paths,
             self.inspector,
             self.desktop_service,
             self.icon_resolver,
             self.id_resolver,
+            self.runtime_service,
             self.store,
             self.tooling,
         )
-        self.library_manager = LibraryManager(self.store)
+        self.library_manager = LibraryManager(
+            self.store,
+            self.runtime_service,
+            self.desktop_service,
+        )
         self.repair_manager = RepairManager(
             self.inspector,
             self.desktop_service,
             self.icon_resolver,
+            self.runtime_service,
             self.store,
         )
         self.services = ServiceContainer(
@@ -69,6 +84,7 @@ class AppImageIntegratorApplication(Adw.Application):
             store=self.store,
             install_manager=self.install_manager,
             library_manager=self.library_manager,
+            runtime_service=self.runtime_service,
             repair_manager=self.repair_manager,
         )
         self.connect("activate", self._on_activate)

@@ -10,6 +10,7 @@ from appimage_integrator.config import APP_DATA_DIR_NAME
 class AppPaths:
     home: Path
     applications_dir: Path
+    managed_payloads_root: Path
     desktop_entries_dir: Path
     icons_dir: Path
     app_data_dir: Path
@@ -28,6 +29,7 @@ class AppPaths:
         return cls(
             home=home,
             applications_dir=home / "Applications",
+            managed_payloads_root=home / "Applications" / ".appimage-integrator",
             desktop_entries_dir=data_home / "applications",
             icons_dir=data_home / "icons" / "hicolor" / "256x256" / "apps",
             app_data_dir=app_data_dir,
@@ -41,6 +43,7 @@ class AppPaths:
     def ensure_directories(self) -> None:
         for path in (
             self.applications_dir,
+            self.managed_payloads_root,
             self.desktop_entries_dir,
             self.icons_dir,
             self.metadata_apps_dir,

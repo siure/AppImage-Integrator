@@ -109,6 +109,8 @@ class ManagedAppRecord:
     managed_files: list[str]
     last_validation_status: ValidationStatus
     last_validation_messages: list[str]
+    managed_payload_path: str | None = None
+    managed_payload_dir: str | None = None
     schema_version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
@@ -116,7 +118,12 @@ class ManagedAppRecord:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "ManagedAppRecord":
-        return cls(**payload)
+        data = dict(payload)
+        data.setdefault("managed_payload_path", None)
+        data.setdefault("managed_payload_dir", None)
+        data.setdefault("managed_files", [])
+        data.setdefault("schema_version", SCHEMA_VERSION)
+        return cls(**data)
 
 
 @dataclass(frozen=True)

@@ -14,6 +14,7 @@ def test_paths(tmp_path: Path) -> AppPaths:
     return AppPaths(
         home=tmp_path,
         applications_dir=tmp_path / "Applications",
+        managed_payloads_root=tmp_path / "Applications" / ".appimage-integrator",
         desktop_entries_dir=tmp_path / ".local" / "share" / "applications",
         icons_dir=tmp_path / ".local" / "share" / "icons" / "hicolor" / "256x256" / "apps",
         app_data_dir=tmp_path / ".local" / "share" / "appimage-integrator",

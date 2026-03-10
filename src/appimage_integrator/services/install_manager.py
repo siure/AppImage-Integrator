@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import stat
-import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.desktop_entry import DesktopEntryService
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.services.tooling import Tooling
 from appimage_integrator.services.versioning import compare_versions
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -25,6 +25,7 @@ class InstallManager:
         desktop_service: DesktopEntryService,
         icon_resolver: IconResolver,
         id_resolver: IdResolver,
+        runtime_service: ManagedAppRuntimeService,
         store: MetadataStore,
         tooling: Tooling,
     ) -> None:
@@ -33,6 +34,7 @@ class InstallManager:
         self.desktop_service = desktop_service
         self.icon_resolver = icon_resolver
         self.id_resolver = id_resolver
+        self.runtime_service = runtime_service
         self.store = store
         self.tooling = tooling
 
@@ -49,6 +51,8 @@ class InstallManager:
         inspection = self.inspector.inspect(source_path)
         identity = self.id_resolver.resolve(inspection)
         existing = self.store.load(identity.internal_id)
+        if existing:
+            existing = self.runtime_service.reconcile_record(existing)
         mode = "install"
         if existing:
             if compare_versions(inspection.detected_version, existing.version) != 0:
@@ -61,6 +65,8 @@ class InstallManager:
         inspection = self.inspector.inspect(request.source_path)
         identity = self.id_resolver.resolve(inspection)
         existing = self.store.load(identity.internal_id)
+        if existing:
+            existing = self.runtime_service.reconcile_record(existing)
         mode = "install"
         if existing:
             if compare_versions(inspection.detected_version, existing.version) != 0:
@@ -68,10 +74,7 @@ class InstallManager:
             else:
                 mode = "reinstall"
 
-        managed_appimage = self.paths.applications_dir / f"{identity.internal_id}.AppImage"
-        managed_appimage.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(request.source_path, managed_appimage)
-        os.chmod(managed_appimage, 0o755)
+        placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
 
         icon_value, managed_icon_path, icon_managed = self.icon_resolver.install_icon(
             identity.internal_id,
@@ -79,7 +82,7 @@ class InstallManager:
         )
         desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
             inspection=inspection,
-            appimage_path=managed_appimage,
+            appimage_path=placement.stable_path,
             icon_value=icon_value,
             display_name=request.display_name_override or inspection.detected_name or request.source_path.stem,
             comment=request.comment_override if request.comment_override is not None else inspection.detected_comment,
@@ -98,7 +101,7 @@ class InstallManager:
             appstream_id=inspection.appstream_id,
             embedded_desktop_basename=inspection.embedded_desktop_filename,
             identity_fingerprint=identity.identity_fingerprint,
-            managed_appimage_path=str(managed_appimage),
+            managed_appimage_path=str(placement.stable_path),
             managed_desktop_path=str(desktop_path),
             managed_icon_path=managed_icon_path,
             source_file_name_at_install=request.source_path.name,
@@ -110,9 +113,12 @@ class InstallManager:
             updated_at=timestamp,
             appimage_type=inspection.appimage_type,
             icon_managed_by_app=icon_managed,
+            managed_payload_path=str(placement.payload_path),
+            managed_payload_dir=str(placement.payload_dir),
             managed_files=[
-                str(managed_appimage),
+                str(placement.stable_path),
                 str(desktop_path),
+                str(placement.payload_path),
                 *( [managed_icon_path] if managed_icon_path else [] ),
             ],
             last_validation_status="warning" if validation_messages or inspection.warnings else "ok",
@@ -129,10 +135,8 @@ class InstallManager:
         )
 
     def uninstall(self, record: ManagedAppRecord) -> None:
-        for file_path in record.managed_files:
-            path = Path(file_path)
-            if path.exists():
-                path.unlink()
+        record = self.runtime_service.reconcile_record(record)
+        self.runtime_service.remove_managed_artifacts(record)
         self.store.delete(record.internal_id)
         self._refresh_desktop_databases()
 

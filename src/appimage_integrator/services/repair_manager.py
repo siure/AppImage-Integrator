@@ -8,6 +8,7 @@ from appimage_integrator.models import ManagedAppRecord, RepairReport
 from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.desktop_entry import DesktopEntryService
 from appimage_integrator.services.icon_resolver import IconResolver
+from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.storage.metadata_store import MetadataStore
 
 
@@ -17,16 +18,20 @@ class RepairManager:
         inspector: AppImageInspector,
         desktop_service: DesktopEntryService,
         icon_resolver: IconResolver,
+        runtime_service: ManagedAppRuntimeService,
         store: MetadataStore,
     ) -> None:
         self.inspector = inspector
         self.desktop_service = desktop_service
         self.icon_resolver = icon_resolver
+        self.runtime_service = runtime_service
         self.store = store
 
     def repair(self, record: ManagedAppRecord) -> tuple[ManagedAppRecord, RepairReport]:
+        record = self.runtime_service.reconcile_record(record)
         issues: list[str] = []
         actions: list[str] = []
+        validation_messages: list[str] = []
         appimage_path = Path(record.managed_appimage_path)
         desktop_path = Path(record.managed_desktop_path)
         icon_path = Path(record.managed_icon_path) if record.managed_icon_path else None
@@ -41,7 +46,15 @@ class RepairManager:
 
         inspection = self.inspector.inspect(appimage_path)
 
-        if not desktop_path.exists():
+        should_regenerate_desktop = not desktop_path.exists()
+        if not should_regenerate_desktop:
+            try:
+                existing_desktop_text = desktop_path.read_text(encoding="utf-8", errors="replace")
+                should_regenerate_desktop = bool(self.desktop_service.validate_text(existing_desktop_text))
+            except OSError:
+                should_regenerate_desktop = True
+
+        if should_regenerate_desktop:
             desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
                 inspection=inspection,
                 appimage_path=appimage_path,
@@ -78,13 +91,14 @@ class RepairManager:
             else:
                 issues.append(f"Could not restore icon. Using fallback icon {icon_value}.")
 
-        status = "ok" if not issues else "warning"
+        remaining_messages = [*issues, *validation_messages]
+        status = "error" if issues else ("warning" if validation_messages else "ok")
         record = ManagedAppRecord.from_dict(
             {
                 **record.to_dict(),
                 "updated_at": datetime.now(tz=UTC).isoformat(),
                 "last_validation_status": status,
-                "last_validation_messages": issues,
+                "last_validation_messages": remaining_messages,
             }
         )
         self.store.save(record)
