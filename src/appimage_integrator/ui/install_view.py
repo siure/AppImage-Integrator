@@ -9,21 +9,19 @@ import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, GObject, Gtk
 
-from appimage_integrator.config import PRESET_LABELS, STEPPER_STEPS
+from appimage_integrator.config import PRESET_LABELS
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
-from appimage_integrator.ui.widgets.drop_target import DropTargetFrame
-from appimage_integrator.ui.widgets.status_stepper import StatusStepper
 
 
 class InstallView(Gtk.Box):
+    """Four-page stack: empty → loading → form → progress."""
+
     def __init__(self, install_manager, on_installed, toast) -> None:
-        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        self.set_margin_top(16)
-        self.set_margin_bottom(16)
-        self.set_margin_start(16)
-        self.set_margin_end(16)
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.set_hexpand(True)
+        self.set_vexpand(True)
         self.install_manager = install_manager
         self.on_installed = on_installed
         self.toast = toast
@@ -32,82 +30,205 @@ class InstallView(Gtk.Box):
         self.current_existing: ManagedAppRecord | None = None
         self.current_mode = "install"
 
-        self.drop_target = DropTargetFrame(self.load_path)
-        self.append(self.drop_target)
+        # --- Drag-drop on the entire view ---
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("drop", self._on_drop)
+        drop_target.connect("enter", self._on_drag_enter)
+        drop_target.connect("leave", self._on_drag_leave)
+        self.add_controller(drop_target)
 
-        choose_button = Gtk.Button(label="Choose AppImage")
-        choose_button.add_css_class("suggested-action")
-        choose_button.connect("clicked", self._open_file_chooser)
-        self.append(choose_button)
+        # --- Stack pages ---
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(200)
+        self.append(self.stack)
 
-        self.status_stepper = StatusStepper()
-        self.append(self.status_stepper)
+        # Page: empty
+        self._build_empty_page()
+        # Page: loading
+        self._build_loading_page()
+        # Page: form
+        self._build_form_page()
+        # Page: progress
+        self._build_progress_page()
 
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        card.add_css_class("card")
-        card.set_margin_top(8)
-        card.set_margin_bottom(8)
-        card.set_margin_start(8)
-        card.set_margin_end(8)
-        self.append(card)
+        self.stack.set_visible_child_name("empty")
 
+    # ------------------------------------------------------------------
+    # Empty page
+    # ------------------------------------------------------------------
+    def _build_empty_page(self) -> None:
+        status = Adw.StatusPage()
+        status.set_icon_name("list-add-symbolic")
+        status.set_title("Add an AppImage")
+        status.set_description("Drop an AppImage here or browse for one")
+
+        browse_btn = Gtk.Button(label="Browse Files")
+        browse_btn.add_css_class("pill")
+        browse_btn.add_css_class("suggested-action")
+        browse_btn.set_halign(Gtk.Align.CENTER)
+        browse_btn.connect("clicked", self._open_file_chooser)
+        status.set_child(browse_btn)
+
+        self.stack.add_named(status, "empty")
+
+    # ------------------------------------------------------------------
+    # Loading page
+    # ------------------------------------------------------------------
+    def _build_loading_page(self) -> None:
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_halign(Gtk.Align.CENTER)
+        box.set_valign(Gtk.Align.CENTER)
+        box.set_vexpand(True)
+
+        spinner = Gtk.Spinner(spinning=True)
+        spinner.set_size_request(48, 48)
+        box.append(spinner)
+
+        label = Gtk.Label(label="Inspecting AppImage…")
+        label.add_css_class("title-4")
+        box.append(label)
+
+        self.stack.add_named(box, "loading")
+
+    # ------------------------------------------------------------------
+    # Form page
+    # ------------------------------------------------------------------
+    def _build_form_page(self) -> None:
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_vexpand(True)
+
+        clamp = Adw.Clamp()
+        clamp.set_maximum_size(600)
+        clamp.set_margin_top(24)
+        clamp.set_margin_bottom(24)
+        clamp.set_margin_start(12)
+        clamp.set_margin_end(12)
+        scrolled.set_child(clamp)
+
+        form_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        clamp.set_child(form_box)
+
+        # Icon + Name header
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        header.set_margin_bottom(6)
         self.preview_icon = Gtk.Image.new_from_icon_name("application-x-executable")
-        self.preview_icon.set_pixel_size(72)
+        self.preview_icon.set_pixel_size(64)
         header.append(self.preview_icon)
-        labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
-        self.name_label = Gtk.Label(label="No AppImage selected", xalign=0)
-        self.name_label.add_css_class("title-3")
-        self.comment_label = Gtk.Label(label="Select an AppImage to inspect embedded metadata.", xalign=0)
+        labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
+        labels.set_valign(Gtk.Align.CENTER)
+        self.name_label = Gtk.Label(label="", xalign=0)
+        self.name_label.add_css_class("title-2")
+        self.comment_label = Gtk.Label(label="", xalign=0)
         self.comment_label.add_css_class("dim-label")
         labels.append(self.name_label)
         labels.append(self.comment_label)
         header.append(labels)
-        card.append(header)
+        form_box.append(header)
 
-        details_expander = Gtk.Expander(label="Detected Metadata")
-        self.metadata_label = Gtk.Label(xalign=0, selectable=True, wrap=True)
-        self.metadata_label.add_css_class("monospace")
-        details_expander.set_child(self.metadata_label)
-        card.append(details_expander)
+        # --- Display group ---
+        display_group = Adw.PreferencesGroup(title="Display")
+        self.name_entry = Adw.EntryRow(title="Name")
+        self.comment_entry = Adw.EntryRow(title="Comment")
+        display_group.add(self.name_entry)
+        display_group.add(self.comment_entry)
+        form_box.append(display_group)
 
-        grid = Gtk.Grid(column_spacing=12, row_spacing=12)
-        card.append(grid)
-        self.name_entry = Gtk.Entry(placeholder_text="Display name")
-        self.comment_entry = Gtk.Entry(placeholder_text="Comment")
-        self.args_entry = Gtk.Entry(placeholder_text="Extra launch arguments")
-        self.preset_combo = Gtk.DropDown.new_from_strings(list(PRESET_LABELS.values()))
+        # --- Launch Options group ---
+        launch_group = Adw.PreferencesGroup(title="Launch Options")
+
+        # Preset combo
+        preset_labels = list(PRESET_LABELS.values())
+        preset_model = Gtk.StringList.new(preset_labels)
+        self.preset_combo = Adw.ComboRow(title="Preset", model=preset_model)
         labels_map = {value: key for key, value in PRESET_LABELS.items()}
         self._preset_index_to_id = {
-            index: labels_map[label] for index, label in enumerate(PRESET_LABELS.values())
+            index: labels_map[label] for index, label in enumerate(preset_labels)
         }
         self._preset_id_to_index = {
             preset_id: index for index, preset_id in self._preset_index_to_id.items()
         }
+        launch_group.add(self.preset_combo)
 
-        for row, (label_text, widget) in enumerate(
-            (
-                ("Name", self.name_entry),
-                ("Comment", self.comment_entry),
-                ("Extra args", self.args_entry),
-                ("Preset", self.preset_combo),
-            )
-        ):
-            label = Gtk.Label(label=label_text, xalign=0)
-            grid.attach(label, 0, row, 1, 1)
-            grid.attach(widget, 1, row, 1, 1)
+        self.args_entry = Adw.EntryRow(title="Extra Arguments")
+        launch_group.add(self.args_entry)
+        form_box.append(launch_group)
+
+        # --- Technical Details (collapsible) ---
+        tech_group = Adw.PreferencesGroup(title="Technical Details")
+        self.tech_expander = Adw.ExpanderRow(title="Detected Metadata")
+        self.tech_expander.set_enable_expansion(True)
+        self.tech_expander.set_expanded(False)
+        tech_group.add(self.tech_expander)
+        form_box.append(tech_group)
+
+        # --- Footer buttons ---
+        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        footer.set_halign(Gtk.Align.END)
+        footer.set_margin_top(6)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.add_css_class("pill")
+        cancel_btn.connect("clicked", lambda _btn: self.reset())
+        footer.append(cancel_btn)
 
         self.install_button = Gtk.Button(label="Install")
+        self.install_button.add_css_class("pill")
         self.install_button.add_css_class("suggested-action")
         self.install_button.connect("clicked", self._on_install_clicked)
         self.install_button.set_sensitive(False)
-        cancel_button = Gtk.Button(label="Clear")
-        cancel_button.connect("clicked", lambda _btn: self.reset())
-        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         footer.append(self.install_button)
-        footer.append(cancel_button)
-        card.append(footer)
 
+        form_box.append(footer)
+
+        self.stack.add_named(scrolled, "form")
+
+    # ------------------------------------------------------------------
+    # Progress page
+    # ------------------------------------------------------------------
+    def _build_progress_page(self) -> None:
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_halign(Gtk.Align.CENTER)
+        box.set_valign(Gtk.Align.CENTER)
+        box.set_vexpand(True)
+
+        spinner = Gtk.Spinner(spinning=True)
+        spinner.set_size_request(48, 48)
+        box.append(spinner)
+
+        label = Gtk.Label(label="Installing…")
+        label.add_css_class("title-4")
+        self._progress_label = label
+        box.append(label)
+
+        self.stack.add_named(box, "progress")
+
+    # ------------------------------------------------------------------
+    # Drag-drop handlers
+    # ------------------------------------------------------------------
+    def _on_drop(self, _target: Gtk.DropTarget, value: GObject.Value, _x: float, _y: float) -> bool:
+        self.remove_css_class("drop-highlight")
+        file_list = value.get_value()
+        files = file_list.get_files() if file_list else []
+        if not files:
+            return False
+        path = files[0].get_path()
+        if not path:
+            return False
+        self.load_path(Path(path))
+        return True
+
+    def _on_drag_enter(self, *_args) -> Gdk.DragAction:
+        self.add_css_class("drop-highlight")
+        return Gdk.DragAction.COPY
+
+    def _on_drag_leave(self, *_args) -> None:
+        self.remove_css_class("drop-highlight")
+
+    # ------------------------------------------------------------------
+    # File chooser
+    # ------------------------------------------------------------------
     def _open_file_chooser(self, _button: Gtk.Button) -> None:
         dialog = Gtk.FileChooserNative(
             title="Choose AppImage",
@@ -126,6 +247,9 @@ class InstallView(Gtk.Box):
                 self.load_path(Path(file.get_path()))
         dialog.destroy()
 
+    # ------------------------------------------------------------------
+    # Public entry points
+    # ------------------------------------------------------------------
     def load_path(self, path: Path) -> None:
         self.reset(clear_selection=False)
         self.current_source_path = path
@@ -162,9 +286,6 @@ class InstallView(Gtk.Box):
             button_label="Reinstall",
             require_trust_prompt=False,
         )
-
-    def update_record(self, record: ManagedAppRecord) -> None:
-        self.reinstall_record(record)
 
     def install_record_from_source(
         self,
@@ -219,11 +340,12 @@ class InstallView(Gtk.Box):
 
         self._submit_record_install(record, source_path)
 
+    # ------------------------------------------------------------------
+    # Inspection
+    # ------------------------------------------------------------------
     def _begin_inspection(self, path: Path) -> None:
         self.current_source_path = path
-        self.status_stepper.reset()
-        self.status_stepper.set_step(STEPPER_STEPS[0], "running", "Checking file")
-        self.install_button.set_sensitive(False)
+        self.stack.set_visible_child_name("loading")
 
         def worker() -> None:
             inspection, existing, mode = self.install_manager.inspect(path)
@@ -231,6 +353,82 @@ class InstallView(Gtk.Box):
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def _apply_inspection(
+        self,
+        inspection: AppImageInspection,
+        existing: ManagedAppRecord | None,
+        mode: str,
+    ) -> bool:
+        self.current_inspection = inspection
+        self.current_existing = existing
+        self.current_mode = mode
+
+        name = inspection.detected_name or self.current_source_path.stem
+        comment = inspection.detected_comment or ""
+
+        self.name_label.set_text(name)
+        self.comment_label.set_text(comment or "Embedded metadata will be reused when possible.")
+        self.name_entry.set_text(name)
+        self.comment_entry.set_text(comment)
+        self.install_button.set_label(mode.capitalize())
+        self.install_button.set_sensitive(not inspection.errors or inspection.is_executable)
+
+        if inspection.chosen_icon_candidate:
+            self.preview_icon.set_from_file(str(inspection.chosen_icon_candidate.source_path))
+        else:
+            self.preview_icon.set_from_icon_name("application-x-executable")
+
+        # Populate technical details expander
+        self._populate_tech_details(inspection, existing)
+
+        self.stack.set_visible_child_name("form")
+        return False
+
+    def _populate_tech_details(
+        self,
+        inspection: AppImageInspection,
+        existing: ManagedAppRecord | None,
+    ) -> None:
+        # Clear previous rows
+        while True:
+            first = self.tech_expander.get_first_child()
+            # ExpanderRow's first child is its own internal widgets; we need
+            # to iterate through the rows added via add_row
+            # Use remove() on rows we added — safest approach is to track them.
+            # Actually, ExpanderRow doesn't have a clear method, so we rebuild.
+            break
+
+        # Remove previously added rows
+        if hasattr(self, "_tech_rows"):
+            for row in self._tech_rows:
+                self.tech_expander.remove(row)
+        self._tech_rows = []
+
+        details = [
+            ("Source", str(inspection.source_path)),
+            ("AppImage type", inspection.appimage_type),
+            ("Desktop file", inspection.embedded_desktop_filename or "fallback"),
+            ("AppStream ID", inspection.appstream_id or "not found"),
+            ("Version", inspection.detected_version or "unknown"),
+        ]
+        if inspection.warnings:
+            details.append(("Warnings", "; ".join(inspection.warnings)))
+        if inspection.errors:
+            details.append(("Errors", "; ".join(inspection.errors)))
+        if existing:
+            details.append(("Existing", f"{existing.display_name} ({existing.version or 'unknown'})"))
+
+        for title, value in details:
+            row = Adw.ActionRow(title=title)
+            row.set_use_markup(False)
+            row.set_subtitle(value)
+            row.set_subtitle_selectable(True)
+            self.tech_expander.add_row(row)
+            self._tech_rows.append(row)
+
+    # ------------------------------------------------------------------
+    # Trust prompt
+    # ------------------------------------------------------------------
     def _prompt_for_source_trust(
         self,
         path: Path,
@@ -243,10 +441,7 @@ class InstallView(Gtk.Box):
         success_title: str,
         success_body: str,
     ) -> None:
-        dialog = Adw.AlertDialog.new(
-            title,
-            body,
-        )
+        dialog = Adw.AlertDialog.new(title, body)
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("trust", "Trust and Continue")
         dialog.set_default_response("trust")
@@ -277,10 +472,7 @@ class InstallView(Gtk.Box):
     ) -> None:
         response = dialog.choose_finish(result)
         if response != "trust":
-            self._show_alert_dialog(
-                cancel_title,
-                cancel_body,
-            )
+            self._show_alert_dialog(cancel_title, cancel_body)
             self.reset()
             return
         try:
@@ -292,52 +484,12 @@ class InstallView(Gtk.Box):
             )
             self.reset()
             return
-        self._show_alert_dialog(
-            success_title,
-            success_body,
-        )
+        self._show_alert_dialog(success_title, success_body)
         on_trusted()
 
-    def _apply_inspection(
-        self,
-        inspection: AppImageInspection,
-        existing: ManagedAppRecord | None,
-        mode: str,
-    ) -> bool:
-        self.current_inspection = inspection
-        self.current_existing = existing
-        self.current_mode = mode
-        self.status_stepper.set_step(STEPPER_STEPS[0], "success" if inspection.is_appimage else "warning")
-        self.status_stepper.set_step(
-            STEPPER_STEPS[1],
-            "success" if inspection.extracted_dir else "warning",
-            "metadata ready" if inspection.extracted_dir else "fallback only",
-        )
-        self.name_label.set_text(inspection.detected_name or self.current_source_path.stem)
-        self.comment_label.set_text(inspection.detected_comment or "Embedded metadata will be reused when possible.")
-        self.name_entry.set_text(inspection.detected_name or self.current_source_path.stem)
-        self.comment_entry.set_text(inspection.detected_comment or "")
-        self.install_button.set_label(mode.capitalize())
-        self.install_button.set_sensitive(not inspection.errors or inspection.is_executable)
-        if inspection.chosen_icon_candidate:
-            self.preview_icon.set_from_file(str(inspection.chosen_icon_candidate.source_path))
-        else:
-            self.preview_icon.set_from_icon_name("application-x-executable")
-
-        details = [
-            f"Source: {inspection.source_path}",
-            f"AppImage type: {inspection.appimage_type}",
-            f"Desktop: {inspection.embedded_desktop_filename or 'fallback'}",
-            f"AppStream ID: {inspection.appstream_id or 'not found'}",
-            f"Version: {inspection.detected_version or 'unknown'}",
-            f"Warnings: {'; '.join(inspection.warnings) if inspection.warnings else 'none'}",
-            f"Errors: {'; '.join(inspection.errors) if inspection.errors else 'none'}",
-        ]
-        if existing:
-            details.append(f"Existing integration: {existing.display_name} ({existing.version or 'unknown'})")
-        self.metadata_label.set_text("\n".join(details))
-        return False
-
+    # ------------------------------------------------------------------
+    # Install
+    # ------------------------------------------------------------------
     def _on_install_clicked(self, _button: Gtk.Button) -> None:
         if self.current_source_path is None:
             return
@@ -361,6 +513,7 @@ class InstallView(Gtk.Box):
             self._preset_id_to_index.get(record.arg_preset_id or "none", 0)
         )
         self.install_button.set_label(button_label)
+        self.stack.set_visible_child_name("form")
 
     def _submit_record_install(self, record: ManagedAppRecord, source_path: Path) -> None:
         self._submit_install_request(
@@ -376,11 +529,8 @@ class InstallView(Gtk.Box):
         )
 
     def _submit_install_request(self, request: InstallRequest) -> None:
-        self.status_stepper.set_step(STEPPER_STEPS[2], "running", "Copying AppImage")
-        self.status_stepper.set_step(STEPPER_STEPS[3], "running", "Resolving icon")
-        self.status_stepper.set_step(STEPPER_STEPS[4], "running", "Writing launcher")
-        self.status_stepper.set_step(STEPPER_STEPS[5], "running", "Saving metadata")
-        self.install_button.set_sensitive(False)
+        self._progress_label.set_text("Installing…")
+        self.stack.set_visible_child_name("progress")
 
         def worker() -> None:
             try:
@@ -392,8 +542,6 @@ class InstallView(Gtk.Box):
         threading.Thread(target=worker, daemon=True).start()
 
     def _apply_install_result(self, result) -> bool:
-        for step in STEPPER_STEPS[2:]:
-            self.status_stepper.set_step(step, "success")
         messages = [*result.warnings, *result.validation_messages]
         body = f"{result.record.display_name} was processed successfully."
         if messages:
@@ -407,15 +555,14 @@ class InstallView(Gtk.Box):
         return False
 
     def _apply_install_error(self, message: str) -> bool:
-        for step in STEPPER_STEPS[2:]:
-            self.status_stepper.set_step(step, "error")
-        self._show_alert_dialog(
-            "Install failed",
-            message,
-        )
+        self._show_alert_dialog("Install failed", message)
+        self.stack.set_visible_child_name("form")
         self.install_button.set_sensitive(True)
         return False
 
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
     def _show_alert_dialog(self, title: str, body: str) -> None:
         dialog = Adw.AlertDialog.new(title, body)
         dialog.add_response("ok", "OK")
@@ -424,19 +571,23 @@ class InstallView(Gtk.Box):
         dialog.present(self.get_root())
 
     def reset(self, clear_selection: bool = True) -> None:
-        self.status_stepper.reset()
-        self.name_label.set_text("No AppImage selected")
-        self.comment_label.set_text("Select an AppImage to inspect embedded metadata.")
-        self.metadata_label.set_text("")
-        self.preview_icon.set_from_icon_name("application-x-executable")
+        self.name_label.set_text("")
+        self.comment_label.set_text("")
         self.name_entry.set_text("")
         self.comment_entry.set_text("")
         self.args_entry.set_text("")
         self.preset_combo.set_selected(0)
         self.install_button.set_sensitive(False)
         self.install_button.set_label("Install")
+        self.preview_icon.set_from_icon_name("application-x-executable")
+        if hasattr(self, "_tech_rows"):
+            for row in self._tech_rows:
+                self.tech_expander.remove(row)
+            self._tech_rows = []
+        self.tech_expander.set_expanded(False)
         self.current_inspection = None
         self.current_existing = None
         self.current_mode = "install"
         if clear_selection:
             self.current_source_path = None
+        self.stack.set_visible_child_name("empty")

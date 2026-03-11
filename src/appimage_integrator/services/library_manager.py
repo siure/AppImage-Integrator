@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from appimage_integrator.models import ManagedAppRecord
-from appimage_integrator.services.desktop_entry import DesktopEntryService
+from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.storage.metadata_store import MetadataStore
 
@@ -48,8 +48,11 @@ class LibraryManager:
             except OSError as exc:
                 desktop_messages = [f"Desktop launcher could not be read: {exc}"]
             if desktop_messages:
-                issues.extend(f"Desktop launcher is invalid: {message}" for message in desktop_messages)
-                launch_blocked = True
+                warning_messages, error_messages = partition_validation_messages(desktop_messages)
+                issues.extend(f"Desktop launcher warning: {message}" for message in warning_messages)
+                issues.extend(f"Desktop launcher is invalid: {message}" for message in error_messages)
+                if error_messages:
+                    launch_blocked = True
 
         if record.managed_icon_path and not Path(record.managed_icon_path).exists():
             issues.append("Managed icon is missing.")

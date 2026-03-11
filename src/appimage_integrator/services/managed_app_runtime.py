@@ -9,7 +9,7 @@ from pathlib import Path
 from appimage_integrator.models import AppImageInspection, ManagedAppRecord
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.services.appimage_inspector import AppImageInspector
-from appimage_integrator.services.desktop_entry import DesktopEntryService
+from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.versioning import compare_versions
@@ -256,6 +256,7 @@ class ManagedAppRuntimeService:
         )
         Path(record.managed_desktop_path).write_text(desktop_text, encoding="utf-8")
         timestamp = datetime.now(tz=UTC).isoformat()
+        validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         updated = ManagedAppRecord.from_dict(
             {
                 **record.to_dict(),
@@ -269,7 +270,11 @@ class ManagedAppRuntimeService:
                 "updated_at": timestamp,
                 "appimage_type": inspection.appimage_type,
                 "icon_managed_by_app": icon_managed,
-                "last_validation_status": "warning" if validation_messages or inspection.warnings else "ok",
+                "last_validation_status": (
+                    "error"
+                    if validation_errors
+                    else ("warning" if validation_warnings or inspection.warnings else "ok")
+                ),
                 "last_validation_messages": [*inspection.warnings, *validation_messages],
             }
         )

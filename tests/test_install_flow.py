@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pytest
+
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
 from appimage_integrator.services.desktop_entry import parse_desktop_entry, DesktopEntryService
 from appimage_integrator.services.icon_resolver import IconResolver
@@ -174,6 +176,57 @@ def test_ensure_source_executable_adds_execute_bit(test_paths, tooling) -> None:
     assert source.stat().st_mode & 0o100
 
 
+def test_install_rejects_non_appimage_sources(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "not-appimage.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("plain text", encoding="utf-8")
+    source.chmod(0o755)
+
+    manager, _, inspector, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [
+            AppImageInspection(
+                source_path=source,
+                is_appimage=False,
+                appimage_type="unknown",
+                is_executable=True,
+                detected_name=source.stem,
+                detected_comment=None,
+                detected_version=None,
+                appstream_id=None,
+                embedded_desktop_filename=None,
+                desktop_entry=None,
+                chosen_icon_candidate=None,
+                startup_wm_class=None,
+                mime_types=[],
+                categories=[],
+                terminal=None,
+                startup_notify=None,
+                exec_placeholders=[],
+                warnings=["The file does not strongly identify itself as an AppImage."],
+                errors=["Could not extract AppImage contents."],
+                extracted_dir=None,
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="not a valid AppImage"):
+        manager.install(
+            InstallRequest(
+                source_path=source,
+                display_name_override=None,
+                comment_override=None,
+                extra_args=[],
+                arg_preset_id="none",
+                allow_update=True,
+                allow_reinstall=True,
+            )
+        )
+
+    assert inspector.cleanup_calls == 1
+
+
 def test_library_validation_and_repair(test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "demo.AppImage"
     source.parent.mkdir(parents=True)
@@ -249,6 +302,39 @@ def test_library_validation_reports_non_executable_appimage(test_paths, tooling)
 
     assert status == "error"
     assert "Managed AppImage is not executable." in messages
+
+
+def test_library_validation_treats_desktop_warnings_as_non_blocking(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-warning.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-warning"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, desktop_service, runtime_service = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    result = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+
+    desktop_service.validate_text = lambda _text: ["demo.desktop: warning: comment matches name"]
+    library = LibraryManager(store, runtime_service, desktop_service)
+    _, status, messages = library.validate_record(result.record)
+
+    assert status == "warning"
+    assert messages == ["Desktop launcher warning: demo.desktop: warning: comment matches name"]
 
 
 def test_repair_regenerates_invalid_desktop(test_paths, tooling) -> None:

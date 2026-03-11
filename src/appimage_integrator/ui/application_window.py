@@ -21,7 +21,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         super().__init__(application=application)
         self.services = services
         self.set_title("AppImage Integrator")
-        self.set_default_size(1120, 760)
+        self.set_default_size(900, 650)
 
         self.toast_overlay = Adw.ToastOverlay()
         self.set_content(self.toast_overlay)
@@ -32,18 +32,17 @@ class ApplicationWindow(Adw.ApplicationWindow):
         header = Adw.HeaderBar()
         toolbar.add_top_bar(header)
 
-        open_button = Gtk.Button(label="Open AppImage")
-        open_button.connect("clicked", self._open_appimage)
-        header.pack_start(open_button)
-
-        refresh_button = Gtk.Button(label="Refresh Library")
+        # Icon-only refresh button
+        refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
+        refresh_button.set_tooltip_text("Refresh Library")
+        refresh_button.add_css_class("flat")
         refresh_button.connect("clicked", lambda _btn: self.refresh_library())
         header.pack_end(refresh_button)
 
-        stack = Adw.ViewStack()
-        self.stack = stack
+        # ViewSwitcher in center
+        self.stack = Adw.ViewStack()
         self.view_switcher = Adw.ViewSwitcher()
-        self.view_switcher.set_stack(stack)
+        self.view_switcher.set_stack(self.stack)
         header.set_title_widget(self.view_switcher)
 
         self.library_view = LibraryView(
@@ -59,11 +58,18 @@ class ApplicationWindow(Adw.ApplicationWindow):
             toast=self.show_toast,
         )
 
-        stack.add_titled(self.install_view, "install", "Install")
-        stack.add_titled(self.library_view, "library", "Library")
-        toolbar.set_content(stack)
+        self.stack.add_titled_with_icon(self.install_view, "install", "Install", "list-add-symbolic")
+        self.stack.add_titled_with_icon(self.library_view, "library", "Library", "view-grid-symbolic")
+        toolbar.set_content(self.stack)
+
+        # Auto-refresh library when switching tabs
+        self.stack.connect("notify::visible-child", self._on_tab_switched)
 
         self.refresh_library()
+
+    def _on_tab_switched(self, stack: Adw.ViewStack, _pspec) -> None:
+        if stack.get_visible_child() is self.library_view:
+            self.refresh_library()
 
     def show_toast(self, message: str) -> None:
         self.toast_overlay.add_toast(Adw.Toast.new(message))
@@ -257,9 +263,6 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if isinstance(exc, PermissionError):
             return "Managed AppImage is not executable."
         return f"Launching failed: {exc}"
-
-    def _open_appimage(self, _button: Gtk.Button) -> None:
-        self.install_view._open_file_chooser(_button)
 
     def _present_update_discovery(self, record: ManagedAppRecord, discovery) -> bool:
         if discovery.higher_version_candidates:

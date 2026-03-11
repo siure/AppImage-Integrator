@@ -5,7 +5,10 @@ import json
 import logging
 from pathlib import Path
 
+import pytest
+
 from appimage_integrator.bootstrap import ServiceContainer
+from appimage_integrator import cli
 from appimage_integrator.cli import build_parser, run_cli
 from appimage_integrator.models import AppImageInspection
 from appimage_integrator.services.desktop_entry import DesktopEntryService, parse_desktop_entry
@@ -247,6 +250,90 @@ def test_cli_launch_reports_validation_errors(test_paths, tooling) -> None:
     assert stdout == ""
     assert "Launch blocked by integration errors:" in stderr
     assert "Managed AppImage is not executable." in stderr
+
+
+def test_cli_install_rejects_non_appimage(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "fake.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("not an appimage", encoding="utf-8")
+    source.chmod(0o755)
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [
+            AppImageInspection(
+                source_path=source,
+                is_appimage=False,
+                appimage_type="unknown",
+                is_executable=True,
+                detected_name=source.stem,
+                detected_comment=None,
+                detected_version=None,
+                appstream_id=None,
+                embedded_desktop_filename=None,
+                desktop_entry=None,
+                chosen_icon_candidate=None,
+                startup_wm_class=None,
+                mime_types=[],
+                categories=[],
+                terminal=None,
+                startup_notify=None,
+                exec_placeholders=[],
+                warnings=["The file does not strongly identify itself as an AppImage."],
+                errors=["Could not extract AppImage contents."],
+                extracted_dir=None,
+            )
+        ],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--json")
+
+    assert code == 1
+    assert stdout == ""
+    assert "not a valid AppImage" in stderr
+
+
+def test_cli_launch_allows_desktop_warnings(monkeypatch, test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "warning-launch.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-warning-launch"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    parser = build_parser()
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    internal_id = json.loads(stdout)["record"]["internal_id"]
+
+    services.library_manager.desktop_service.validate_text = (
+        lambda _text: ["demo.desktop: warning: comment matches name"]
+    )
+
+    launched: list[list[str]] = []
+
+    class DummyProcess:
+        pass
+
+    def fake_popen(args):
+        launched.append(args)
+        return DummyProcess()
+
+    monkeypatch.setattr(cli.subprocess, "Popen", fake_popen)
+
+    code, stdout, stderr = run_args(parser, services, "launch", internal_id)
+
+    assert code == 0
+    assert stderr == ""
+    assert "Launched Demo Browser" in stdout
+    assert launched == [[services.store.load(internal_id).managed_appimage_path]]
 
 
 def test_cli_update_uses_detected_higher_version(test_paths, tooling) -> None:

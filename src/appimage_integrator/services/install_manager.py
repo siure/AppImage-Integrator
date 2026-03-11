@@ -8,7 +8,7 @@ from pathlib import Path
 from appimage_integrator.models import AppImageInspection, InstallRequest, InstallResult, ManagedAppRecord
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.services.appimage_inspector import AppImageInspector
-from appimage_integrator.services.desktop_entry import DesktopEntryService
+from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
@@ -63,6 +63,19 @@ class InstallManager:
 
     def install(self, request: InstallRequest) -> InstallResult:
         inspection = self.inspector.inspect(request.source_path)
+        fatal_errors = [
+            message
+            for message in inspection.errors
+            if message != "Could not extract AppImage contents."
+        ]
+        if not inspection.is_appimage:
+            self.inspector.cleanup(inspection)
+            raise ValueError("Selected file is not a valid AppImage.")
+        if fatal_errors:
+            message = fatal_errors[0]
+            self.inspector.cleanup(inspection)
+            raise ValueError(f"Could not install AppImage: {message}")
+
         identity = self.id_resolver.resolve(inspection)
         existing = self.store.load(identity.internal_id)
         if existing:
@@ -93,6 +106,7 @@ class InstallManager:
         desktop_path.write_text(desktop_text, encoding="utf-8")
 
         timestamp = datetime.now(tz=UTC).isoformat()
+        validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         record = ManagedAppRecord(
             internal_id=identity.internal_id,
             display_name=request.display_name_override or inspection.detected_name or request.source_path.stem,
@@ -121,7 +135,11 @@ class InstallManager:
                 str(placement.payload_path),
                 *( [managed_icon_path] if managed_icon_path else [] ),
             ],
-            last_validation_status="warning" if validation_messages or inspection.warnings else "ok",
+            last_validation_status=(
+                "error"
+                if validation_errors
+                else ("warning" if validation_warnings or inspection.warnings else "ok")
+            ),
             last_validation_messages=[*inspection.warnings, *validation_messages],
         )
         self.store.save(record)

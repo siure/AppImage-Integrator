@@ -6,7 +6,7 @@ from pathlib import Path
 
 from appimage_integrator.models import ManagedAppRecord, RepairReport
 from appimage_integrator.services.appimage_inspector import AppImageInspector
-from appimage_integrator.services.desktop_entry import DesktopEntryService
+from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -50,7 +50,9 @@ class RepairManager:
         if not should_regenerate_desktop:
             try:
                 existing_desktop_text = desktop_path.read_text(encoding="utf-8", errors="replace")
-                should_regenerate_desktop = bool(self.desktop_service.validate_text(existing_desktop_text))
+                should_regenerate_desktop = bool(
+                    partition_validation_messages(self.desktop_service.validate_text(existing_desktop_text))[1]
+                )
             except OSError:
                 should_regenerate_desktop = True
 
@@ -92,7 +94,8 @@ class RepairManager:
                 issues.append(f"Could not restore icon. Using fallback icon {icon_value}.")
 
         remaining_messages = [*issues, *validation_messages]
-        status = "error" if issues else ("warning" if validation_messages else "ok")
+        validation_warnings, validation_errors = partition_validation_messages(validation_messages)
+        status = "error" if issues or validation_errors else ("warning" if validation_warnings else "ok")
         record = ManagedAppRecord.from_dict(
             {
                 **record.to_dict(),

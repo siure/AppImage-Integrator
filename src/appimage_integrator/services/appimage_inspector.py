@@ -90,7 +90,7 @@ class AppImageInspector:
             else:
                 warnings.append("No embedded desktop file was found. A fallback launcher will be generated.")
 
-            appstream_id = self._find_appstream_id(extracted_dir)
+            appstream_id = self._find_appstream_id(extracted_dir, desktop_filename, name)
 
         if extracted_dir is None:
             errors.append("Could not extract AppImage contents.")
@@ -177,17 +177,59 @@ class AppImageInspector:
         desktop_files = sorted(extracted_dir.rglob("*.desktop"))
         return desktop_files[0] if desktop_files else None
 
-    def _find_appstream_id(self, extracted_dir: Path) -> str | None:
+    def _find_appstream_id(
+        self,
+        extracted_dir: Path,
+        desktop_filename: str | None,
+        detected_name: str | None,
+    ) -> str | None:
+        candidates: list[tuple[int, str]] = []
         xml_files = list(extracted_dir.rglob("*.appdata.xml")) + list(extracted_dir.rglob("*.metainfo.xml"))
+        desktop_stem = desktop_filename.rsplit(".", 1)[0].casefold() if desktop_filename else ""
+        normalized_name = self._normalize_token_string(detected_name)
+
         for path in xml_files:
             try:
                 root = ET.fromstring(path.read_text(encoding="utf-8", errors="replace"))
             except ET.ParseError:
                 continue
-            tag = root.findtext("id")
-            if tag:
-                return tag.strip()
-        return None
+            component_id = self._first_child_text(root, "id")
+            if not component_id:
+                continue
+
+            score = 0
+            component_type = root.attrib.get("type", "").casefold()
+            if component_type == "desktop":
+                score += 10
+
+            launchables = self._child_texts(root, "launchable")
+            if desktop_filename and desktop_filename in launchables:
+                score += 100
+            if desktop_filename and component_id == desktop_filename:
+                score += 95
+
+            component_stem = component_id.rsplit(".", 1)[0].casefold()
+            path_stem = self._normalize_token_string(path.name)
+            if desktop_stem and desktop_stem == component_stem:
+                score += 90
+            if desktop_stem and desktop_stem and desktop_stem in path_stem.split():
+                score += 70
+
+            component_name = self._normalize_token_string(self._first_child_text(root, "name"))
+            if normalized_name and component_name:
+                if component_name == normalized_name:
+                    score += 85
+                elif self._token_sets_overlap(component_name, normalized_name):
+                    score += 60
+
+            if score > 0:
+                candidates.append((score, component_id.strip()))
+
+        if not candidates:
+            return None
+
+        candidates.sort(key=lambda item: (-item[0], item[1]))
+        return candidates[0][1]
 
     def _bool_field(self, value: str | None) -> bool | None:
         if value is None:
@@ -203,3 +245,37 @@ class AppImageInspector:
         if not value:
             return []
         return [item for item in value.split(";") if item]
+
+    def _first_child_text(self, root: ET.Element, local_name: str) -> str | None:
+        for child in root:
+            if child.tag.rsplit("}", 1)[-1] != local_name:
+                continue
+            text = child.text.strip() if child.text else ""
+            if text:
+                return text
+        return None
+
+    def _child_texts(self, root: ET.Element, local_name: str) -> list[str]:
+        values: list[str] = []
+        for child in root:
+            if child.tag.rsplit("}", 1)[-1] != local_name:
+                continue
+            text = child.text.strip() if child.text else ""
+            if text:
+                values.append(text)
+        return values
+
+    def _normalize_token_string(self, value: str | None) -> str:
+        if not value:
+            return ""
+        collapsed = "".join(char.lower() if char.isalnum() else " " for char in value)
+        return " ".join(part for part in collapsed.split() if part)
+
+    def _token_sets_overlap(self, left: str, right: str) -> bool:
+        left_tokens = set(left.split())
+        right_tokens = set(right.split())
+        return bool(
+            left_tokens
+            and right_tokens
+            and (left_tokens <= right_tokens or right_tokens <= left_tokens)
+        )

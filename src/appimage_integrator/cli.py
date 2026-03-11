@@ -164,17 +164,21 @@ def _cmd_install(args: argparse.Namespace, services, stdout: TextIO, stderr: Tex
     if not _prepare_source_path(path, services, args.trust, stderr):
         return 1
 
-    result = services.install_manager.install(
-        InstallRequest(
-            source_path=path,
-            display_name_override=args.display_name,
-            comment_override=args.comment,
-            extra_args=_combine_extra_args(args.extra_args, args.args),
-            arg_preset_id=args.preset,
-            allow_update=True,
-            allow_reinstall=True,
+    try:
+        result = services.install_manager.install(
+            InstallRequest(
+                source_path=path,
+                display_name_override=args.display_name,
+                comment_override=args.comment,
+                extra_args=_combine_extra_args(args.extra_args, args.args),
+                arg_preset_id=args.preset,
+                allow_update=True,
+                allow_reinstall=True,
+            )
         )
-    )
+    except ValueError as exc:
+        stderr.write(f"{exc}\n")
+        return 1
     if args.json:
         _write_json(
             stdout,
@@ -307,7 +311,7 @@ def _cmd_reinstall(args: argparse.Namespace, services, stdout: TextIO, stderr: T
     if not _prepare_source_path(source_path, services, args.trust, stderr):
         return 1
 
-    return _install_from_record_source(record, source_path, services, stdout, args.json)
+    return _install_from_record_source(record, source_path, services, stdout, stderr, args.json)
 
 
 def _cmd_update(
@@ -345,7 +349,7 @@ def _cmd_update(
         stdin,
     ):
         return 1
-    return _install_from_record_source(record, chosen_path, services, stdout, args.json)
+    return _install_from_record_source(record, chosen_path, services, stdout, stderr, args.json)
 
 
 def _install_from_record_source(
@@ -353,19 +357,24 @@ def _install_from_record_source(
     source_path: Path,
     services,
     stdout: TextIO,
+    stderr: TextIO,
     json_output: bool,
 ) -> int:
-    result = services.install_manager.install(
-        InstallRequest(
-            source_path=source_path,
-            display_name_override=record.display_name,
-            comment_override=record.comment,
-            extra_args=record.extra_args,
-            arg_preset_id=record.arg_preset_id,
-            allow_update=True,
-            allow_reinstall=True,
+    try:
+        result = services.install_manager.install(
+            InstallRequest(
+                source_path=source_path,
+                display_name_override=record.display_name,
+                comment_override=record.comment,
+                extra_args=record.extra_args,
+                arg_preset_id=record.arg_preset_id,
+                allow_update=True,
+                allow_reinstall=True,
+            )
         )
-    )
+    except ValueError as exc:
+        stderr.write(f"{exc}\n")
+        return 1
     if json_output:
         _write_json(
             stdout,

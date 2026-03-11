@@ -96,6 +96,18 @@ def sanitize_value(value: str | None) -> str | None:
     return CONTROL_RE.sub("", value).strip() or None
 
 
+def partition_validation_messages(messages: list[str]) -> tuple[list[str], list[str]]:
+    warnings: list[str] = []
+    errors: list[str] = []
+    for message in messages:
+        lowered = message.lower()
+        if "warning:" in lowered and "error:" not in lowered:
+            warnings.append(message)
+        else:
+            errors.append(message)
+    return warnings, errors
+
+
 class DesktopEntryService:
     def __init__(self, tooling: Tooling) -> None:
         self.tooling = tooling
