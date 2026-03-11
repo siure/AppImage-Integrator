@@ -26,28 +26,37 @@ class IconResolver:
         return 0
 
     def collect_candidates(self, extracted_dir: Path, desktop_icon_key: str | None) -> list[IconCandidate]:
-        candidates: list[IconCandidate] = []
+        preferred_candidates: list[IconCandidate] = []
         if desktop_icon_key:
             key_path = extracted_dir / desktop_icon_key
             for path in self._candidate_paths_for_key(extracted_dir, key_path, desktop_icon_key):
                 icon = self._candidate_from_path(extracted_dir, path)
                 if icon:
-                    candidates.append(icon)
+                    preferred_candidates.append(icon)
+        fallback_candidates: list[IconCandidate] = []
         dir_icon = extracted_dir / ".DirIcon"
         if dir_icon.exists():
             icon = self._candidate_from_path(extracted_dir, dir_icon.resolve())
             if icon:
-                candidates.append(icon)
+                preferred_candidates.append(icon)
         for path in extracted_dir.rglob("*"):
             icon = self._candidate_from_path(extracted_dir, path)
             if icon:
-                candidates.append(icon)
-        unique: dict[str, IconCandidate] = {}
-        for candidate in candidates:
-            current = unique.get(candidate.relpath)
-            if current is None or self.score_candidate(candidate) > self.score_candidate(current):
-                unique[candidate.relpath] = candidate
-        return sorted(unique.values(), key=self.score_candidate, reverse=True)
+                fallback_candidates.append(icon)
+        ordered_candidates: list[IconCandidate] = []
+        seen_relpaths: set[str] = set()
+        for group in (preferred_candidates, fallback_candidates):
+            unique: dict[str, IconCandidate] = {}
+            for candidate in group:
+                current = unique.get(candidate.relpath)
+                if current is None or self.score_candidate(candidate) > self.score_candidate(current):
+                    unique[candidate.relpath] = candidate
+            for candidate in sorted(unique.values(), key=self.score_candidate, reverse=True):
+                if candidate.relpath in seen_relpaths:
+                    continue
+                seen_relpaths.add(candidate.relpath)
+                ordered_candidates.append(candidate)
+        return ordered_candidates
 
     def choose_for_inspection(self, inspection: AppImageInspection) -> IconCandidate | None:
         if inspection.extracted_dir is None:
@@ -75,6 +84,7 @@ class IconResolver:
             candidate = extracted_dir / f"{key_name}{ext}"
             if candidate.exists():
                 paths.append(candidate)
+            paths.extend(extracted_dir.rglob(f"{key_name}{ext}"))
         return paths
 
     def _candidate_from_path(self, extracted_dir: Path, path: Path) -> IconCandidate | None:

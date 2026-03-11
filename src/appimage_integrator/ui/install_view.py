@@ -137,21 +137,46 @@ class InstallView(Gtk.Box):
             self.reset()
             return
         if not os.access(path, os.X_OK):
-            self._prompt_for_executable_trust(path)
+            self._prompt_for_source_trust(
+                path,
+                on_trusted=lambda: self._begin_inspection(path),
+                title="Trust this AppImage before inspecting it?",
+                body=(
+                    "This AppImage is not executable yet. AppImage Integrator needs to mark it as executable "
+                    "to extract metadata and inspect its embedded launcher.\n\n"
+                    "Only continue if you trust the source of this AppImage. Running untrusted AppImages can be dangerous."
+                ),
+                cancel_title="Inspection cancelled",
+                cancel_body="The AppImage was left unchanged.",
+                success_title="Executable permission updated",
+                success_body="Marked the AppImage as executable. Review the metadata before installing.",
+            )
             return
         self._begin_inspection(path)
 
     def reinstall_record(self, record: ManagedAppRecord) -> None:
         source_path = Path(record.source_path_last_seen)
+        self.install_record_from_source(
+            record,
+            source_path,
+            button_label="Reinstall",
+            require_trust_prompt=False,
+        )
+
+    def update_record(self, record: ManagedAppRecord) -> None:
+        self.reinstall_record(record)
+
+    def install_record_from_source(
+        self,
+        record: ManagedAppRecord,
+        source_path: Path,
+        *,
+        button_label: str,
+        require_trust_prompt: bool,
+    ) -> None:
         self.reset(clear_selection=False)
         self.current_source_path = source_path
-        self.name_entry.set_text(record.display_name)
-        self.comment_entry.set_text(record.comment or "")
-        self.args_entry.set_text(shlex.join(record.extra_args))
-        self.preset_combo.set_selected(
-            self._preset_id_to_index.get(record.arg_preset_id or "none", 0)
-        )
-        self.install_button.set_label("Reinstall")
+        self._populate_record_fields(record, button_label)
 
         if not source_path.exists():
             self._show_alert_dialog(
@@ -160,7 +185,24 @@ class InstallView(Gtk.Box):
             )
             self.reset()
             return
+
         if not os.access(source_path, os.X_OK):
+            if require_trust_prompt:
+                self._prompt_for_source_trust(
+                    source_path,
+                    on_trusted=lambda: self._submit_record_install(record, source_path),
+                    title="Trust this AppImage before updating it?",
+                    body=(
+                        "The selected AppImage is not executable yet. AppImage Integrator needs to mark it as executable "
+                        "before updating this integration.\n\n"
+                        "Only continue if you trust the source of this AppImage. Running untrusted AppImages can be dangerous."
+                    ),
+                    cancel_title="Update cancelled",
+                    cancel_body="The selected AppImage was left unchanged.",
+                    success_title="Executable permission updated",
+                    success_body="Marked the selected AppImage as executable and continued with the update.",
+                )
+                return
             try:
                 self.install_manager.ensure_source_executable(source_path)
             except OSError as exc:
@@ -175,20 +217,7 @@ class InstallView(Gtk.Box):
                 "Marked the original AppImage as executable for reinstall.",
             )
 
-        self._submit_install_request(
-            InstallRequest(
-                source_path=source_path,
-                display_name_override=record.display_name,
-                comment_override=record.comment,
-                extra_args=record.extra_args,
-                arg_preset_id=record.arg_preset_id,
-                allow_update=True,
-                allow_reinstall=True,
-            )
-        )
-
-    def update_record(self, record: ManagedAppRecord) -> None:
-        self.reinstall_record(record)
+        self._submit_record_install(record, source_path)
 
     def _begin_inspection(self, path: Path) -> None:
         self.current_source_path = path
@@ -202,31 +231,55 @@ class InstallView(Gtk.Box):
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _prompt_for_executable_trust(self, path: Path) -> None:
+    def _prompt_for_source_trust(
+        self,
+        path: Path,
+        *,
+        on_trusted,
+        title: str,
+        body: str,
+        cancel_title: str,
+        cancel_body: str,
+        success_title: str,
+        success_body: str,
+    ) -> None:
         dialog = Adw.AlertDialog.new(
-            "Trust this AppImage before inspecting it?",
-            "This AppImage is not executable yet. AppImage Integrator needs to mark it as executable "
-            "to extract metadata and inspect its embedded launcher.\n\n"
-            "Only continue if you trust the source of this AppImage. Running untrusted AppImages can be dangerous.",
+            title,
+            body,
         )
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("trust", "Trust and Continue")
         dialog.set_default_response("trust")
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("trust", Adw.ResponseAppearance.SUGGESTED)
-        dialog.choose(self.get_root(), None, self._on_trust_response, path)
+        dialog.choose(
+            self.get_root(),
+            None,
+            self._on_source_trust_response,
+            path,
+            on_trusted,
+            cancel_title,
+            cancel_body,
+            success_title,
+            success_body,
+        )
 
-    def _on_trust_response(
+    def _on_source_trust_response(
         self,
         dialog: Adw.AlertDialog,
         result,
         path: Path,
+        on_trusted,
+        cancel_title: str,
+        cancel_body: str,
+        success_title: str,
+        success_body: str,
     ) -> None:
         response = dialog.choose_finish(result)
         if response != "trust":
             self._show_alert_dialog(
-                "Inspection cancelled",
-                "The AppImage was left unchanged.",
+                cancel_title,
+                cancel_body,
             )
             self.reset()
             return
@@ -240,10 +293,10 @@ class InstallView(Gtk.Box):
             self.reset()
             return
         self._show_alert_dialog(
-            "Executable permission updated",
-            "Marked the AppImage as executable. Review the metadata before installing.",
+            success_title,
+            success_body,
         )
-        self._begin_inspection(path)
+        on_trusted()
 
     def _apply_inspection(
         self,
@@ -295,6 +348,28 @@ class InstallView(Gtk.Box):
                 comment_override=self.comment_entry.get_text().strip() or None,
                 extra_args=shlex.split(self.args_entry.get_text().strip()) if self.args_entry.get_text().strip() else [],
                 arg_preset_id=self._preset_index_to_id.get(self.preset_combo.get_selected(), "none"),
+                allow_update=True,
+                allow_reinstall=True,
+            )
+        )
+
+    def _populate_record_fields(self, record: ManagedAppRecord, button_label: str) -> None:
+        self.name_entry.set_text(record.display_name)
+        self.comment_entry.set_text(record.comment or "")
+        self.args_entry.set_text(shlex.join(record.extra_args))
+        self.preset_combo.set_selected(
+            self._preset_id_to_index.get(record.arg_preset_id or "none", 0)
+        )
+        self.install_button.set_label(button_label)
+
+    def _submit_record_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+        self._submit_install_request(
+            InstallRequest(
+                source_path=source_path,
+                display_name_override=record.display_name,
+                comment_override=record.comment,
+                extra_args=record.extra_args,
+                arg_preset_id=record.arg_preset_id,
                 allow_update=True,
                 allow_reinstall=True,
             )

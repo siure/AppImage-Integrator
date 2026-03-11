@@ -30,6 +30,22 @@ def test_icon_resolver_prefers_svg_then_largest_png(test_paths) -> None:
     assert any(candidate.relpath == "large.png" for candidate in candidates)
 
 
+def test_icon_resolver_prefers_desktop_icon_key_over_large_generic_images(test_paths) -> None:
+    extracted = test_paths.cache_extract_dir / "fixture-key"
+    extracted.mkdir(parents=True)
+    icon_dir = extracted / "usr" / "share" / "icons" / "hicolor" / "256x256" / "apps"
+    icon_dir.mkdir(parents=True)
+    _write_png(icon_dir / "demo.png", 256, 256)
+    marketing_dir = extracted / "marketing"
+    marketing_dir.mkdir()
+    _write_png(marketing_dir / "hero.png", 1920, 1080)
+
+    resolver = IconResolver(test_paths)
+    candidates = resolver.collect_candidates(extracted, "demo")
+
+    assert candidates[0].relpath == "usr/share/icons/hicolor/256x256/apps/demo.png"
+
+
 def test_icon_resolver_installs_icon(test_paths) -> None:
     extracted = test_paths.cache_extract_dir / "fixture"
     extracted.mkdir(parents=True)

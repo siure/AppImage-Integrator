@@ -14,6 +14,27 @@ PLACEHOLDER_RE = re.compile(r"^%[UuFf]$")
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
+def extract_localized_desktop_entry_lines(raw_text: str) -> list[str]:
+    localized_lines: list[str] = []
+    in_desktop_entry = False
+
+    for raw_line in raw_text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped == "[Desktop Entry]":
+            in_desktop_entry = True
+            continue
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if in_desktop_entry:
+                break
+            continue
+        if in_desktop_entry and (stripped.startswith("Name[") or stripped.startswith("Comment[")):
+            localized_lines.append(stripped)
+
+    return localized_lines
+
+
 def parse_desktop_entry(raw_text: str, source_relpath: str) -> EmbeddedDesktopEntry:
     fields: dict[str, str] = {}
     validation_messages: list[str] = []
@@ -109,10 +130,7 @@ class DesktopEntryService:
         localized_lines: list[str] = []
 
         if entry and entry.parsed_fields:
-            for raw_line in entry.raw_text.splitlines():
-                stripped = raw_line.strip()
-                if stripped.startswith("Name[") or stripped.startswith("Comment["):
-                    localized_lines.append(stripped)
+            localized_lines = extract_localized_desktop_entry_lines(entry.raw_text)
             for key in (
                 "Type",
                 "Name",

@@ -28,6 +28,25 @@ class DetailsDialog(Adw.Dialog):
         content.set_margin_start(18)
         content.set_margin_end(18)
 
+        if record.last_validation_messages:
+            issue_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            issue_box.add_css_class("card")
+
+            issue_title = Gtk.Label(label="Validation Issues", xalign=0)
+            issue_title.add_css_class("title-5")
+            issue_box.append(issue_title)
+
+            issue_text = Gtk.Label(label="\n".join(record.last_validation_messages), xalign=0)
+            issue_text.set_wrap(True)
+            issue_text.set_selectable(True)
+            issue_text.add_css_class("dim-label")
+
+            issue_scroller = Gtk.ScrolledWindow(hexpand=True, min_content_height=140)
+            issue_scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            issue_scroller.set_child(issue_text)
+            issue_box.append(issue_scroller)
+            content.append(issue_box)
+
         summary = Gtk.Label(
             label=(
                 f"Exec template: {record.desktop_exec_template}\n"

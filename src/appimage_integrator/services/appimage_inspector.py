@@ -140,10 +140,12 @@ class AppImageInspector:
     def _detect_type(self, source_path: Path) -> str:
         result = self.tooling.run([str(source_path), "--appimage-version"])
         output = f"{result.stdout} {result.stderr}".lower()
-        if "type 2" in output or "appimage version" in output:
-            return "type2"
         if "type 1" in output:
             return "type1"
+        if result.returncode == 0 and output.strip():
+            return "type2"
+        if "type 2" in output or "appimage version" in output:
+            return "type2"
         return "unknown"
 
     def _extract(self, source_path: Path, appimage_type: str, warnings: list[str]) -> Path | None:

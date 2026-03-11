@@ -20,6 +20,7 @@ src/appimage_integrator/services/icon_resolver.py
 src/appimage_integrator/services/id_resolver.py
 src/appimage_integrator/services/install_manager.py
 src/appimage_integrator/services/library_manager.py
+src/appimage_integrator/services/managed_app_runtime.py
 src/appimage_integrator/services/repair_manager.py
 src/appimage_integrator/services/tooling.py
 src/appimage_integrator/services/versioning.py

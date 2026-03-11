@@ -53,7 +53,13 @@ class Tooling:
             return subprocess.CompletedProcess(args, 127, "", str(exc))
         self.logger.info("Command exited %s", result.returncode)
         if result.stdout:
-            self.logger.info("stdout: %s", result.stdout.strip())
+            self.logger.info("stdout: %s", self._preview_output(result.stdout))
         if result.stderr:
-            self.logger.info("stderr: %s", result.stderr.strip())
+            self.logger.info("stderr: %s", self._preview_output(result.stderr))
         return result
+
+    def _preview_output(self, output: str, limit: int = 2000) -> str:
+        text = output.strip()
+        if len(text) <= limit:
+            return text
+        return f"{text[:limit]}... [truncated {len(text) - limit} chars]"

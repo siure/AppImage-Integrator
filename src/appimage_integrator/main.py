@@ -1,6 +1,20 @@
 from __future__ import annotations
 
-def main() -> int:
+import sys
+
+from appimage_integrator.cli import build_parser, run_cli
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv:
+        parser = build_parser()
+        args = parser.parse_args(argv)
+        if args.command != "gui":
+            from appimage_integrator.bootstrap import build_service_container
+
+            services = build_service_container(enable_console_logging=False)
+            return run_cli(args, services, sys.stdout, sys.stderr, sys.stdin)
     try:
         from appimage_integrator.app import AppImageIntegratorApplication
     except ModuleNotFoundError as exc:

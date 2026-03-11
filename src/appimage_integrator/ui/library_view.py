@@ -4,7 +4,8 @@ import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+gi.require_version("Pango", "1.0")
+from gi.repository import Gtk, Pango
 
 from appimage_integrator.models import ManagedAppRecord
 
@@ -59,14 +60,26 @@ class LibraryView(Gtk.Box):
         title = Gtk.Label(label=record.display_name, xalign=0)
         title.add_css_class("title-4")
         labels.append(title)
-        subtitle_text = record.last_validation_messages[0] if record.last_validation_messages else record.last_validation_status
+        subtitle_text = self._subtitle_text(record)
         subtitle = Gtk.Label(
             label=f"{record.version or 'version unknown'}   {subtitle_text}",
             xalign=0,
         )
         subtitle.add_css_class("dim-label")
-        subtitle.set_wrap(True)
-        labels.append(subtitle)
+        subtitle.set_hexpand(True)
+        subtitle.set_ellipsize(Pango.EllipsizeMode.END)
+        subtitle.set_max_width_chars(80)
+        subtitle.set_single_line_mode(True)
+        subtitle.set_tooltip_text(self._tooltip_text(record))
+
+        subtitle_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, hexpand=True)
+        subtitle_row.append(subtitle)
+        if record.last_validation_messages:
+            more_button = Gtk.Button(label="More")
+            more_button.add_css_class("flat")
+            more_button.connect("clicked", lambda _btn: self._on_show_details(record))
+            subtitle_row.append(more_button)
+        labels.append(subtitle_row)
         box.append(labels)
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -84,6 +97,25 @@ class LibraryView(Gtk.Box):
         row.set_child(box)
         row._record = record
         return row
+
+    def _subtitle_text(self, record: ManagedAppRecord) -> str:
+        if not record.last_validation_messages:
+            return record.last_validation_status
+        first_message = self._truncate_text(record.last_validation_messages[0], 120)
+        if len(record.last_validation_messages) == 1:
+            return first_message
+        return f"{len(record.last_validation_messages)} issues. {first_message}"
+
+    def _tooltip_text(self, record: ManagedAppRecord) -> str | None:
+        if not record.last_validation_messages:
+            return None
+        return "\n".join(record.last_validation_messages)
+
+    def _truncate_text(self, text: str, limit: int) -> str:
+        normalized = " ".join(text.split())
+        if len(normalized) <= limit:
+            return normalized
+        return normalized[: limit - 1].rstrip() + "…"
 
     def _filter_rows(self, *_args) -> None:
         query = self.search.get_text().strip().lower()

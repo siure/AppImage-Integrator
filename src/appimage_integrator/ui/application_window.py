@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import subprocess
+import threading
 from pathlib import Path
 
 import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, GLib, Gtk
 
 from appimage_integrator.models import ManagedAppRecord
 from appimage_integrator.ui.details_dialog import DetailsDialog
@@ -40,6 +41,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         header.pack_end(refresh_button)
 
         stack = Adw.ViewStack()
+        self.stack = stack
         self.view_switcher = Adw.ViewSwitcher()
         self.view_switcher.set_stack(stack)
         header.set_title_widget(self.view_switcher)
@@ -100,7 +102,13 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.present(self)
 
     def update_record(self, record: ManagedAppRecord) -> None:
-        self.install_view.update_record(record)
+        self.show_toast(f"Searching for updates for {record.display_name}")
+
+        def worker() -> None:
+            discovery = self.services.update_discovery.discover_updates(record)
+            GLib.idle_add(self._present_update_discovery, record, discovery)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def repair_record(self, record: ManagedAppRecord) -> None:
         _, report = self.services.repair_manager.repair(record)
@@ -252,3 +260,118 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
     def _open_appimage(self, _button: Gtk.Button) -> None:
         self.install_view._open_file_chooser(_button)
+
+    def _present_update_discovery(self, record: ManagedAppRecord, discovery) -> bool:
+        if discovery.higher_version_candidates:
+            candidate = discovery.higher_version_candidates[0]
+            lines = [
+                f"Current version: {record.version or 'unknown'}",
+                f"Detected version: {candidate.detected_version or 'unknown'}",
+                f"File: {candidate.path.name}",
+                f"Location: {candidate.path.parent}",
+                f"Match: {'identity-based' if candidate.match_kind == 'identity' else 'filename fallback'}",
+            ]
+            if len(discovery.higher_version_candidates) > 1:
+                lines.extend(("", "Additional matching AppImages were also found."))
+            dialog = Adw.AlertDialog.new("Update available", "\n".join(lines))
+            dialog.add_response("cancel", "Do Nothing")
+            dialog.add_response("choose", "Choose AppImage")
+            dialog.add_response("update", "Update")
+            dialog.set_default_response("update")
+            dialog.set_close_response("cancel")
+            dialog.set_response_appearance("update", Adw.ResponseAppearance.SUGGESTED)
+            dialog.connect(
+                "response",
+                self._on_update_discovery_response,
+                record,
+                candidate.path,
+            )
+            dialog.present(self)
+            return False
+
+        searched = "\n".join(str(path) for path in discovery.searched_directories) or "No searchable directories were available."
+        dialog = Adw.AlertDialog.new(
+            "No newer AppImage found",
+            "AppImage Integrator could not find a higher-version AppImage automatically.\n\n"
+            f"Searched:\n{searched}\n\n"
+            "Choose an AppImage manually if you want to update from a different file.",
+        )
+        dialog.add_response("cancel", "Do Nothing")
+        dialog.add_response("choose", "Choose AppImage")
+        dialog.set_default_response("choose")
+        dialog.set_close_response("cancel")
+        dialog.set_response_appearance("choose", Adw.ResponseAppearance.SUGGESTED)
+        dialog.connect("response", self._on_no_update_found_response, record)
+        dialog.present(self)
+        return False
+
+    def _on_update_discovery_response(
+        self,
+        dialog: Adw.AlertDialog,
+        response: str,
+        record: ManagedAppRecord,
+        candidate_path: Path,
+    ) -> None:
+        if response == "update":
+            self._begin_update_install(record, candidate_path)
+            return
+        if response == "choose":
+            self._open_update_file_chooser(record)
+
+    def _on_no_update_found_response(
+        self,
+        dialog: Adw.AlertDialog,
+        response: str,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == "choose":
+            self._open_update_file_chooser(record)
+
+    def _open_update_file_chooser(self, record: ManagedAppRecord) -> None:
+        dialog = Gtk.FileChooserNative(
+            title="Choose AppImage Update",
+            transient_for=self,
+            action=Gtk.FileChooserAction.OPEN,
+            accept_label="Update",
+            cancel_label="Cancel",
+        )
+        dialog.connect("response", self._on_update_file_chosen, record)
+        dialog.show()
+
+    def _on_update_file_chosen(
+        self,
+        dialog: Gtk.FileChooserNative,
+        response: int,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == Gtk.ResponseType.ACCEPT:
+            file = dialog.get_file()
+            if file and file.get_path():
+                self._begin_manual_update_install(record, Path(file.get_path()))
+        dialog.destroy()
+
+    def _begin_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+        self.stack.set_visible_child(self.install_view)
+        self.install_view.install_record_from_source(
+            record,
+            source_path,
+            button_label="Update",
+            require_trust_prompt=True,
+        )
+
+    def _begin_manual_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+        try:
+            matched_candidate = self.services.update_discovery.evaluate_candidate(record, source_path)
+        except OSError as exc:
+            self._show_repair_result_dialog(
+                "Update file could not be inspected",
+                f"AppImage Integrator could not inspect the selected AppImage.\n\n{exc}",
+            )
+            return
+        if matched_candidate is None:
+            self._show_repair_result_dialog(
+                "AppImage does not match",
+                "The selected AppImage does not appear to be the same application as the managed integration.",
+            )
+            return
+        self._begin_update_install(record, source_path)

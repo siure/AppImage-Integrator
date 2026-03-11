@@ -9,6 +9,8 @@ from appimage_integrator.config import SCHEMA_VERSION
 
 ValidationStatus = Literal["ok", "warning", "error"]
 AppImageType = Literal["type1", "type2", "unknown"]
+UpdateMatchKind = Literal["identity", "filename"]
+UpdateSourceDirKind = Literal["source_dir", "downloads"]
 
 
 @dataclass(frozen=True)
@@ -147,3 +149,39 @@ class IdentityResolution:
     internal_id: str
     identity_fingerprint: str
     basis: str
+
+
+@dataclass(frozen=True)
+class UpdateCandidate:
+    path: Path
+    detected_version: str | None
+    match_kind: UpdateMatchKind
+    match_score: int
+    identity_internal_id: str | None
+    identity_fingerprint: str | None
+    detected_name: str | None
+    source_dir_kind: UpdateSourceDirKind
+    warnings: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        data["path"] = str(self.path)
+        return data
+
+
+@dataclass(frozen=True)
+class UpdateDiscoveryResult:
+    record: ManagedAppRecord
+    searched_directories: list[Path]
+    higher_version_candidates: list[UpdateCandidate]
+    same_or_unknown_candidates: list[UpdateCandidate]
+    skipped_paths: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "record": self.record.to_dict(),
+            "searched_directories": [str(path) for path in self.searched_directories],
+            "higher_version_candidates": [candidate.to_dict() for candidate in self.higher_version_candidates],
+            "same_or_unknown_candidates": [candidate.to_dict() for candidate in self.same_or_unknown_candidates],
+            "skipped_paths": list(self.skipped_paths),
+        }

@@ -27,6 +27,24 @@ Run the application:
 appimage-integrator
 ```
 
+Run the CLI:
+
+```bash
+appimage-integrator inspect /path/to/App.AppImage --trust
+appimage-integrator install /path/to/App.AppImage --trust --preset disable_gpu
+appimage-integrator list
+appimage-integrator details <internal-id>
+appimage-integrator repair <internal-id>
+appimage-integrator reinstall <internal-id>
+appimage-integrator uninstall <internal-id>
+```
+
+List the supported launch argument presets:
+
+```bash
+appimage-integrator presets
+```
+
 Run directly from the repository without installing:
 
 ```bash
