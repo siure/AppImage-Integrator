@@ -5,18 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "appimage-integrator"
 version = "0.1.0"
-description = "Modern Gtk4 desktop manager for integrating AppImages"
+description = "GTK4 desktop manager for integrating AppImages on Linux"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [
-  { name = "OpenAI Codex" }
+keywords = ["appimage", "gtk4", "linux", "desktop", "launcher"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications :: GTK",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Desktop Environment",
+  "Topic :: Utilities",
 ]
 dependencies = []
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3",
+  "ruff>=0.11",
 ]
 
 [project.scripts]
@@ -25,9 +38,28 @@ appimage-integrator = "appimage_integrator.main:main"
 [tool.setuptools]
 package-dir = { "" = "src" }
 
+[tool.setuptools.package-data]
+appimage_integrator = [
+  "assets/branding/*.png",
+  "assets/desktop/*.desktop",
+  "ui/style.css",
+  "ui/assets/hicolor/512x512/apps/*.png",
+]
+
+[tool.setuptools.data-files]
+"share/applications" = ["src/appimage_integrator/assets/desktop/io.github.appimageintegrator.desktop"]
+"share/icons/hicolor/512x512/apps" = ["src/appimage_integrator/ui/assets/hicolor/512x512/apps/io.github.appimageintegrator.png"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = ["E402"]

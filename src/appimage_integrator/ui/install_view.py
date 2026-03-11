@@ -22,6 +22,7 @@ class InstallView(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.set_hexpand(True)
         self.set_vexpand(True)
+        self.add_css_class("install-view")
         self.install_manager = install_manager
         self.on_installed = on_installed
         self.toast = toast
@@ -390,13 +391,8 @@ class InstallView(Gtk.Box):
         existing: ManagedAppRecord | None,
     ) -> None:
         # Clear previous rows
-        while True:
-            first = self.tech_expander.get_first_child()
-            # ExpanderRow's first child is its own internal widgets; we need
-            # to iterate through the rows added via add_row
-            # Use remove() on rows we added — safest approach is to track them.
-            # Actually, ExpanderRow doesn't have a clear method, so we rebuild.
-            break
+        # ExpanderRow does not expose a clear method for rows added with add_row.
+        # Keep track of the rows we add and remove only those on refresh.
 
         # Remove previously added rows
         if hasattr(self, "_tech_rows"):

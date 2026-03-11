@@ -16,6 +16,7 @@ class DetailsDialog(Adw.Dialog):
 
     def __init__(self, parent: Gtk.Widget, record: ManagedAppRecord) -> None:
         super().__init__()
+        self.add_css_class("integrator-dialog")
         self.set_title(record.display_name)
         self.set_content_width(600)
         self.set_content_height(520)

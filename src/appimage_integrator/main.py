@@ -16,7 +16,7 @@ def main(argv: list[str] | None = None) -> int:
             services = build_service_container(enable_console_logging=False)
             return run_cli(args, services, sys.stdout, sys.stderr, sys.stdin)
     try:
-        from appimage_integrator.app import AppImageIntegratorApplication
+        from appimage_integrator.application import AppImageIntegratorApplication
     except ModuleNotFoundError as exc:
         if exc.name == "gi":
             raise SystemExit(

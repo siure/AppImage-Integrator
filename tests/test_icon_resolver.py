@@ -7,7 +7,6 @@ import gi
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf
 
-from appimage_integrator.models import AppImageInspection
 from appimage_integrator.services.icon_resolver import IconResolver
 
 

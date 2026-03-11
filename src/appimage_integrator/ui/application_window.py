@@ -10,6 +10,8 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, GLib, Gtk
 
+from appimage_integrator.assets import APP_BRAND_LOGO_PATH
+from appimage_integrator.config import APP_NAME
 from appimage_integrator.models import ManagedAppRecord
 from appimage_integrator.ui.details_dialog import DetailsDialog
 from appimage_integrator.ui.install_view import InstallView
@@ -20,7 +22,13 @@ class ApplicationWindow(Adw.ApplicationWindow):
     def __init__(self, application, services) -> None:
         super().__init__(application=application)
         self.services = services
-        self.set_title("AppImage Integrator")
+        self._update_progress_dialog: Gtk.Window | None = None
+        self._update_progress_title: Gtk.Label | None = None
+        self._update_progress_detail: Gtk.Label | None = None
+        self._update_progress_bar: Gtk.ProgressBar | None = None
+        self._update_progress_pulse_id: int | None = None
+        self.add_css_class("integrator-window")
+        self.set_title(APP_NAME)
         self.set_default_size(900, 650)
 
         self.toast_overlay = Adw.ToastOverlay()
@@ -31,6 +39,23 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
         header = Adw.HeaderBar()
         toolbar.add_top_bar(header)
+
+        brand = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        brand.add_css_class("app-brand")
+
+        if APP_BRAND_LOGO_PATH.exists():
+            logo = Gtk.Image.new_from_file(str(APP_BRAND_LOGO_PATH))
+            logo.set_pixel_size(18)
+        else:
+            logo = Gtk.Image.new_from_icon_name("application-x-executable")
+            logo.set_pixel_size(18)
+        logo.add_css_class("app-brand-logo")
+        brand.append(logo)
+
+        brand_label = Gtk.Label(label=APP_NAME, xalign=0)
+        brand_label.add_css_class("app-brand-label")
+        brand.append(brand_label)
+        header.pack_start(brand)
 
         # Icon-only refresh button
         refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
@@ -108,11 +133,22 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.present(self)
 
     def update_record(self, record: ManagedAppRecord) -> None:
-        self.show_toast(f"Searching for updates for {record.display_name}")
+        self._show_update_progress_dialog(record)
 
         def worker() -> None:
-            discovery = self.services.update_discovery.discover_updates(record)
-            GLib.idle_add(self._present_update_discovery, record, discovery)
+            try:
+                discovery = self.services.update_discovery.discover_updates(
+                    record,
+                    progress_callback=lambda title, detail: GLib.idle_add(
+                        self._set_update_progress_status,
+                        title,
+                        detail,
+                    ),
+                )
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(self._finish_update_discovery, record, None, str(exc))
+                return
+            GLib.idle_add(self._finish_update_discovery, record, discovery, None)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -263,6 +299,99 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if isinstance(exc, PermissionError):
             return "Managed AppImage is not executable."
         return f"Launching failed: {exc}"
+
+    def _show_update_progress_dialog(self, record: ManagedAppRecord) -> None:
+        self._close_update_progress_dialog()
+
+        dialog = Gtk.Window(
+            title="Searching for updates",
+            transient_for=self,
+            modal=True,
+            resizable=False,
+            decorated=False,
+        )
+        dialog.add_css_class("update-progress-dialog")
+        dialog.set_default_size(420, -1)
+
+        frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        frame.add_css_class("floating-panel")
+        frame.set_margin_top(24)
+        frame.set_margin_bottom(24)
+        frame.set_margin_start(24)
+        frame.set_margin_end(24)
+
+        spinner = Gtk.Spinner(spinning=True)
+        spinner.set_halign(Gtk.Align.CENTER)
+        spinner.set_size_request(40, 40)
+        frame.append(spinner)
+
+        title = Gtk.Label(label=f"Searching for updates for {record.display_name}")
+        title.add_css_class("title-4")
+        title.set_wrap(True)
+        title.set_justify(Gtk.Justification.CENTER)
+        title.set_halign(Gtk.Align.CENTER)
+        frame.append(title)
+
+        detail = Gtk.Label(label="Preparing search…")
+        detail.add_css_class("dim-label")
+        detail.set_wrap(True)
+        detail.set_justify(Gtk.Justification.CENTER)
+        detail.set_halign(Gtk.Align.CENTER)
+        frame.append(detail)
+
+        progress = Gtk.ProgressBar()
+        progress.set_hexpand(True)
+        progress.pulse()
+        frame.append(progress)
+
+        dialog.set_child(frame)
+        dialog.present()
+
+        self._update_progress_dialog = dialog
+        self._update_progress_title = title
+        self._update_progress_detail = detail
+        self._update_progress_bar = progress
+        self._update_progress_pulse_id = GLib.timeout_add(120, self._pulse_update_progress)
+
+    def _pulse_update_progress(self) -> bool:
+        if self._update_progress_bar is None:
+            return False
+        self._update_progress_bar.pulse()
+        return True
+
+    def _set_update_progress_status(self, title: str, detail: str) -> bool:
+        if self._update_progress_title is not None:
+            self._update_progress_title.set_text(title)
+        if self._update_progress_detail is not None:
+            self._update_progress_detail.set_text(detail)
+        return False
+
+    def _close_update_progress_dialog(self) -> None:
+        if self._update_progress_pulse_id is not None:
+            GLib.source_remove(self._update_progress_pulse_id)
+            self._update_progress_pulse_id = None
+        if self._update_progress_dialog is not None:
+            self._update_progress_dialog.close()
+        self._update_progress_dialog = None
+        self._update_progress_title = None
+        self._update_progress_detail = None
+        self._update_progress_bar = None
+
+    def _finish_update_discovery(
+        self,
+        record: ManagedAppRecord,
+        discovery,
+        error_message: str | None,
+    ) -> bool:
+        self._close_update_progress_dialog()
+        if error_message is not None:
+            self._show_repair_result_dialog(
+                "Update search failed",
+                f"AppImage Integrator could not complete the update search.\n\n{error_message}",
+            )
+            return False
+        assert discovery is not None
+        return self._present_update_discovery(record, discovery)
 
     def _present_update_discovery(self, record: ManagedAppRecord, discovery) -> bool:
         if discovery.higher_version_candidates:

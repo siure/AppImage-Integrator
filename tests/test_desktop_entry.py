@@ -108,6 +108,54 @@ def test_build_desktop_text_generates_fallback(tooling) -> None:
     assert "Terminal=false" in text
 
 
+def test_build_desktop_text_omits_duplicate_comment(tooling) -> None:
+    service = DesktopEntryService(tooling)
+    entry = parse_desktop_entry(
+        "[Desktop Entry]\n"
+        "Type=Application\n"
+        "Name=Obsidian\n"
+        "Comment=Obsidian\n"
+        "Exec=AppRun %U\n"
+        "Icon=obsidian\n",
+        "obsidian.desktop",
+    )
+    inspection = AppImageInspection(
+        source_path=Path("/tmp/obsidian.AppImage"),
+        is_appimage=True,
+        appimage_type="type2",
+        is_executable=True,
+        detected_name="Obsidian",
+        detected_comment="Obsidian",
+        detected_version="1.0.0",
+        appstream_id=None,
+        embedded_desktop_filename="obsidian.desktop",
+        desktop_entry=entry,
+        chosen_icon_candidate=None,
+        startup_wm_class=None,
+        mime_types=[],
+        categories=[],
+        terminal=False,
+        startup_notify=None,
+        exec_placeholders=["%U"],
+        warnings=[],
+        errors=[],
+        extracted_dir=None,
+    )
+
+    text, _, _ = service.build_desktop_text(
+        inspection=inspection,
+        appimage_path=Path("/home/test/Applications/obsidian.AppImage"),
+        icon_value="obsidian",
+        display_name="Obsidian",
+        comment="Obsidian",
+        extra_args=[],
+        arg_preset_id="none",
+    )
+
+    assert "Name=Obsidian" in text
+    assert "Comment=Obsidian" not in text
+
+
 def test_extract_localized_lines_ignores_desktop_actions() -> None:
     raw_text = (
         "[Desktop Entry]\n"

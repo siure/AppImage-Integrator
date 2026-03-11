@@ -228,3 +228,81 @@ def test_update_discovery_sorts_identity_before_filename(test_paths) -> None:
     result = service.discover_updates(record)
 
     assert [item.path for item in result.higher_version_candidates] == [identity_candidate, filename_candidate]
+
+
+def test_update_discovery_skips_unrelated_filenames_when_likely_match_exists(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    likely_candidate = source.parent / "demo-v2.AppImage"
+    likely_candidate.write_text("appimage", encoding="utf-8")
+    unrelated_candidate = source.parent / "totally-unrelated.AppImage"
+    unrelated_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-prefilter"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            likely_candidate: make_inspection(likely_candidate, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = make_record(test_paths, source)
+
+    result = service.discover_updates(record)
+
+    assert [item.path for item in result.higher_version_candidates] == [likely_candidate]
+
+
+def test_update_discovery_falls_back_to_full_scan_when_no_likely_name_matches(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    fallback_candidate = source.parent / "release-latest.AppImage"
+    fallback_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-fallback"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            fallback_candidate: make_inspection(
+                fallback_candidate,
+                extracted,
+                version="2.0.0",
+            ),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = make_record(test_paths, source)
+
+    result = service.discover_updates(record)
+
+    assert [item.path for item in result.higher_version_candidates] == [fallback_candidate]
+
+
+def test_update_discovery_does_not_promote_known_version_when_current_version_is_unknown(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-unknown-current"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "version": None,
+        }
+    )
+
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates == []
+    assert [item.path for item in result.same_or_unknown_candidates] == [candidate]

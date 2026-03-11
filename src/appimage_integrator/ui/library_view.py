@@ -16,6 +16,7 @@ class LibraryView(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.set_hexpand(True)
         self.set_vexpand(True)
+        self.add_css_class("library-view")
         self._on_launch = on_launch
         self._on_update = on_update
         self._on_show_details = on_show_details
@@ -56,12 +57,14 @@ class LibraryView(Gtk.Box):
 
         # Search
         self.search = Gtk.SearchEntry(placeholder_text="Search managed AppImages")
+        self.search.add_css_class("library-search")
         self.search.connect("search-changed", self._filter_rows)
         clamp_box.append(self.search)
 
         # ListBox
         self.list_box = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.list_box.add_css_class("boxed-list")
+        self.list_box.add_css_class("library-list")
         clamp_box.append(self.list_box)
 
         list_page.append(scrolled)
@@ -83,6 +86,7 @@ class LibraryView(Gtk.Box):
 
     def _build_row(self, record: ManagedAppRecord) -> Gtk.ListBoxRow:
         row = Adw.ActionRow()
+        row.add_css_class("library-row")
         row.set_use_markup(False)
         row.set_title(record.display_name)
         row.set_subtitle(self._subtitle_text(record))
@@ -114,6 +118,7 @@ class LibraryView(Gtk.Box):
         launch_btn = Gtk.Button.new_from_icon_name("media-playback-start-symbolic")
         launch_btn.set_valign(Gtk.Align.CENTER)
         launch_btn.add_css_class("flat")
+        launch_btn.add_css_class("row-launch-button")
         launch_btn.set_tooltip_text("Launch")
         launch_btn.connect("clicked", lambda _btn, r=record: self._on_launch(r))
         row.add_suffix(launch_btn)
@@ -123,15 +128,16 @@ class LibraryView(Gtk.Box):
         menu_btn.set_icon_name("view-more-symbolic")
         menu_btn.set_valign(Gtk.Align.CENTER)
         menu_btn.add_css_class("flat")
+        menu_btn.add_css_class("row-menu-button")
         menu_btn.set_tooltip_text("More actions")
 
         # Build menu model
         menu = Gio.Menu()
-        menu.append("Search for Update", f"row.update")
-        menu.append("Details", f"row.details")
-        menu.append("Repair Integration", f"row.repair")
+        menu.append("Search for Update", "row.update")
+        menu.append("Details", "row.details")
+        menu.append("Repair Integration", "row.repair")
         section = Gio.Menu()
-        section.append("Uninstall", f"row.uninstall")
+        section.append("Uninstall", "row.uninstall")
         menu.append_section(None, section)
         menu_btn.set_menu_model(menu)
 

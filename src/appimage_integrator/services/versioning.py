@@ -18,6 +18,12 @@ def normalize_version(version: str | None) -> tuple[str | int, ...]:
 def compare_versions(left: str | None, right: str | None) -> int:
     left_tokens = normalize_version(left)
     right_tokens = normalize_version(right)
+    if not left_tokens and not right_tokens:
+        return 0
+    if not left_tokens:
+        return -1
+    if not right_tokens:
+        return 1
     for left_token, right_token in itertools.zip_longest(left_tokens, right_tokens, fillvalue=0):
         if left_token == right_token:
             continue

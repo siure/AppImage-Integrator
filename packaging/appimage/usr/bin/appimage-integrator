@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+appdir="$(cd "${script_dir}/../.." && pwd)"
+
+python_paths=(
+  "${appdir}/usr/src"
+  "${appdir}/usr/lib/python3/dist-packages"
+)
+
+for candidate in "${appdir}"/usr/lib/python3.*; do
+  if [ -d "${candidate}" ]; then
+    python_paths+=("${candidate}")
+    if [ -d "${candidate}/dist-packages" ]; then
+      python_paths+=("${candidate}/dist-packages")
+    fi
+    if [ -d "${candidate}/site-packages" ]; then
+      python_paths+=("${candidate}/site-packages")
+    fi
+  fi
+done
+
+python_path="$(IFS=:; echo "${python_paths[*]}")"
+gi_typelib_dirs=()
+for candidate in \
+  "${appdir}/usr/lib/girepository-1.0" \
+  "${appdir}/usr/lib/x86_64-linux-gnu/girepository-1.0" \
+  "${appdir}"/usr/lib/*/girepository-1.0
+do
+  if [ -d "${candidate}" ]; then
+    gi_typelib_dirs+=("${candidate}")
+  fi
+done
+gi_typelib_path="$(IFS=:; echo "${gi_typelib_dirs[*]}")"
+
+gdk_pixbuf_cache=""
+for candidate in \
+  "${appdir}"/usr/lib/gdk-pixbuf-2.0/*/loaders.cache \
+  "${appdir}"/usr/lib/*/gdk-pixbuf-2.0/*/loaders.cache
+do
+  if [ -f "${candidate}" ]; then
+    gdk_pixbuf_cache="${candidate}"
+    break
+  fi
+done
+gdk_pixbuf_dir=""
+if [ -n "${gdk_pixbuf_cache}" ]; then
+  gdk_pixbuf_dir="$(dirname "${gdk_pixbuf_cache}")"
+fi
+
+export PYTHONHOME="${appdir}/usr"
+export PYTHONPATH="${python_path}${PYTHONPATH:+:${PYTHONPATH}}"
+export XDG_DATA_DIRS="${appdir}/usr/share${XDG_DATA_DIRS:+:${XDG_DATA_DIRS}}"
+export GI_TYPELIB_PATH="${gi_typelib_path}${GI_TYPELIB_PATH:+:${GI_TYPELIB_PATH}}"
+export LD_LIBRARY_PATH="${appdir}/usr/lib:${appdir}/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export GSETTINGS_SCHEMA_DIR="${appdir}/usr/share/glib-2.0/schemas"
+if [ -n "${gdk_pixbuf_dir}" ]; then
+  export GDK_PIXBUF_MODULEDIR="${gdk_pixbuf_dir}"
+fi
+if [ -n "${gdk_pixbuf_cache}" ]; then
+  export GDK_PIXBUF_MODULE_FILE="${gdk_pixbuf_cache}"
+fi
+
+exec "${appdir}/usr/bin/python3" -m appimage_integrator "$@"

@@ -1,2 +1,0 @@
-[console_scripts]
-appimage-integrator = appimage_integrator.main:main

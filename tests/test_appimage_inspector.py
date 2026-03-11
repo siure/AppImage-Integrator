@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from appimage_integrator.models import AppImageInspection
 from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.icon_resolver import IconResolver
 

@@ -163,6 +163,8 @@ class DesktopEntryService:
             fields["Comment"] = sanitized_comment
         elif "Comment" not in fields and inspection.detected_comment:
             fields["Comment"] = sanitize_value(inspection.detected_comment) or ""
+        if sanitize_value(fields.get("Comment")) == fields["Name"]:
+            fields.pop("Comment", None)
         exec_tokens = self.rewrite_exec_tokens(entry, appimage_path, extra_args, arg_preset_id)
         fields["Exec"] = serialize_exec_tokens(exec_tokens)
         fields["TryExec"] = str(appimage_path)

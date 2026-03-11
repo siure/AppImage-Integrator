@@ -5,8 +5,6 @@ import json
 import logging
 from pathlib import Path
 
-import pytest
-
 from appimage_integrator.bootstrap import ServiceContainer
 from appimage_integrator import cli
 from appimage_integrator.cli import build_parser, run_cli
