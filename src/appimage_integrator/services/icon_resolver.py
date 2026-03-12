@@ -1,12 +1,9 @@
 from __future__ import annotations
 
+import re
 import shutil
+import struct
 from pathlib import Path
-
-import gi
-
-gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf
 
 from appimage_integrator.models import AppImageInspection, IconCandidate
 from appimage_integrator.paths import AppPaths
@@ -99,9 +96,7 @@ class IconResolver:
             height = None
         else:
             kind = "png" if suffix == ".png" or path.name == ".DirIcon" else "xpm"
-            info = GdkPixbuf.Pixbuf.get_file_info(str(path))
-            width = info.width if info else None
-            height = info.height if info else None
+            width, height = self._read_raster_dimensions(path, kind)
         relpath = str(path.relative_to(extracted_dir))
         candidate = IconCandidate(
             source_path=path,
@@ -119,3 +114,35 @@ class IconResolver:
             height=candidate.height,
             score=self.score_candidate(candidate),
         )
+
+    def _read_raster_dimensions(self, path: Path, kind: str) -> tuple[int | None, int | None]:
+        if kind == "png":
+            return self._read_png_dimensions(path)
+        if kind == "xpm":
+            return self._read_xpm_dimensions(path)
+        return None, None
+
+    def _read_png_dimensions(self, path: Path) -> tuple[int | None, int | None]:
+        try:
+            with path.open("rb") as handle:
+                header = handle.read(24)
+        except OSError:
+            return None, None
+
+        if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+            return None, None
+
+        width, height = struct.unpack(">II", header[16:24])
+        return width, height
+
+    def _read_xpm_dimensions(self, path: Path) -> tuple[int | None, int | None]:
+        try:
+            with path.open(encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    match = re.search(r'"(\d+)\s+(\d+)\s+\d+\s+\d+"', line)
+                    if match:
+                        return int(match.group(1)), int(match.group(2))
+        except OSError:
+            return None, None
+
+        return None, None

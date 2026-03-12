@@ -1,19 +1,33 @@
 from __future__ import annotations
 
+import struct
+import zlib
 from pathlib import Path
-
-import gi
-
-gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf
 
 from appimage_integrator.services.icon_resolver import IconResolver
 
 
 def _write_png(path: Path, width: int, height: int) -> None:
-    pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
-    pixbuf.fill(0x336699FF)
-    pixbuf.savev(str(path), "png", [], [])
+    raw_row = b"\x00" + (b"\x33\x66\x99\xff" * width)
+    payload = raw_row * height
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    png = b"".join(
+        [
+            b"\x89PNG\r\n\x1a\n",
+            chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)),
+            chunk(b"IDAT", zlib.compress(payload)),
+            chunk(b"IEND", b""),
+        ]
+    )
+    path.write_bytes(png)
 
 
 def test_icon_resolver_prefers_svg_then_largest_png(test_paths) -> None:
