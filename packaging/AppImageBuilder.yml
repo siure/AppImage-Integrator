@@ -58,18 +58,31 @@ AppDir:
 
   after_bundle: |
     set -eux
+    appdir_library_path=""
+    for candidate in \
+      AppDir/usr/lib \
+      AppDir/usr/lib/x86_64-linux-gnu \
+      AppDir/lib \
+      AppDir/lib/x86_64-linux-gnu
+    do
+      if [ -d "$candidate" ]; then
+        appdir_library_path="${appdir_library_path:+${appdir_library_path}:}$candidate"
+      fi
+    done
     gdk_query_loaders_bin="$(find AppDir/usr/lib -path '*gdk-pixbuf-2.0/gdk-pixbuf-query-loaders' | head -n 1 || true)"
     if [ -n "$gdk_query_loaders_bin" ] && [ ! -e "AppDir/usr/bin/gdk-pixbuf-query-loaders" ]; then
       ln -sf "../${gdk_query_loaders_bin#AppDir/usr/}" "AppDir/usr/bin/gdk-pixbuf-query-loaders"
       ln -sf "gdk-pixbuf-query-loaders" "AppDir/usr/bin/gdk-pixbuf-query-loaders-64"
     fi
     if [ -d "AppDir/usr/share/glib-2.0/schemas" ]; then
-      AppDir/usr/bin/glib-compile-schemas "AppDir/usr/share/glib-2.0/schemas"
+      env LD_LIBRARY_PATH="${appdir_library_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+        AppDir/usr/bin/glib-compile-schemas "AppDir/usr/share/glib-2.0/schemas"
     fi
     loader_cache="$(find AppDir/usr/lib -path '*gdk-pixbuf-2.0/*/loaders.cache' | head -n 1 || true)"
     if [ -n "$loader_cache" ]; then
       loader_dir="$(dirname "$loader_cache")"
-      AppDir/usr/bin/gdk-pixbuf-query-loaders "$loader_dir"/*.so > "$loader_cache"
+      env LD_LIBRARY_PATH="${appdir_library_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+        AppDir/usr/bin/gdk-pixbuf-query-loaders "$loader_dir"/*.so > "$loader_cache"
     fi
 
 AppImage:
