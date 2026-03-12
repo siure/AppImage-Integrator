@@ -25,35 +25,44 @@ class LibraryView(Gtk.Box):
         self._records: list[ManagedAppRecord] = []
 
         self.stack = Gtk.Stack()
+        self.stack.set_hexpand(True)
+        self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(200)
         self.append(self.stack)
 
         # --- Empty state ---
-        empty_status = Adw.StatusPage()
-        empty_status.set_icon_name("folder-symbolic")
-        empty_status.set_title("No AppImages Yet")
-        empty_status.set_description("Installed AppImages will appear here")
-        self.stack.add_named(empty_status, "empty")
+        self.stack.add_named(
+            self._build_centered_status_page(
+                icon_name="folder-symbolic",
+                title="No AppImages Yet",
+                description="Installed AppImages will appear here",
+            ),
+            "empty",
+        )
 
         # --- List state ---
         list_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        list_page.set_hexpand(True)
         list_page.set_vexpand(True)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_hexpand(True)
         scrolled.set_vexpand(True)
 
-        clamp = Adw.Clamp()
-        clamp.set_maximum_size(600)
-        clamp.set_margin_top(18)
-        clamp.set_margin_bottom(18)
-        clamp.set_margin_start(12)
-        clamp.set_margin_end(12)
-        scrolled.set_child(clamp)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        page.set_margin_top(18)
+        page.set_margin_bottom(18)
+        page.set_margin_start(12)
+        page.set_margin_end(12)
+        scrolled.set_child(page)
 
         clamp_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        clamp.set_child(clamp_box)
+        clamp_box.set_hexpand(True)
+        page.append(clamp_box)
 
         # Search
         self.search = Gtk.SearchEntry(placeholder_text="Search managed AppImages")
@@ -71,6 +80,38 @@ class LibraryView(Gtk.Box):
         self.stack.add_named(list_page, "list")
 
         self.stack.set_visible_child_name("empty")
+
+    def _wrap_page(self, child: Gtk.Widget) -> Gtk.Box:
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        page.append(child)
+        return page
+
+    def _build_centered_status_page(self, icon_name: str, title: str, description: str) -> Gtk.Box:
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        content.set_halign(Gtk.Align.CENTER)
+        content.set_valign(Gtk.Align.CENTER)
+        content.set_margin_top(24)
+        content.set_margin_bottom(24)
+        content.set_margin_start(24)
+        content.set_margin_end(24)
+
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        icon.set_pixel_size(96)
+        content.append(icon)
+
+        title_label = Gtk.Label(label=title)
+        title_label.add_css_class("title-1")
+        content.append(title_label)
+
+        description_label = Gtk.Label(label=description)
+        description_label.add_css_class("dim-label")
+        description_label.set_wrap(True)
+        description_label.set_justify(Gtk.Justification.CENTER)
+        content.append(description_label)
+
+        return self._wrap_page(content)
 
     def set_records(self, records: list[ManagedAppRecord]) -> None:
         while child := self.list_box.get_first_child():

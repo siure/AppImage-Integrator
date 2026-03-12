@@ -21,6 +21,9 @@ from appimage_integrator.ui.library_view import LibraryView
 
 
 class ApplicationWindow(Adw.ApplicationWindow):
+    MIN_WINDOW_WIDTH = 720
+    MIN_WINDOW_HEIGHT = 520
+
     def __init__(self, application, services) -> None:
         super().__init__(application=application)
         self.services = services
@@ -31,12 +34,18 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_pulse_id: int | None = None
         self.add_css_class("integrator-window")
         self.set_title(APP_NAME)
+        self.set_resizable(True)
+        self.set_size_request(self.MIN_WINDOW_WIDTH, self.MIN_WINDOW_HEIGHT)
         self.set_default_size(900, 650)
 
         self.toast_overlay = Adw.ToastOverlay()
+        self.toast_overlay.set_hexpand(True)
+        self.toast_overlay.set_vexpand(True)
         self.set_content(self.toast_overlay)
 
         toolbar = CompatToolbarView(self)
+        toolbar.widget.set_hexpand(True)
+        toolbar.widget.set_vexpand(True)
         self.toast_overlay.set_child(toolbar.widget)
 
         header = Adw.HeaderBar()
@@ -68,6 +77,8 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
         # ViewSwitcher in center
         self.stack = Adw.ViewStack()
+        self.stack.set_hexpand(True)
+        self.stack.set_vexpand(True)
         self.view_switcher = Adw.ViewSwitcher()
         self.view_switcher.set_stack(self.stack)
         header.set_title_widget(self.view_switcher)

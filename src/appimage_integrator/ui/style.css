@@ -19,6 +19,12 @@ dialog > .background {
     color: @app_text;
 }
 
+window.solid-csd,
+dialog.solid-csd {
+    border: 4px solid alpha(white, 0.01);
+    background-clip: padding-box;
+}
+
 headerbar {
   background-color: @app_panel;
   background-image: none;

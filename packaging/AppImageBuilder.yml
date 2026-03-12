@@ -7,6 +7,7 @@ script:
   - mkdir -p AppDir/usr/share/icons/hicolor/512x512/apps
   - mkdir -p AppDir/usr/src
   - cp -a src/appimage_integrator AppDir/usr/src/
+  - install -Dm755 packaging/appimage/usr/bin/appimage-integrator AppDir/usr/bin/appimage-integrator
   - install -Dm644 src/appimage_integrator/assets/desktop/io.github.appimageintegrator.desktop AppDir/usr/share/applications/io.github.appimageintegrator.desktop
   - install -Dm644 src/appimage_integrator/ui/assets/hicolor/512x512/apps/io.github.appimageintegrator.png AppDir/usr/share/icons/hicolor/512x512/apps/io.github.appimageintegrator.png
 
@@ -18,17 +19,17 @@ AppDir:
     icon: io.github.appimageintegrator
     version: __APPIMAGE_VERSION__
     exec: usr/bin/python3
-    exec_args: "-m appimage_integrator $@"
+    exec_args: "\"${APPDIR}/usr/bin/appimage-integrator\" $@"
 
   apt:
     arch:
       - amd64
     sources:
-      - sourceline: "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse"
+      - sourceline: "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse"
         key_url: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C"
-      - sourceline: "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse"
+      - sourceline: "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse"
         key_url: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C"
-      - sourceline: "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse"
+      - sourceline: "deb [arch=amd64] http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse"
         key_url: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C"
     include:
       - adwaita-icon-theme

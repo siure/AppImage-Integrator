@@ -42,6 +42,8 @@ class InstallView(Gtk.Box):
 
         # --- Stack pages ---
         self.stack = Gtk.Stack()
+        self.stack.set_hexpand(True)
+        self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(200)
         self.append(self.stack)
@@ -61,19 +63,20 @@ class InstallView(Gtk.Box):
     # Empty page
     # ------------------------------------------------------------------
     def _build_empty_page(self) -> None:
-        status = Adw.StatusPage()
-        status.set_icon_name("list-add-symbolic")
-        status.set_title("Add an AppImage")
-        status.set_description("Drop an AppImage here or browse for one")
-
         browse_btn = Gtk.Button(label="Browse Files")
         browse_btn.add_css_class("pill")
         browse_btn.add_css_class("suggested-action")
         browse_btn.set_halign(Gtk.Align.CENTER)
         browse_btn.connect("clicked", self._open_file_chooser)
-        status.set_child(browse_btn)
-
-        self.stack.add_named(status, "empty")
+        self.stack.add_named(
+            self._build_centered_status_page(
+                icon_name="list-add-symbolic",
+                title="Add an AppImage",
+                description="Drop an AppImage here or browse for one",
+                child=browse_btn,
+            ),
+            "empty",
+        )
 
     # ------------------------------------------------------------------
     # Loading page
@@ -82,7 +85,6 @@ class InstallView(Gtk.Box):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_halign(Gtk.Align.CENTER)
         box.set_valign(Gtk.Align.CENTER)
-        box.set_vexpand(True)
 
         spinner = Gtk.Spinner(spinning=True)
         spinner.set_size_request(48, 48)
@@ -92,7 +94,7 @@ class InstallView(Gtk.Box):
         label.add_css_class("title-4")
         box.append(label)
 
-        self.stack.add_named(box, "loading")
+        self.stack.add_named(self._wrap_page(box), "loading")
 
     # ------------------------------------------------------------------
     # Form page
@@ -100,18 +102,21 @@ class InstallView(Gtk.Box):
     def _build_form_page(self) -> None:
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_hexpand(True)
         scrolled.set_vexpand(True)
 
-        clamp = Adw.Clamp()
-        clamp.set_maximum_size(600)
-        clamp.set_margin_top(24)
-        clamp.set_margin_bottom(24)
-        clamp.set_margin_start(12)
-        clamp.set_margin_end(12)
-        scrolled.set_child(clamp)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        page.set_margin_top(24)
+        page.set_margin_bottom(24)
+        page.set_margin_start(12)
+        page.set_margin_end(12)
+        scrolled.set_child(page)
 
         form_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        clamp.set_child(form_box)
+        form_box.set_hexpand(True)
+        page.append(form_box)
 
         # Icon + Name header
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -194,7 +199,6 @@ class InstallView(Gtk.Box):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_halign(Gtk.Align.CENTER)
         box.set_valign(Gtk.Align.CENTER)
-        box.set_vexpand(True)
 
         spinner = Gtk.Spinner(spinning=True)
         spinner.set_size_request(48, 48)
@@ -205,7 +209,48 @@ class InstallView(Gtk.Box):
         self._progress_label = label
         box.append(label)
 
-        self.stack.add_named(box, "progress")
+        self.stack.add_named(self._wrap_page(box), "progress")
+
+    def _wrap_page(self, child: Gtk.Widget) -> Gtk.Box:
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        page.append(child)
+        return page
+
+    def _build_centered_status_page(
+        self,
+        icon_name: str,
+        title: str,
+        description: str,
+        child: Gtk.Widget | None = None,
+    ) -> Gtk.Box:
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        content.set_halign(Gtk.Align.CENTER)
+        content.set_valign(Gtk.Align.CENTER)
+        content.set_margin_top(24)
+        content.set_margin_bottom(24)
+        content.set_margin_start(24)
+        content.set_margin_end(24)
+
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        icon.set_pixel_size(96)
+        content.append(icon)
+
+        title_label = Gtk.Label(label=title)
+        title_label.add_css_class("title-1")
+        content.append(title_label)
+
+        description_label = Gtk.Label(label=description)
+        description_label.add_css_class("dim-label")
+        description_label.set_wrap(True)
+        description_label.set_justify(Gtk.Justification.CENTER)
+        content.append(description_label)
+
+        if child is not None:
+            content.append(child)
+
+        return self._wrap_page(content)
 
     # ------------------------------------------------------------------
     # Drag-drop handlers

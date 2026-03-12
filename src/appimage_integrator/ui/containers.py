@@ -15,6 +15,7 @@ class CompatToolbarView:
             self._fallback = False
         else:
             container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            container.set_hexpand(True)
             container.set_vexpand(True)
             self._widget = container
             self._fallback = True
@@ -32,6 +33,7 @@ class CompatToolbarView:
         self._widget.add_top_bar(bar)
 
     def set_content(self, child: Gtk.Widget) -> None:
+        child.set_hexpand(True)
         child.set_vexpand(True)
         if self._fallback:
             self._widget.append(child)
