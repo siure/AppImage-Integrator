@@ -9,11 +9,11 @@ import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gdk, GLib, GObject, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 from appimage_integrator.config import PRESET_LABELS
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
-from appimage_integrator.ui.dialogs import CompatMessageDialog
+from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessageDialog
 from appimage_integrator.ui.form_rows import CompatComboRow, CompatEntryRow, CompatExpanderRow
 
 
@@ -255,10 +255,9 @@ class InstallView(Gtk.Box):
     # ------------------------------------------------------------------
     # Drag-drop handlers
     # ------------------------------------------------------------------
-    def _on_drop(self, _target: Gtk.DropTarget, value: GObject.Value, _x: float, _y: float) -> bool:
+    def _on_drop(self, _target: Gtk.DropTarget, value: Gdk.FileList, _x: float, _y: float) -> bool:
         self.remove_css_class("drop-highlight")
-        file_list = value.get_value()
-        files = file_list.get_files() if file_list else []
+        files = value.get_files() if value else []
         if not files:
             return False
         path = files[0].get_path()
@@ -278,17 +277,15 @@ class InstallView(Gtk.Box):
     # File chooser
     # ------------------------------------------------------------------
     def _open_file_chooser(self, _button: Gtk.Button) -> None:
-        dialog = Gtk.FileChooserNative(
+        dialog = CompatFileChooserDialog(
+            self,
             title="Choose AppImage",
-            transient_for=self.get_root(),
-            action=Gtk.FileChooserAction.OPEN,
             accept_label="Inspect",
-            cancel_label="Cancel",
         )
         dialog.connect("response", self._on_file_chosen)
-        dialog.show()
+        dialog.present()
 
-    def _on_file_chosen(self, dialog: Gtk.FileChooserNative, response: int) -> None:
+    def _on_file_chosen(self, dialog: CompatFileChooserDialog, response: int) -> None:
         if response == Gtk.ResponseType.ACCEPT:
             file = dialog.get_file()
             if file and file.get_path():

@@ -14,7 +14,7 @@ from appimage_integrator.assets import APP_BRAND_LOGO_PATH
 from appimage_integrator.config import APP_NAME
 from appimage_integrator.models import ManagedAppRecord
 from appimage_integrator.ui.containers import CompatToolbarView
-from appimage_integrator.ui.dialogs import CompatMessageDialog
+from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessageDialog
 from appimage_integrator.ui.details_dialog import DetailsDialog
 from appimage_integrator.ui.install_view import InstallView
 from appimage_integrator.ui.library_view import LibraryView
@@ -330,17 +330,22 @@ class ApplicationWindow(Adw.ApplicationWindow):
             transient_for=self,
             modal=True,
             resizable=False,
-            decorated=False,
         )
         dialog.add_css_class("update-progress-dialog")
-        dialog.set_default_size(420, -1)
+        dialog.set_default_size(420, 180)
+
+        header = Adw.HeaderBar()
+        header.set_title_widget(Gtk.Label(label="Searching for updates"))
+        dialog.set_titlebar(header)
 
         frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        frame.add_css_class("floating-panel")
         frame.set_margin_top(24)
         frame.set_margin_bottom(24)
         frame.set_margin_start(24)
         frame.set_margin_end(24)
+        frame.set_hexpand(True)
+        frame.set_vexpand(True)
+        frame.set_valign(Gtk.Align.CENTER)
 
         spinner = Gtk.Spinner(spinning=True)
         spinner.set_halign(Gtk.Align.CENTER)
@@ -350,6 +355,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         title = Gtk.Label(label=f"Searching for updates for {record.display_name}")
         title.add_css_class("title-4")
         title.set_wrap(True)
+        title.set_max_width_chars(36)
         title.set_justify(Gtk.Justification.CENTER)
         title.set_halign(Gtk.Align.CENTER)
         frame.append(title)
@@ -357,6 +363,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         detail = Gtk.Label(label="Preparing search…")
         detail.add_css_class("dim-label")
         detail.set_wrap(True)
+        detail.set_max_width_chars(44)
         detail.set_justify(Gtk.Justification.CENTER)
         detail.set_halign(Gtk.Align.CENTER)
         frame.append(detail)
@@ -483,19 +490,17 @@ class ApplicationWindow(Adw.ApplicationWindow):
             self._open_update_file_chooser(record)
 
     def _open_update_file_chooser(self, record: ManagedAppRecord) -> None:
-        dialog = Gtk.FileChooserNative(
+        dialog = CompatFileChooserDialog(
+            self,
             title="Choose AppImage Update",
-            transient_for=self,
-            action=Gtk.FileChooserAction.OPEN,
             accept_label="Update",
-            cancel_label="Cancel",
         )
         dialog.connect("response", self._on_update_file_chosen, record)
-        dialog.show()
+        dialog.present()
 
     def _on_update_file_chosen(
         self,
-        dialog: Gtk.FileChooserNative,
+        dialog: CompatFileChooserDialog,
         response: int,
         record: ManagedAppRecord,
     ) -> None:

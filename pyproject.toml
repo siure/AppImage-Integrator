@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "appimage-integrator"
-version = "0.1.2"
+version = "0.1.3"
 description = "GTK4 desktop manager for integrating AppImages on Linux"
 readme = "README.md"
 requires-python = ">=3.10"

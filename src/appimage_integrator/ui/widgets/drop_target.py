@@ -5,7 +5,7 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GObject, Gtk
+from gi.repository import Gdk, Gtk
 
 
 class DropTargetFrame(Gtk.Frame):
@@ -36,9 +36,8 @@ class DropTargetFrame(Gtk.Frame):
         target.connect("drop", self._on_drop)
         self.add_controller(target)
 
-    def _on_drop(self, _target: Gtk.DropTarget, value: GObject.Value, _x: float, _y: float) -> bool:
-        file_list = value.get_value()
-        files = file_list.get_files() if file_list else []
+    def _on_drop(self, _target: Gtk.DropTarget, value: Gdk.FileList, _x: float, _y: float) -> bool:
+        files = value.get_files() if value else []
         if not files:
             return False
         path = files[0].get_path()
