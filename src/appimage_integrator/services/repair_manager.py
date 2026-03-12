@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from appimage_integrator.models import ManagedAppRecord, RepairReport
@@ -99,7 +99,7 @@ class RepairManager:
         record = ManagedAppRecord.from_dict(
             {
                 **record.to_dict(),
-                "updated_at": datetime.now(tz=UTC).isoformat(),
+                "updated_at": datetime.now(tz=timezone.utc).isoformat(),
                 "last_validation_status": status,
                 "last_validation_messages": remaining_messages,
             }

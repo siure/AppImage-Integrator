@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import stat
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection, InstallRequest, InstallResult, ManagedAppRecord
@@ -105,7 +105,7 @@ class InstallManager:
         desktop_path = self.paths.desktop_entries_dir / f"{identity.internal_id}.desktop"
         desktop_path.write_text(desktop_text, encoding="utf-8")
 
-        timestamp = datetime.now(tz=UTC).isoformat()
+        timestamp = datetime.now(tz=timezone.utc).isoformat()
         validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         record = ManagedAppRecord(
             internal_id=identity.internal_id,

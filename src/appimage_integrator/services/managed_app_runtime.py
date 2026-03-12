@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection, ManagedAppRecord
@@ -255,7 +255,7 @@ class ManagedAppRuntimeService:
             arg_preset_id=record.arg_preset_id,
         )
         Path(record.managed_desktop_path).write_text(desktop_text, encoding="utf-8")
-        timestamp = datetime.now(tz=UTC).isoformat()
+        timestamp = datetime.now(tz=timezone.utc).isoformat()
         validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         updated = ManagedAppRecord.from_dict(
             {
