@@ -92,31 +92,3 @@ pytest
 ruff check .
 ```
 
-## Releases
-
-Pushing a tag in the form `vX.Y.Z` now builds an AppImage on GitHub Actions and
-publishes it to the matching GitHub Release.
-
-The workflow expects the tag version to match `project.version` in
-`pyproject.toml`. A typical release flow is:
-
-```bash
-git commit -am "Release v0.1.0"
-git tag v0.1.0
-git push origin main --tags
-```
-
-You can also trigger the release workflow manually from the Actions tab to
-produce a downloadable AppImage artifact without publishing a GitHub Release.
-
-## Repository Layout
-
-```text
-src/appimage_integrator/   Application package
-tests/                    Automated tests
-tests/fixtures/           Small committed test fixtures and local fixture notes
-.github/workflows/        CI configuration
-```
-
-Local AppImage binaries used for manual testing should stay outside version
-control.
