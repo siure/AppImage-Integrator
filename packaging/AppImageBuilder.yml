@@ -7,7 +7,6 @@ script:
   - mkdir -p AppDir/usr/share/icons/hicolor/512x512/apps
   - mkdir -p AppDir/usr/src
   - cp -a src/appimage_integrator AppDir/usr/src/
-  - install -Dm755 packaging/appimage/usr/bin/appimage-integrator AppDir/usr/bin/appimage-integrator
   - install -Dm644 src/appimage_integrator/assets/desktop/io.github.appimageintegrator.desktop AppDir/usr/share/applications/io.github.appimageintegrator.desktop
   - install -Dm644 src/appimage_integrator/ui/assets/hicolor/512x512/apps/io.github.appimageintegrator.png AppDir/usr/share/icons/hicolor/512x512/apps/io.github.appimageintegrator.png
 
@@ -18,7 +17,8 @@ AppDir:
     name: AppImage Integrator
     icon: io.github.appimageintegrator
     version: __APPIMAGE_VERSION__
-    exec: usr/bin/appimage-integrator
+    exec: usr/bin/python3
+    exec_args: "-m appimage_integrator $@"
 
   apt:
     arch:
@@ -46,6 +46,13 @@ AppDir:
     exclude:
       - humanity-icon-theme
       - ubuntu-mono
+
+  runtime:
+    env:
+      PYTHONHOME: "${APPDIR}/usr"
+      PYTHONPATH: "${APPDIR}/usr/src:${PYTHONPATH}"
+      XDG_DATA_DIRS: "${APPDIR}/usr/share:${XDG_DATA_DIRS}"
+      GSETTINGS_SCHEMA_DIR: "${APPDIR}/usr/share/glib-2.0/schemas"
 
   after_bundle: |
     set -eux
