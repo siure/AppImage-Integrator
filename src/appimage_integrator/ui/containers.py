@@ -8,7 +8,8 @@ from gi.repository import Adw, Gtk
 
 
 class CompatToolbarView:
-    def __init__(self) -> None:
+    def __init__(self, window: Gtk.Window | None = None) -> None:
+        self._window = window
         if hasattr(Adw, "ToolbarView"):
             self._widget = Adw.ToolbarView()
             self._fallback = False
@@ -24,7 +25,9 @@ class CompatToolbarView:
 
     def add_top_bar(self, bar: Gtk.Widget) -> None:
         if self._fallback:
-            self._widget.append(bar)
+            handle = Gtk.WindowHandle()
+            handle.set_child(bar)
+            self._widget.append(handle)
             return
         self._widget.add_top_bar(bar)
 

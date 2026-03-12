@@ -36,7 +36,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.toast_overlay = Adw.ToastOverlay()
         self.set_content(self.toast_overlay)
 
-        toolbar = CompatToolbarView()
+        toolbar = CompatToolbarView(self)
         self.toast_overlay.set_child(toolbar.widget)
 
         header = Adw.HeaderBar()
@@ -86,7 +86,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         )
 
         self._add_stack_page(self.install_view, "install", "Install", "list-add-symbolic")
-        self._add_stack_page(self.library_view, "library", "Library", "view-grid-symbolic")
+        self._add_stack_page(self.library_view, "library", "Library", "folder-symbolic")
         toolbar.set_content(self.stack)
 
         # Auto-refresh library when switching tabs

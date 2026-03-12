@@ -22,7 +22,7 @@ class DetailsDialog(Adw.Window):
         self.set_title(record.display_name)
         self.set_default_size(600, 520)
 
-        toolbar = CompatToolbarView()
+        toolbar = CompatToolbarView(self)
         header = Adw.HeaderBar()
         toolbar.add_top_bar(header)
 
