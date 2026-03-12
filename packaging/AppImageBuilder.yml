@@ -51,11 +51,16 @@ AppDir:
     env:
       PYTHONHOME: "${APPDIR}/usr"
       PYTHONPATH: "${APPDIR}/usr/src:${PYTHONPATH}"
-      XDG_DATA_DIRS: "${APPDIR}/usr/share:${XDG_DATA_DIRS}"
+      XDG_DATA_DIRS: "${APPDIR}/usr/share"
       GSETTINGS_SCHEMA_DIR: "${APPDIR}/usr/share/glib-2.0/schemas"
 
   after_bundle: |
     set -eux
+    gdk_query_loaders_bin="$(find AppDir/usr/lib -path '*gdk-pixbuf-2.0/gdk-pixbuf-query-loaders' | head -n 1 || true)"
+    if [ -n "$gdk_query_loaders_bin" ] && [ ! -e "AppDir/usr/bin/gdk-pixbuf-query-loaders" ]; then
+      ln -sf "../${gdk_query_loaders_bin#AppDir/usr/}" "AppDir/usr/bin/gdk-pixbuf-query-loaders"
+      ln -sf "gdk-pixbuf-query-loaders" "AppDir/usr/bin/gdk-pixbuf-query-loaders-64"
+    fi
     if [ -d "AppDir/usr/share/glib-2.0/schemas" ]; then
       AppDir/usr/bin/glib-compile-schemas "AppDir/usr/share/glib-2.0/schemas"
     fi

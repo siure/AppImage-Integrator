@@ -87,7 +87,8 @@ class LibraryView(Gtk.Box):
     def _build_row(self, record: ManagedAppRecord) -> Gtk.ListBoxRow:
         row = Adw.ActionRow()
         row.add_css_class("library-row")
-        row.set_use_markup(False)
+        if hasattr(row, "set_use_markup"):
+            row.set_use_markup(False)
         row.set_title(record.display_name)
         row.set_subtitle(self._subtitle_text(record))
         row.set_tooltip_text(self._tooltip_text(record))

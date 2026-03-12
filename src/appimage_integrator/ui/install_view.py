@@ -13,6 +13,8 @@ from gi.repository import Adw, Gdk, GLib, GObject, Gtk
 
 from appimage_integrator.config import PRESET_LABELS
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
+from appimage_integrator.ui.dialogs import CompatMessageDialog
+from appimage_integrator.ui.form_rows import CompatComboRow, CompatEntryRow, CompatExpanderRow
 
 
 class InstallView(Gtk.Box):
@@ -130,10 +132,10 @@ class InstallView(Gtk.Box):
 
         # --- Display group ---
         display_group = Adw.PreferencesGroup(title="Display")
-        self.name_entry = Adw.EntryRow(title="Name")
-        self.comment_entry = Adw.EntryRow(title="Comment")
-        display_group.add(self.name_entry)
-        display_group.add(self.comment_entry)
+        self.name_entry = CompatEntryRow("Name")
+        self.comment_entry = CompatEntryRow("Comment")
+        display_group.add(self.name_entry.widget)
+        display_group.add(self.comment_entry.widget)
         form_box.append(display_group)
 
         # --- Launch Options group ---
@@ -142,7 +144,7 @@ class InstallView(Gtk.Box):
         # Preset combo
         preset_labels = list(PRESET_LABELS.values())
         preset_model = Gtk.StringList.new(preset_labels)
-        self.preset_combo = Adw.ComboRow(title="Preset", model=preset_model)
+        self.preset_combo = CompatComboRow("Preset", preset_model)
         labels_map = {value: key for key, value in PRESET_LABELS.items()}
         self._preset_index_to_id = {
             index: labels_map[label] for index, label in enumerate(preset_labels)
@@ -150,18 +152,18 @@ class InstallView(Gtk.Box):
         self._preset_id_to_index = {
             preset_id: index for index, preset_id in self._preset_index_to_id.items()
         }
-        launch_group.add(self.preset_combo)
+        launch_group.add(self.preset_combo.widget)
 
-        self.args_entry = Adw.EntryRow(title="Extra Arguments")
-        launch_group.add(self.args_entry)
+        self.args_entry = CompatEntryRow("Extra Arguments")
+        launch_group.add(self.args_entry.widget)
         form_box.append(launch_group)
 
         # --- Technical Details (collapsible) ---
         tech_group = Adw.PreferencesGroup(title="Technical Details")
-        self.tech_expander = Adw.ExpanderRow(title="Detected Metadata")
+        self.tech_expander = CompatExpanderRow("Detected Metadata")
         self.tech_expander.set_enable_expansion(True)
         self.tech_expander.set_expanded(False)
-        tech_group.add(self.tech_expander)
+        tech_group.add(self.tech_expander.widget)
         form_box.append(tech_group)
 
         # --- Footer buttons ---
@@ -416,7 +418,8 @@ class InstallView(Gtk.Box):
 
         for title, value in details:
             row = Adw.ActionRow(title=title)
-            row.set_use_markup(False)
+            if hasattr(row, "set_use_markup"):
+                row.set_use_markup(False)
             row.set_subtitle(value)
             row.set_subtitle_selectable(True)
             self.tech_expander.add_row(row)
@@ -437,15 +440,14 @@ class InstallView(Gtk.Box):
         success_title: str,
         success_body: str,
     ) -> None:
-        dialog = Adw.AlertDialog.new(title, body)
+        dialog = CompatMessageDialog(self, title, body)
         dialog.add_response("cancel", "Cancel")
         dialog.add_response("trust", "Trust and Continue")
         dialog.set_default_response("trust")
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("trust", Adw.ResponseAppearance.SUGGESTED)
-        dialog.choose(
-            self.get_root(),
-            None,
+        dialog.connect(
+            "response",
             self._on_source_trust_response,
             path,
             on_trusted,
@@ -454,11 +456,12 @@ class InstallView(Gtk.Box):
             success_title,
             success_body,
         )
+        dialog.present()
 
     def _on_source_trust_response(
         self,
-        dialog: Adw.AlertDialog,
-        result,
+        dialog,
+        response: str,
         path: Path,
         on_trusted,
         cancel_title: str,
@@ -466,7 +469,6 @@ class InstallView(Gtk.Box):
         success_title: str,
         success_body: str,
     ) -> None:
-        response = dialog.choose_finish(result)
         if response != "trust":
             self._show_alert_dialog(cancel_title, cancel_body)
             self.reset()
@@ -560,11 +562,11 @@ class InstallView(Gtk.Box):
     # Helpers
     # ------------------------------------------------------------------
     def _show_alert_dialog(self, title: str, body: str) -> None:
-        dialog = Adw.AlertDialog.new(title, body)
+        dialog = CompatMessageDialog(self, title, body)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
-        dialog.present(self.get_root())
+        dialog.present()
 
     def reset(self, clear_selection: bool = True) -> None:
         self.name_label.set_text("")

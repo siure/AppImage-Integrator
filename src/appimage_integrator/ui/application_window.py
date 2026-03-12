@@ -13,6 +13,8 @@ from gi.repository import Adw, GLib, Gtk
 from appimage_integrator.assets import APP_BRAND_LOGO_PATH
 from appimage_integrator.config import APP_NAME
 from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.ui.containers import CompatToolbarView
+from appimage_integrator.ui.dialogs import CompatMessageDialog
 from appimage_integrator.ui.details_dialog import DetailsDialog
 from appimage_integrator.ui.install_view import InstallView
 from appimage_integrator.ui.library_view import LibraryView
@@ -34,8 +36,8 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.toast_overlay = Adw.ToastOverlay()
         self.set_content(self.toast_overlay)
 
-        toolbar = Adw.ToolbarView()
-        self.toast_overlay.set_child(toolbar)
+        toolbar = CompatToolbarView()
+        self.toast_overlay.set_child(toolbar.widget)
 
         header = Adw.HeaderBar()
         toolbar.add_top_bar(header)
@@ -83,14 +85,22 @@ class ApplicationWindow(Adw.ApplicationWindow):
             toast=self.show_toast,
         )
 
-        self.stack.add_titled_with_icon(self.install_view, "install", "Install", "list-add-symbolic")
-        self.stack.add_titled_with_icon(self.library_view, "library", "Library", "view-grid-symbolic")
+        self._add_stack_page(self.install_view, "install", "Install", "list-add-symbolic")
+        self._add_stack_page(self.library_view, "library", "Library", "view-grid-symbolic")
         toolbar.set_content(self.stack)
 
         # Auto-refresh library when switching tabs
         self.stack.connect("notify::visible-child", self._on_tab_switched)
 
         self.refresh_library()
+
+    def _add_stack_page(self, child: Gtk.Widget, name: str, title: str, icon_name: str) -> None:
+        if hasattr(self.stack, "add_titled_with_icon"):
+            self.stack.add_titled_with_icon(child, name, title, icon_name)
+            return
+        page = self.stack.add_titled(child, name, title)
+        if hasattr(page, "set_icon_name"):
+            page.set_icon_name(icon_name)
 
     def _on_tab_switched(self, stack: Adw.ViewStack, _pspec) -> None:
         if stack.get_visible_child() is self.library_view:
@@ -130,7 +140,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
     def show_details(self, record: ManagedAppRecord) -> None:
         dialog = DetailsDialog(self, record)
-        dialog.present(self)
+        dialog.present()
 
     def update_record(self, record: ManagedAppRecord) -> None:
         self._show_update_progress_dialog(record)
@@ -193,7 +203,8 @@ class ApplicationWindow(Adw.ApplicationWindow):
         report,
     ) -> None:
         issue_text = "\n".join(report.issues) if report.issues else "No additional details were reported."
-        dialog = Adw.AlertDialog.new(
+        dialog = CompatMessageDialog(
+            self,
             "Repair failed",
             "Repairing this integration automatically may require replacing files or restoring executable permissions.\n\n"
             "Only continue if you trust the original AppImage source.\n\n"
@@ -207,11 +218,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
         dialog.connect("response", self._on_failed_repair_reinstall_response, record)
-        dialog.present(self)
+        dialog.present()
 
     def _on_failed_repair_reinstall_response(
         self,
-        dialog: Adw.AlertDialog,
+        dialog,
         response: str,
         record: ManagedAppRecord,
     ) -> None:
@@ -220,11 +231,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.reinstall_record(record)
 
     def _show_repair_result_dialog(self, title: str, body: str) -> None:
-        dialog = Adw.AlertDialog.new(title, body)
+        dialog = CompatMessageDialog(self, title, body)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
-        dialog.present(self)
+        dialog.present()
 
     def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
         validated_record, status, messages = self.services.library_manager.validate_record(record)
@@ -267,7 +278,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         else:
             lines.extend(("", "Automatic recovery is not possible because the original source file is unavailable."))
 
-        dialog = Adw.AlertDialog.new(title, "\n".join(lines))
+        dialog = CompatMessageDialog(self, title, "\n".join(lines))
         dialog.add_response("cancel", "Cancel")
         if appimage_exists:
             dialog.add_response("repair", "Repair")
@@ -279,11 +290,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
             dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_close_response("cancel")
         dialog.connect("response", self._on_issue_resolution_response, record)
-        dialog.present(self)
+        dialog.present()
 
     def _on_issue_resolution_response(
         self,
-        dialog: Adw.AlertDialog,
+        dialog,
         response: str,
         record: ManagedAppRecord,
     ) -> None:
@@ -405,7 +416,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
             ]
             if len(discovery.higher_version_candidates) > 1:
                 lines.extend(("", "Additional matching AppImages were also found."))
-            dialog = Adw.AlertDialog.new("Update available", "\n".join(lines))
+            dialog = CompatMessageDialog(self, "Update available", "\n".join(lines))
             dialog.add_response("cancel", "Do Nothing")
             dialog.add_response("choose", "Choose AppImage")
             dialog.add_response("update", "Update")
@@ -418,11 +429,12 @@ class ApplicationWindow(Adw.ApplicationWindow):
                 record,
                 candidate.path,
             )
-            dialog.present(self)
+            dialog.present()
             return False
 
         searched = "\n".join(str(path) for path in discovery.searched_directories) or "No searchable directories were available."
-        dialog = Adw.AlertDialog.new(
+        dialog = CompatMessageDialog(
+            self,
             "No newer AppImage found",
             "AppImage Integrator could not find a higher-version AppImage automatically.\n\n"
             f"Searched:\n{searched}\n\n"
@@ -434,12 +446,12 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("choose", Adw.ResponseAppearance.SUGGESTED)
         dialog.connect("response", self._on_no_update_found_response, record)
-        dialog.present(self)
+        dialog.present()
         return False
 
     def _on_update_discovery_response(
         self,
-        dialog: Adw.AlertDialog,
+        dialog,
         response: str,
         record: ManagedAppRecord,
         candidate_path: Path,
@@ -452,7 +464,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
     def _on_no_update_found_response(
         self,
-        dialog: Adw.AlertDialog,
+        dialog,
         response: str,
         record: ManagedAppRecord,
     ) -> None:

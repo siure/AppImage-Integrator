@@ -9,19 +9,20 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gtk
 
 from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.ui.containers import CompatToolbarView
 
 
-class DetailsDialog(Adw.Dialog):
+class DetailsDialog(Adw.Window):
     """Structured detail view using AdwPreferencesGroup sections."""
 
     def __init__(self, parent: Gtk.Widget, record: ManagedAppRecord) -> None:
-        super().__init__()
+        root = parent.get_root()
+        super().__init__(transient_for=root if isinstance(root, Gtk.Window) else None, modal=True)
         self.add_css_class("integrator-dialog")
         self.set_title(record.display_name)
-        self.set_content_width(600)
-        self.set_content_height(520)
+        self.set_default_size(600, 520)
 
-        toolbar = Adw.ToolbarView()
+        toolbar = CompatToolbarView()
         header = Adw.HeaderBar()
         toolbar.add_top_bar(header)
 
@@ -45,7 +46,8 @@ class DetailsDialog(Adw.Dialog):
             issues_group = Adw.PreferencesGroup(title="Validation Issues")
             for msg in record.last_validation_messages:
                 row = Adw.ActionRow()
-                row.set_use_markup(False)
+                if hasattr(row, "set_use_markup"):
+                    row.set_use_markup(False)
                 row.set_title(msg)
                 row.set_subtitle_selectable(True)
                 row.add_prefix(Gtk.Image.new_from_icon_name("dialog-warning-symbolic"))
@@ -100,12 +102,13 @@ class DetailsDialog(Adw.Dialog):
         content.append(meta_group)
 
         toolbar.set_content(scrolled)
-        self.set_child(toolbar)
+        self.set_child(toolbar.widget)
 
     @staticmethod
     def _add_detail_row(group: Adw.PreferencesGroup, title: str, value: str) -> None:
         row = Adw.ActionRow()
-        row.set_use_markup(False)
+        if hasattr(row, "set_use_markup"):
+            row.set_use_markup(False)
         row.set_title(title)
         row.set_subtitle(value)
         row.set_subtitle_selectable(True)
