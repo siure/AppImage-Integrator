@@ -4,6 +4,7 @@ import io
 import json
 import logging
 from pathlib import Path
+from typing import Callable
 
 from appimage_integrator.bootstrap import ServiceContainer
 from appimage_integrator import cli
@@ -15,6 +16,7 @@ from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.install_manager import InstallManager
 from appimage_integrator.services.library_manager import LibraryManager
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
+from appimage_integrator.services.record_editor import RecordEditorService
 from appimage_integrator.services.repair_manager import RepairManager
 from appimage_integrator.services.update_discovery import UpdateDiscoveryService
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -80,12 +82,22 @@ def make_inspection(source_path: Path, extracted_dir: Path, version: str | None)
     )
 
 
-def build_services(test_paths, tooling, inspections: list[AppImageInspection]) -> ServiceContainer:
+def _default_launcher_command(test_paths) -> list[str]:
+    return [str(test_paths.self_command_path)]
+
+
+def build_services(
+    test_paths,
+    tooling,
+    inspections: list[AppImageInspection],
+    launcher_command_resolver: Callable[[], list[str] | None] | None = None,
+) -> ServiceContainer:
     logger = logging.getLogger("tests.cli")
     store = MetadataStore(test_paths)
     icon_resolver = IconResolver(test_paths)
     inspector = FakeInspector(inspections)
-    desktop_service = DesktopEntryService(tooling)
+    launcher_command_resolver = launcher_command_resolver or (lambda: _default_launcher_command(test_paths))
+    desktop_service = DesktopEntryService(tooling, launcher_command_resolver=launcher_command_resolver)
     runtime_service = ManagedAppRuntimeService(
         test_paths,
         inspector,
@@ -111,6 +123,12 @@ def build_services(test_paths, tooling, inspections: list[AppImageInspection]) -
         runtime_service,
         store,
     )
+    record_editor = RecordEditorService(
+        store,
+        runtime_service,
+        desktop_service,
+        inspector,
+    )
     return ServiceContainer(
         paths=test_paths,
         logger=logger,
@@ -119,6 +137,7 @@ def build_services(test_paths, tooling, inspections: list[AppImageInspection]) -
         install_manager=install_manager,
         library_manager=library_manager,
         runtime_service=runtime_service,
+        record_editor=record_editor,
         repair_manager=repair_manager,
         update_discovery=UpdateDiscoveryService(test_paths, inspector, IdResolver()),
     )
@@ -331,7 +350,143 @@ def test_cli_launch_allows_desktop_warnings(monkeypatch, test_paths, tooling) ->
     assert code == 0
     assert stderr == ""
     assert "Launched Demo Browser" in stdout
-    assert launched == [[services.store.load(internal_id).managed_appimage_path]]
+    assert launched == [[services.store.load(internal_id).managed_appimage_path, "--existing"]]
+
+
+def test_cli_launch_forwards_passthrough_args(monkeypatch, test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "launch-args.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-launch-args"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    parser = build_parser()
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    internal_id = json.loads(stdout)["record"]["internal_id"]
+
+    launched: list[list[str]] = []
+
+    class DummyProcess:
+        pass
+
+    def fake_popen(args):
+        launched.append(args)
+        return DummyProcess()
+
+    monkeypatch.setattr(cli.subprocess, "Popen", fake_popen)
+
+    code, stdout, stderr = run_args(
+        parser,
+        services,
+        "launch",
+        internal_id,
+        "--",
+        "--sample",
+        "value",
+        "%U",
+    )
+
+    assert code == 0
+    assert stderr == ""
+    assert launched == [[services.store.load(internal_id).managed_appimage_path, "--existing", "--sample", "value", "%U"]]
+
+
+def test_cli_launch_desktop_auto_heals_renamed_payload(monkeypatch, test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "self-update.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-self-update-launch"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source.parent / "self-update-v2.AppImage", extracted, "2.0.0"),
+        ],
+    )
+    parser = build_parser()
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    internal_id = json.loads(stdout)["record"]["internal_id"]
+    record = services.store.load(internal_id)
+    assert record is not None
+
+    Path(record.managed_payload_path).unlink()
+    replacement = Path(record.managed_payload_dir) / "self-update-v2.AppImage"
+    replacement.write_text("appimage", encoding="utf-8")
+    replacement.chmod(0o755)
+
+    launched: list[list[str]] = []
+    shown_dialogs: list[tuple[str, str, list[str]]] = []
+
+    class DummyProcess:
+        pass
+
+    def fake_popen(args):
+        launched.append(args)
+        return DummyProcess()
+
+    monkeypatch.setattr(cli.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(cli, "_show_launch_error_dialog", lambda title, intro, messages: shown_dialogs.append((title, intro, messages)))
+
+    code, stdout, stderr = run_args(parser, services, "launch", internal_id, "--desktop")
+
+    assert code == 0
+    assert stderr == ""
+    assert shown_dialogs == []
+    updated_record = services.store.load(internal_id)
+    assert updated_record is not None
+    assert updated_record.version == "2.0.0"
+    assert Path(updated_record.managed_appimage_path).resolve() == replacement.resolve()
+    assert launched == [[updated_record.managed_appimage_path, "--existing"]]
+
+
+def test_cli_launch_desktop_shows_visible_failure_when_recovery_fails(monkeypatch, test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "desktop-failure.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-desktop-failure-launch"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    parser = build_parser()
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    internal_id = json.loads(stdout)["record"]["internal_id"]
+    record = services.store.load(internal_id)
+    assert record is not None
+    Path(record.managed_payload_path).unlink()
+
+    shown_dialogs: list[tuple[str, str, list[str]]] = []
+    monkeypatch.setattr(cli, "_show_launch_error_dialog", lambda title, intro, messages: shown_dialogs.append((title, intro, messages)))
+
+    code, stdout, stderr = run_args(parser, services, "launch", internal_id, "--desktop")
+
+    assert code == 1
+    assert stdout == ""
+    assert "Launch blocked by integration errors:" in stderr
+    assert shown_dialogs == [
+        (
+            "Launch blocked",
+            "AppImage Integrator could not launch this AppImage.",
+            ["Managed AppImage is missing."],
+        )
+    ]
 
 
 def test_cli_update_uses_detected_higher_version(test_paths, tooling) -> None:

@@ -11,6 +11,20 @@ def _slugify(value: str) -> str:
     return slug or "appimage"
 
 
+def _resolve_identity(basis: str, slug_source: str) -> IdentityResolution:
+    digest = hashlib.sha256(basis.encode("utf-8")).hexdigest()
+    return IdentityResolution(
+        internal_id=f"{_slugify(slug_source)}-{digest[:8]}",
+        identity_fingerprint=digest,
+        basis=basis,
+    )
+
+
+def resolve_internal_id_from_appstream_id(appstream_id: str) -> str:
+    value = appstream_id.strip()
+    return _resolve_identity(value, value).internal_id
+
+
 class IdResolver:
     def resolve(self, inspection: AppImageInspection) -> IdentityResolution:
         if inspection.appstream_id:
@@ -25,9 +39,4 @@ class IdResolver:
             startup = inspection.startup_wm_class or ""
             basis = "|".join((name.strip(), startup.strip(), icon.strip()))
             slug_source = name
-        digest = hashlib.sha256(basis.encode("utf-8")).hexdigest()
-        return IdentityResolution(
-            internal_id=f"{_slugify(slug_source)}-{digest[:8]}",
-            identity_fingerprint=digest,
-            basis=basis,
-        )
+        return _resolve_identity(basis, slug_source)

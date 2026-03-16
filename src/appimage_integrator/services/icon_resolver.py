@@ -87,6 +87,12 @@ class IconResolver:
     def _candidate_from_path(self, extracted_dir: Path, path: Path) -> IconCandidate | None:
         if not path.is_file():
             return None
+        extracted_root = extracted_dir.resolve(strict=False)
+        resolved_path = path.resolve(strict=False)
+        try:
+            relpath = str(resolved_path.relative_to(extracted_root))
+        except ValueError:
+            return None
         suffix = path.suffix.lower()
         if suffix not in {".svg", ".png", ".xpm"} and path.name != ".DirIcon":
             return None
@@ -96,10 +102,9 @@ class IconResolver:
             height = None
         else:
             kind = "png" if suffix == ".png" or path.name == ".DirIcon" else "xpm"
-            width, height = self._read_raster_dimensions(path, kind)
-        relpath = str(path.relative_to(extracted_dir))
+            width, height = self._read_raster_dimensions(resolved_path, kind)
         candidate = IconCandidate(
-            source_path=path,
+            source_path=resolved_path,
             relpath=relpath,
             kind=kind,
             width=width,

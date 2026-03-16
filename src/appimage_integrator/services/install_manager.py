@@ -53,13 +53,7 @@ class InstallManager:
         existing = self.store.load(identity.internal_id)
         if existing:
             existing = self.runtime_service.reconcile_record(existing)
-        mode = "install"
-        if existing:
-            if compare_versions(inspection.detected_version, existing.version) != 0:
-                mode = "update"
-            else:
-                mode = "reinstall"
-        return inspection, existing, mode
+        return inspection, existing, self._install_mode(existing, inspection.detected_version)
 
     def install(self, request: InstallRequest) -> InstallResult:
         inspection = self.inspector.inspect(request.source_path)
@@ -80,12 +74,7 @@ class InstallManager:
         existing = self.store.load(identity.internal_id)
         if existing:
             existing = self.runtime_service.reconcile_record(existing)
-        mode = "install"
-        if existing:
-            if compare_versions(inspection.detected_version, existing.version) != 0:
-                mode = "update"
-            else:
-                mode = "reinstall"
+        mode = self._install_mode(existing, inspection.detected_version)
 
         placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
 
@@ -94,6 +83,7 @@ class InstallManager:
             inspection.chosen_icon_candidate,
         )
         desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
+            internal_id=identity.internal_id,
             inspection=inspection,
             appimage_path=placement.stable_path,
             icon_value=icon_value,
@@ -163,3 +153,8 @@ class InstallManager:
             self.tooling.run(
                 [self.tooling.tools.update_desktop_database, str(self.paths.desktop_entries_dir)]
             )
+
+    def _install_mode(self, existing: ManagedAppRecord | None, detected_version: str | None) -> str:
+        if existing is None:
+            return "install"
+        return "update" if compare_versions(detected_version, existing.version) > 0 else "reinstall"

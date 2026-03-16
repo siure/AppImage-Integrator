@@ -17,6 +17,15 @@ from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessag
 from appimage_integrator.ui.form_rows import CompatComboRow, CompatEntryRow, CompatExpanderRow
 
 
+def inspection_can_install(inspection: AppImageInspection) -> bool:
+    fatal_errors = [
+        message
+        for message in inspection.errors
+        if message != "Could not extract AppImage contents."
+    ]
+    return inspection.is_appimage and not fatal_errors
+
+
 class InstallView(Gtk.Box):
     """Four-page stack: empty → loading → form → progress."""
 
@@ -393,7 +402,11 @@ class InstallView(Gtk.Box):
         self.stack.set_visible_child_name("loading")
 
         def worker() -> None:
-            inspection, existing, mode = self.install_manager.inspect(path)
+            try:
+                inspection, existing, mode = self.install_manager.inspect(path)
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(self._apply_inspection_error, str(exc))
+                return
             GLib.idle_add(self._apply_inspection, inspection, existing, mode)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -408,7 +421,9 @@ class InstallView(Gtk.Box):
         self.current_existing = existing
         self.current_mode = mode
 
-        name = inspection.detected_name or self.current_source_path.stem
+        name = inspection.detected_name or (
+            self.current_source_path.stem if self.current_source_path is not None else "AppImage"
+        )
         comment = inspection.detected_comment or ""
 
         self.name_label.set_text(name)
@@ -416,7 +431,7 @@ class InstallView(Gtk.Box):
         self.name_entry.set_text(name)
         self.comment_entry.set_text(comment)
         self.install_button.set_label(mode.capitalize())
-        self.install_button.set_sensitive(not inspection.errors or inspection.is_executable)
+        self.install_button.set_sensitive(inspection_can_install(inspection))
 
         if inspection.chosen_icon_candidate:
             self.preview_icon.set_from_file(str(inspection.chosen_icon_candidate.source_path))
@@ -427,6 +442,11 @@ class InstallView(Gtk.Box):
         self._populate_tech_details(inspection, existing)
 
         self.stack.set_visible_child_name("form")
+        return False
+
+    def _apply_inspection_error(self, message: str) -> bool:
+        self._show_alert_dialog("Inspection failed", message)
+        self.reset()
         return False
 
     def _populate_tech_details(

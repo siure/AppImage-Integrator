@@ -38,6 +38,12 @@ class CompatEntryRow:
             return self._widget.get_text()
         return self._entry.get_text()
 
+    def connect_changed(self, callback) -> None:
+        if self._entry is None:
+            self._widget.connect("notify::text", callback)
+            return
+        self._entry.connect("changed", callback)
+
 
 class CompatComboRow:
     def __init__(self, title: str, model: Gtk.StringList) -> None:
@@ -68,6 +74,12 @@ class CompatComboRow:
             self._widget.set_selected(position)
             return
         self._dropdown.set_selected(position)
+
+    def connect_changed(self, callback) -> None:
+        if self._dropdown is None:
+            self._widget.connect("notify::selected", callback)
+            return
+        self._dropdown.connect("notify::selected", callback)
 
 
 class CompatExpanderRow:

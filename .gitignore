@@ -2,26 +2,36 @@ __pycache__/
 *.py[cod]
 *.so
 
+*.tmp
+
+# Tooling caches and reports
 .coverage
 .hypothesis/
 .pytest_cache/
 .ruff_cache/
 .tox/
 
+# Local environments
 .env
 .venv/
 venv/
 
+# Build and packaging artifacts
+AppDir/
+appimage-build/
 build/
 dist/
 *.egg-info/
 pip-wheel-metadata/
 
+# OS metadata
 .DS_Store
 Thumbs.db
 
+# Local test and integration artifacts
 appimagetest/
 tests/fixtures/local/
 
+# Local output files
 *.AppImage
 *.desktop.bak

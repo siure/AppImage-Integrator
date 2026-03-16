@@ -40,3 +40,8 @@ def tooling() -> Tooling:
         sha256sum=None,
     )
     return tool
+
+
+@pytest.fixture
+def launcher_command(test_paths: AppPaths) -> list[str]:
+    return [str(test_paths.self_command_path)]

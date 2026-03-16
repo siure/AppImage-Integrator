@@ -12,6 +12,7 @@ from gi.repository import Adw, GLib, Gtk
 
 from appimage_integrator.assets import APP_BRAND_LOGO_PATH
 from appimage_integrator.config import APP_NAME
+from appimage_integrator.launcher import build_managed_app_launch_command
 from appimage_integrator.models import ManagedAppRecord
 from appimage_integrator.ui.containers import CompatToolbarView
 from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessageDialog
@@ -32,6 +33,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_detail: Gtk.Label | None = None
         self._update_progress_bar: Gtk.ProgressBar | None = None
         self._update_progress_pulse_id: int | None = None
+        self._library_refresh_request_id = 0
         self.add_css_class("integrator-window")
         self.set_title(APP_NAME)
         self.set_resizable(True)
@@ -121,11 +123,49 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.toast_overlay.add_toast(Adw.Toast.new(message))
 
     def refresh_library(self) -> None:
-        records = []
-        for record in self.services.library_manager.list_records():
-            record = self._sync_record_validation(record)
-            records.append(record)
+        records = self.services.library_manager.list_records()
         self.library_view.set_records(records)
+
+        self._library_refresh_request_id += 1
+        request_id = self._library_refresh_request_id
+        if not records:
+            return
+
+        def worker(snapshot: list[ManagedAppRecord], refresh_request_id: int) -> None:
+            validated_rows: list[tuple[ManagedAppRecord, str, list[str]]] = []
+            for record in snapshot:
+                validated_rows.append(
+                    self.services.library_manager.validate_record(
+                        record,
+                        allow_reconcile_inspection=False,
+                    )
+                )
+            GLib.idle_add(self._finish_library_refresh, refresh_request_id, validated_rows)
+
+        threading.Thread(target=worker, args=(records, request_id), daemon=True).start()
+
+    def _finish_library_refresh(
+        self,
+        request_id: int,
+        validated_rows: list[tuple[ManagedAppRecord, str, list[str]]],
+    ) -> bool:
+        if request_id != self._library_refresh_request_id:
+            return False
+
+        records: list[ManagedAppRecord] = []
+        for validated_record, status, messages in validated_rows:
+            if (
+                status == validated_record.last_validation_status
+                and messages == validated_record.last_validation_messages
+            ):
+                if validated_record != self.services.store.load(validated_record.internal_id):
+                    self.services.store.save(validated_record)
+                records.append(validated_record)
+                continue
+            records.append(self._update_record_validation(validated_record, status, messages))
+
+        self.library_view.set_records(records)
+        return False
 
     def launch_record(self, record: ManagedAppRecord) -> None:
         record = self._sync_record_validation(record)
@@ -138,7 +178,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
             )
             return
         try:
-            subprocess.Popen([record.managed_appimage_path])
+            subprocess.Popen(build_managed_app_launch_command(record))
         except OSError as exc:
             issue = self._format_launch_error(exc)
             record = self._update_record_validation(record, "error", [issue])
@@ -150,7 +190,12 @@ class ApplicationWindow(Adw.ApplicationWindow):
             )
 
     def show_details(self, record: ManagedAppRecord) -> None:
-        dialog = DetailsDialog(self, record)
+        dialog = DetailsDialog(
+            self,
+            record,
+            self.services.record_editor,
+            self._apply_details_update,
+        )
         dialog.present()
 
     def update_record(self, record: ManagedAppRecord) -> None:
@@ -247,6 +292,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
         dialog.present()
+
+    def _apply_details_update(self, record: ManagedAppRecord) -> None:
+        self.services.store.save(record)
+        self.show_toast(f"Updated {record.display_name}")
+        self.refresh_library()
 
     def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
         validated_record, status, messages = self.services.library_manager.validate_record(record)

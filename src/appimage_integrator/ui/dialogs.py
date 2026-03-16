@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 
 def _resolve_parent(parent: Gtk.Widget | Gtk.Window | None) -> Gtk.Window | None:
@@ -118,6 +120,43 @@ class CompatMessageDialog:
         if not self._response_emitted and self._close_response is not None:
             self._emit_response(self._close_response)
         return False
+
+
+def open_local_file_with_default_app(
+    parent: Gtk.Widget | Gtk.Window | None,
+    path: str | Path | None,
+    *,
+    label_for_errors: str,
+) -> bool:
+    candidate = Path(path).expanduser() if path else None
+    if candidate is None or not candidate.exists():
+        dialog = CompatMessageDialog(
+            parent,
+            "Open failed",
+            f"{label_for_errors} could not be opened because it does not exist.",
+        )
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.present()
+        return False
+
+    try:
+        uri = candidate.resolve().as_uri()
+        Gio.AppInfo.launch_default_for_uri(uri, None)
+    except (GLib.Error, OSError, ValueError) as exc:
+        details = str(exc).strip()
+        body = f"{label_for_errors} could not be opened with the system default application."
+        if details:
+            body = f"{body}\n\n{details}"
+        dialog = CompatMessageDialog(parent, "Open failed", body)
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.present()
+        return False
+
+    return True
 
 
 class CompatFileChooserDialog:

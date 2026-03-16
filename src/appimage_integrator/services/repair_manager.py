@@ -57,24 +57,29 @@ class RepairManager:
                 should_regenerate_desktop = True
 
         if should_regenerate_desktop:
-            desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
-                inspection=inspection,
-                appimage_path=appimage_path,
-                icon_value=record.managed_icon_path or "application-x-executable",
-                display_name=record.display_name,
-                comment=record.comment,
-                extra_args=record.extra_args,
-                arg_preset_id=record.arg_preset_id,
-            )
-            desktop_path.write_text(desktop_text, encoding="utf-8")
-            actions.append("Regenerated desktop launcher.")
-            record = ManagedAppRecord.from_dict(
-                {
-                    **record.to_dict(),
-                    "desktop_exec_template": exec_template,
-                    "last_validation_messages": validation_messages,
-                }
-            )
+            try:
+                desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
+                    internal_id=record.internal_id,
+                    inspection=inspection,
+                    appimage_path=appimage_path,
+                    icon_value=record.managed_icon_path or "application-x-executable",
+                    display_name=record.display_name,
+                    comment=record.comment,
+                    extra_args=record.extra_args,
+                    arg_preset_id=record.arg_preset_id,
+                )
+            except ValueError as exc:
+                issues.append(str(exc))
+            else:
+                desktop_path.write_text(desktop_text, encoding="utf-8")
+                actions.append("Regenerated desktop launcher.")
+                record = ManagedAppRecord.from_dict(
+                    {
+                        **record.to_dict(),
+                        "desktop_exec_template": exec_template,
+                        "last_validation_messages": validation_messages,
+                    }
+                )
 
         if record.icon_managed_by_app and (icon_path is None or not icon_path.exists()):
             icon_value, managed_icon_path, icon_managed = self.icon_resolver.install_icon(

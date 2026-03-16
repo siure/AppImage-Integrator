@@ -66,7 +66,12 @@ class ManagedAppRuntimeService:
             payload_path=payload_path,
         )
 
-    def reconcile_record(self, record: ManagedAppRecord) -> ManagedAppRecord:
+    def reconcile_record(
+        self,
+        record: ManagedAppRecord,
+        *,
+        allow_payload_inspection: bool = True,
+    ) -> ManagedAppRecord:
         record = self._ensure_runtime_fields(record)
         record = self._migrate_legacy_record(record)
         stable_path = Path(record.managed_appimage_path)
@@ -76,11 +81,21 @@ class ManagedAppRuntimeService:
             if resolved.exists():
                 if payload_path is None or resolved != payload_path:
                     record = self._record_with_paths(record, payload_path=resolved)
-                return self._record_with_managed_files(record)
+                return self._refresh_desktop_launcher(
+                    record,
+                    resolved,
+                    allow_payload_inspection=allow_payload_inspection,
+                )
         if payload_path and payload_path.exists():
             self._retarget_symlink(stable_path, payload_path)
-            return self._record_with_managed_files(record)
+            return self._refresh_desktop_launcher(
+                record,
+                payload_path,
+                allow_payload_inspection=allow_payload_inspection,
+            )
 
+        if not allow_payload_inspection:
+            return self._record_with_managed_files(record)
         replacement = self._select_replacement_candidate(record)
         if replacement is None:
             return self._record_with_managed_files(record)
@@ -246,6 +261,7 @@ class ManagedAppRuntimeService:
             inspection.chosen_icon_candidate,
         )
         desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
+            internal_id=record.internal_id,
             inspection=inspection,
             appimage_path=Path(record.managed_appimage_path),
             icon_value=icon_value,
@@ -279,6 +295,31 @@ class ManagedAppRuntimeService:
             }
         )
         return self._record_with_managed_files(updated)
+
+    def _refresh_desktop_launcher(
+        self,
+        record: ManagedAppRecord,
+        payload_path: Path,
+        *,
+        allow_payload_inspection: bool,
+    ) -> ManagedAppRecord:
+        desktop_path = Path(record.managed_desktop_path)
+        if not desktop_path.exists():
+            return self._record_with_managed_files(record)
+        try:
+            desktop_text = desktop_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return self._record_with_managed_files(record)
+        if not self.desktop_service.desktop_entry_needs_migration(desktop_text, record.internal_id):
+            return self._record_with_managed_files(record)
+        if not allow_payload_inspection:
+            return self._record_with_managed_files(record)
+
+        inspection = self.inspector.inspect(payload_path)
+        try:
+            return self._refresh_record_for_payload(record, inspection, payload_path)
+        finally:
+            self.inspector.cleanup(inspection)
 
     def _ensure_executable(self, path: Path) -> None:
         os.chmod(path, 0o755)

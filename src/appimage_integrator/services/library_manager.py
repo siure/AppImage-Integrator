@@ -23,8 +23,16 @@ class LibraryManager:
     def list_records(self) -> list[ManagedAppRecord]:
         return sorted(self.store.load_all(), key=lambda record: record.display_name.lower())
 
-    def validate_record(self, record: ManagedAppRecord) -> tuple[ManagedAppRecord, str, list[str]]:
-        record = self.runtime_service.reconcile_record(record)
+    def validate_record(
+        self,
+        record: ManagedAppRecord,
+        *,
+        allow_reconcile_inspection: bool = True,
+    ) -> tuple[ManagedAppRecord, str, list[str]]:
+        record = self.runtime_service.reconcile_record(
+            record,
+            allow_payload_inspection=allow_reconcile_inspection,
+        )
         issues: list[str] = []
         launch_blocked = False
         appimage_path = Path(record.managed_appimage_path)

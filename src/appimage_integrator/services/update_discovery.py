@@ -116,10 +116,17 @@ class UpdateDiscoveryService:
     def _search_directories(self, record: ManagedAppRecord) -> list[tuple[Path, str]]:
         source_parent = Path(record.source_path_last_seen).expanduser().resolve(strict=False).parent
         downloads = (self.paths.home / "Downloads").resolve(strict=False)
+        managed_payload_dir = None
+        if record.managed_payload_dir:
+            managed_payload_dir = Path(record.managed_payload_dir).resolve(strict=False)
+        elif record.managed_payload_path:
+            managed_payload_dir = Path(record.managed_payload_path).resolve(strict=False).parent
         candidates = [
             (source_parent, "source_dir"),
             (downloads, "downloads"),
         ]
+        if managed_payload_dir is not None:
+            candidates.append((managed_payload_dir, "managed_payload_dir"))
         directories: list[tuple[Path, str]] = []
         seen: set[Path] = set()
         for directory, kind in candidates:
@@ -145,15 +152,10 @@ class UpdateDiscoveryService:
             Path(record.managed_appimage_path).resolve(strict=False),
             Path(record.source_path_last_seen).expanduser().resolve(strict=False),
         }
+        if record.managed_payload_path:
+            managed_paths.add(Path(record.managed_payload_path).resolve(strict=False))
         if resolved_candidate in managed_paths:
             return True
-        if record.managed_payload_dir:
-            payload_dir = Path(record.managed_payload_dir).resolve(strict=False)
-            try:
-                resolved_candidate.relative_to(payload_dir)
-                return True
-            except ValueError:
-                return False
         return False
 
     def _match_candidate(
