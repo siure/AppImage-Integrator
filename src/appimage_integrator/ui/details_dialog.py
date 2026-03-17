@@ -15,15 +15,8 @@ from appimage_integrator.config import PRESET_LABELS
 from appimage_integrator.models import ManagedAppRecord, ManagedRecordUpdateRequest
 from appimage_integrator.services.record_editor import RecordEditorService
 from appimage_integrator.ui.dialogs import CompatMessageDialog, open_local_file_with_default_app
+from appimage_integrator.ui.details_helpers import details_payload_location
 from appimage_integrator.ui.form_rows import CompatComboRow, CompatEntryRow, CompatExpanderRow
-
-
-def details_payload_location(record: ManagedAppRecord) -> tuple[str, str] | None:
-    if record.managed_payload_path:
-        return ("Payload Path", record.managed_payload_path)
-    if record.managed_payload_dir:
-        return ("Payload Directory", record.managed_payload_dir)
-    return None
 
 
 class DetailsDialog(Gtk.Window):

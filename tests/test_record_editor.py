@@ -18,7 +18,7 @@ from appimage_integrator.services.library_manager import LibraryManager
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.services.record_editor import RecordEditorService
 from appimage_integrator.storage.metadata_store import MetadataStore
-from appimage_integrator.ui.details_dialog import details_payload_location
+from appimage_integrator.ui.details_helpers import details_payload_location
 
 
 class FakeInspector:
