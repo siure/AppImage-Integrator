@@ -34,6 +34,7 @@ def make_inspection(
     name: str = "Demo Browser",
     appstream_id: str | None = "org.demo.Browser",
     desktop_filename: str = "demo.desktop",
+    is_executable: bool = True,
 ) -> AppImageInspection:
     icon_candidate = IconResolver._candidate_from_path(
         IconResolver(AppPathsLike(extracted_dir)),
@@ -55,7 +56,7 @@ def make_inspection(
         source_path=source_path,
         is_appimage=True,
         appimage_type="type2",
-        is_executable=True,
+        is_executable=is_executable,
         detected_name=name,
         detected_comment="Demo comment",
         detected_version=version,
@@ -338,6 +339,28 @@ def test_update_discovery_does_not_promote_known_version_when_current_version_is
 
     assert result.higher_version_candidates == []
     assert [item.path for item in result.same_or_unknown_candidates] == [candidate]
+
+
+def test_update_discovery_keeps_non_executable_candidates(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-nonexec"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="2.0.0", is_executable=False),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+
+    result = service.discover_updates(make_record(test_paths, source))
+
+    assert [item.path for item in result.higher_version_candidates] == [candidate]
+    assert result.higher_version_candidates[0].is_executable is False
 
 
 def test_update_discovery_skips_active_payload_but_discovers_renamed_payload_sibling(test_paths) -> None:

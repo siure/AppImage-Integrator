@@ -164,6 +164,7 @@ class IdentityResolution:
 class UpdateCandidate:
     path: Path
     detected_version: str | None
+    is_executable: bool
     match_kind: UpdateMatchKind
     match_score: int
     identity_internal_id: str | None

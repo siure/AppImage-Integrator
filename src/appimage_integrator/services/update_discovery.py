@@ -171,6 +171,7 @@ class UpdateDiscoveryService:
             return UpdateCandidate(
                 path=candidate_path,
                 detected_version=inspection.detected_version,
+                is_executable=inspection.is_executable,
                 match_kind="identity",
                 match_score=identity_score,
                 identity_internal_id=identity.internal_id,
@@ -186,6 +187,7 @@ class UpdateDiscoveryService:
         return UpdateCandidate(
             path=candidate_path,
             detected_version=inspection.detected_version,
+            is_executable=inspection.is_executable,
             match_kind="filename",
             match_score=filename_score,
             identity_internal_id=identity.internal_id,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import gi
@@ -120,6 +121,41 @@ class CompatMessageDialog:
         if not self._response_emitted and self._close_response is not None:
             self._emit_response(self._close_response)
         return False
+
+
+def prompt_for_appimage_trust(
+    parent: Gtk.Widget | Gtk.Window | None,
+    path: Path,
+    ensure_source_executable: Callable[[Path], None],
+    *,
+    title: str,
+    body: str,
+    on_trusted: Callable[[], None],
+    on_cancel: Callable[[], None] | None = None,
+    on_error: Callable[[OSError], None] | None = None,
+) -> None:
+    dialog = CompatMessageDialog(parent, title, body)
+    dialog.add_response("cancel", "Cancel")
+    dialog.add_response("trust", "Trust and Continue")
+    dialog.set_default_response("trust")
+    dialog.set_close_response("cancel")
+    dialog.set_response_appearance("trust", Adw.ResponseAppearance.SUGGESTED)
+
+    def _handle_response(_dialog, response: str) -> None:
+        if response != "trust":
+            if on_cancel is not None:
+                on_cancel()
+            return
+        try:
+            ensure_source_executable(path)
+        except OSError as exc:
+            if on_error is not None:
+                on_error(exc)
+            return
+        on_trusted()
+
+    dialog.connect("response", _handle_response)
+    dialog.present()
 
 
 def open_local_file_with_default_app(
