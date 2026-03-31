@@ -1,12 +1,15 @@
 from __future__ import annotations
+
+import filecmp
 import shutil
+import threading
 from pathlib import Path
 
 import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gdk, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 from appimage_integrator.assets import APP_ICON_PATH, ICON_THEME_ROOT
 from appimage_integrator.bootstrap import build_service_container
@@ -29,6 +32,7 @@ class AppImageIntegratorApplication(Adw.Application):
         super().__init__(application_id=APP_ID)
         self.paths = AppPaths.default()
         self.services = build_service_container(self.paths)
+        self._desktop_integration_scheduled = False
         self.connect("activate", self._on_activate)
 
     def _on_activate(self, _app: Adw.Application) -> None:
@@ -42,7 +46,20 @@ class AppImageIntegratorApplication(Adw.Application):
         window.set_startup_id(APP_ID)
         window.set_title(APP_NAME)
         window.present()
-        self._ensure_desktop_integration(window)
+        self._schedule_desktop_integration(window)
+
+    def _schedule_desktop_integration(self, window: Gtk.Window) -> None:
+        if self._desktop_integration_scheduled:
+            return
+        self._desktop_integration_scheduled = True
+        GLib.idle_add(self._begin_desktop_integration, window)
+
+    def _begin_desktop_integration(self, window: Gtk.Window) -> bool:
+        if self._should_offer_self_install():
+            self._prompt_self_install(window)
+            return False
+        threading.Thread(target=self._run_desktop_integration, daemon=True).start()
+        return False
 
     def _load_css(self) -> None:
         provider = Gtk.CssProvider()
@@ -66,13 +83,9 @@ class AppImageIntegratorApplication(Adw.Application):
         icon_theme.add_search_path(str(ICON_THEME_ROOT))
         Gtk.Window.set_default_icon_name(APP_ID)
 
-    def _ensure_desktop_integration(self, window: Gtk.Window) -> None:
+    def _run_desktop_integration(self) -> None:
         self.paths.ensure_directories()
-        self._ensure_icon_integration()
-
-        if self._should_offer_self_install():
-            self._prompt_self_install(window)
-            return
+        icon_changed = self._ensure_icon_integration()
 
         if current_appimage_path() is None:
             launcher_command = resolve_launcher_command(self.paths)
@@ -82,25 +95,36 @@ class AppImageIntegratorApplication(Adw.Application):
                     APP_ID,
                 )
                 return
-            self._write_app_desktop_entry(launcher_command)
+            desktop_changed = self._write_app_desktop_entry(launcher_command)
             self._sync_self_library_record(launcher_command=launcher_command)
-            self._refresh_desktop_metadata()
+            if icon_changed or desktop_changed:
+                self._refresh_desktop_metadata()
             return
 
         if self.paths.self_appimage_path.exists() and self.paths.self_command_path.exists():
             launcher_command = [str(self.paths.self_appimage_path)]
-            self._write_app_desktop_entry(launcher_command)
+            desktop_changed = self._write_app_desktop_entry(launcher_command)
             self._sync_self_library_record(
                 source_path_last_seen=current_appimage_path(),
                 launcher_command=launcher_command,
+                force_inspect=False,
             )
-            self._refresh_desktop_metadata()
+            if icon_changed or desktop_changed:
+                self._refresh_desktop_metadata()
 
-    def _ensure_icon_integration(self) -> None:
+    def _ensure_icon_integration(self) -> bool:
         icon_target = self.paths.self_icon_path
-        if APP_ICON_PATH.exists():
-            icon_target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(APP_ICON_PATH, icon_target)
+        if not APP_ICON_PATH.exists():
+            return False
+        if icon_target.exists():
+            try:
+                if filecmp.cmp(APP_ICON_PATH, icon_target, shallow=False):
+                    return False
+            except OSError:
+                pass
+        icon_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(APP_ICON_PATH, icon_target)
+        return True
 
     def _should_offer_self_install(self) -> bool:
         appimage_path = current_appimage_path()
@@ -197,27 +221,41 @@ class AppImageIntegratorApplication(Adw.Application):
         dialog.set_close_response("ok")
         dialog.present()
 
-    def _write_app_desktop_entry(self, launcher_command: list[str]) -> None:
+    def _write_app_desktop_entry(self, launcher_command: list[str]) -> bool:
         desktop_target = self.paths.self_desktop_entry_path
         desktop_target.parent.mkdir(parents=True, exist_ok=True)
-        desktop_target.write_text(build_app_desktop_text(launcher_command), encoding="utf-8")
+        desktop_text = build_app_desktop_text(launcher_command)
+        changed = True
+        if desktop_target.exists():
+            try:
+                changed = desktop_target.read_text(encoding="utf-8") != desktop_text
+            except OSError:
+                changed = True
+        if changed:
+            desktop_target.write_text(desktop_text, encoding="utf-8")
         legacy_target = self.paths.legacy_self_desktop_entry_path
         if legacy_target != desktop_target:
+            removed_legacy = legacy_target.exists()
             legacy_target.unlink(missing_ok=True)
+            changed = changed or removed_legacy
+        return changed
 
     def _sync_self_library_record(
         self,
         *,
         source_path_last_seen: Path | None = None,
         launcher_command: list[str] | None = None,
-    ) -> None:
+        force_inspect: bool = False,
+    ) -> bool:
         if not self.paths.self_appimage_path.exists():
-            return
+            return False
 
         existing = self.services.store.load(SELF_INTERNAL_ID)
         inspection = None
+        should_inspect = force_inspect or existing is None
         try:
-            inspection = self.services.install_manager.inspector.inspect(self.paths.self_appimage_path)
+            if should_inspect:
+                inspection = self.services.install_manager.inspector.inspect(self.paths.self_appimage_path)
             record = build_self_record(
                 self.paths,
                 existing=existing,
@@ -237,7 +275,20 @@ class AppImageIntegratorApplication(Adw.Application):
             if inspection is not None:
                 self.services.install_manager.inspector.cleanup(inspection)
 
+        if existing is not None and not should_inspect:
+            record = type(record).from_dict(
+                {
+                    **record.to_dict(),
+                    "installed_at": existing.installed_at,
+                    "updated_at": existing.updated_at,
+                    "last_validation_status": existing.last_validation_status,
+                    "last_validation_messages": list(existing.last_validation_messages),
+                }
+            )
+        if existing is not None and record == existing:
+            return False
         self.services.store.save(record)
+        return True
 
     def _refresh_desktop_metadata(self) -> None:
         if self.services.tooling.tools.update_desktop_database:
