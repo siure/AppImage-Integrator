@@ -12,9 +12,11 @@ from appimage_integrator.services.desktop_entry import DesktopEntryService, part
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
+from appimage_integrator.self_integration import is_self_internal_id
 from appimage_integrator.services.tooling import Tooling
 from appimage_integrator.services.versioning import compare_versions
 from appimage_integrator.storage.metadata_store import MetadataStore
+from appimage_integrator.launcher import install_self_command
 
 
 class InstallManager:
@@ -77,6 +79,8 @@ class InstallManager:
         mode = self._install_mode(existing, inspection.detected_version)
 
         placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
+        if is_self_internal_id(identity.internal_id):
+            install_self_command(self.paths, placement.stable_path)
 
         icon_value, managed_icon_path, icon_managed = self.icon_resolver.install_icon(
             identity.internal_id,
@@ -92,7 +96,11 @@ class InstallManager:
             extra_args=request.extra_args,
             arg_preset_id=request.arg_preset_id,
         )
-        desktop_path = self.paths.desktop_entries_dir / f"{identity.internal_id}.desktop"
+        desktop_path = (
+            self.paths.self_desktop_entry_path
+            if is_self_internal_id(identity.internal_id)
+            else self.paths.desktop_entries_dir / f"{identity.internal_id}.desktop"
+        )
         desktop_path.write_text(desktop_text, encoding="utf-8")
 
         timestamp = datetime.now(tz=timezone.utc).isoformat()

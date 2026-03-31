@@ -80,3 +80,16 @@ class AppPaths:
     @property
     def self_integration_state_path(self) -> Path:
         return self.app_data_dir / "self-integration-state"
+
+    @property
+    def self_icon_path(self) -> Path:
+        return (
+            self.home
+            / ".local"
+            / "share"
+            / "icons"
+            / "hicolor"
+            / "512x512"
+            / "apps"
+            / f"{APP_ID}.png"
+        )

@@ -19,6 +19,7 @@ from appimage_integrator.launcher import (
     resolve_launcher_command,
 )
 from appimage_integrator.paths import AppPaths
+from appimage_integrator.self_integration import build_self_record, SELF_INTERNAL_ID
 from appimage_integrator.ui.dialogs import CompatMessageDialog
 from appimage_integrator.ui.application_window import ApplicationWindow
 
@@ -82,24 +83,21 @@ class AppImageIntegratorApplication(Adw.Application):
                 )
                 return
             self._write_app_desktop_entry(launcher_command)
+            self._sync_self_library_record(launcher_command=launcher_command)
             self._refresh_desktop_metadata()
             return
 
         if self.paths.self_appimage_path.exists() and self.paths.self_command_path.exists():
-            self._write_app_desktop_entry([str(self.paths.self_appimage_path)])
+            launcher_command = [str(self.paths.self_appimage_path)]
+            self._write_app_desktop_entry(launcher_command)
+            self._sync_self_library_record(
+                source_path_last_seen=current_appimage_path(),
+                launcher_command=launcher_command,
+            )
             self._refresh_desktop_metadata()
 
     def _ensure_icon_integration(self) -> None:
-        icon_target = (
-            Path.home()
-            / ".local"
-            / "share"
-            / "icons"
-            / "hicolor"
-            / "512x512"
-            / "apps"
-            / f"{APP_ID}.png"
-        )
+        icon_target = self.paths.self_icon_path
         if APP_ICON_PATH.exists():
             icon_target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(APP_ICON_PATH, icon_target)
@@ -169,7 +167,12 @@ class AppImageIntegratorApplication(Adw.Application):
         try:
             stable_appimage = install_self_appimage(self.paths, appimage_path)
             install_self_command(self.paths, stable_appimage)
-            self._write_app_desktop_entry([str(stable_appimage)])
+            launcher_command = [str(stable_appimage)]
+            self._write_app_desktop_entry(launcher_command)
+            self._sync_self_library_record(
+                source_path_last_seen=appimage_path,
+                launcher_command=launcher_command,
+            )
             self._refresh_desktop_metadata()
             self._write_self_integration_state("accepted")
         except OSError as exc:
@@ -201,6 +204,40 @@ class AppImageIntegratorApplication(Adw.Application):
         legacy_target = self.paths.legacy_self_desktop_entry_path
         if legacy_target != desktop_target:
             legacy_target.unlink(missing_ok=True)
+
+    def _sync_self_library_record(
+        self,
+        *,
+        source_path_last_seen: Path | None = None,
+        launcher_command: list[str] | None = None,
+    ) -> None:
+        if not self.paths.self_appimage_path.exists():
+            return
+
+        existing = self.services.store.load(SELF_INTERNAL_ID)
+        inspection = None
+        try:
+            inspection = self.services.install_manager.inspector.inspect(self.paths.self_appimage_path)
+            record = build_self_record(
+                self.paths,
+                existing=existing,
+                inspection=inspection,
+                source_path_last_seen=source_path_last_seen,
+                launcher_command=launcher_command,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.services.logger.warning("Could not refresh self library record: %s", exc)
+            record = build_self_record(
+                self.paths,
+                existing=existing,
+                source_path_last_seen=source_path_last_seen,
+                launcher_command=launcher_command,
+            )
+        finally:
+            if inspection is not None:
+                self.services.install_manager.inspector.cleanup(inspection)
+
+        self.services.store.save(record)
 
     def _refresh_desktop_metadata(self) -> None:
         if self.services.tooling.tools.update_desktop_database:

@@ -12,6 +12,7 @@ from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.self_integration import is_self_internal_id, is_self_record
 from appimage_integrator.services.versioning import compare_versions
 
 
@@ -45,6 +46,8 @@ class ManagedAppRuntimeService:
         self.id_resolver = id_resolver
 
     def stable_path(self, internal_id: str) -> Path:
+        if is_self_internal_id(internal_id):
+            return self.paths.self_appimage_path
         return self.paths.applications_dir / f"{internal_id}.AppImage"
 
     def payload_dir(self, internal_id: str) -> Path:
@@ -109,6 +112,10 @@ class ManagedAppRuntimeService:
             self.inspector.cleanup(replacement.inspection)
 
     def remove_managed_artifacts(self, record: ManagedAppRecord) -> None:
+        if is_self_record(record):
+            self.paths.self_command_path.unlink(missing_ok=True)
+            self.paths.legacy_self_desktop_entry_path.unlink(missing_ok=True)
+            self.paths.self_integration_state_path.unlink(missing_ok=True)
         stable_path = Path(record.managed_appimage_path)
         if stable_path.exists() or stable_path.is_symlink():
             stable_path.unlink()
