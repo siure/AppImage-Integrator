@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from appimage_integrator.config import APP_ID
 from appimage_integrator.launcher import build_managed_app_launch_command
 from appimage_integrator.launcher import (
     build_app_desktop_text,
@@ -11,6 +12,7 @@ from appimage_integrator.launcher import (
     resolve_launcher_command,
 )
 from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.services.id_resolver import resolve_internal_id_from_appstream_id
 
 
 def test_resolve_launcher_command_prefers_wrapper(test_paths, monkeypatch) -> None:
@@ -62,6 +64,14 @@ def test_build_app_desktop_text_rewrites_exec_and_tryexec() -> None:
     assert "Exec=/home/test/Applications/appimage-integrator.AppImage" in text
     assert "TryExec=/home/test/Applications/appimage-integrator.AppImage" in text
     assert "%U" not in text
+
+
+def test_self_desktop_paths_keep_reverse_dns_name_and_clean_up_hashed_legacy(test_paths) -> None:
+    assert test_paths.self_desktop_entry_path.name == f"{APP_ID}.desktop"
+    assert (
+        test_paths.legacy_self_desktop_entry_path.name
+        == f"{resolve_internal_id_from_appstream_id(APP_ID)}.desktop"
+    )
 
 
 def test_self_install_writes_stable_appimage_and_wrapper(test_paths) -> None:

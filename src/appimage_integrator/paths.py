@@ -67,7 +67,7 @@ class AppPaths:
 
     @property
     def self_desktop_basename(self) -> str:
-        return f"{resolve_internal_id_from_appstream_id(APP_ID)}.desktop"
+        return f"{APP_ID}.desktop"
 
     @property
     def self_desktop_entry_path(self) -> Path:
@@ -75,7 +75,7 @@ class AppPaths:
 
     @property
     def legacy_self_desktop_entry_path(self) -> Path:
-        return self.desktop_entries_dir / f"{APP_ID}.desktop"
+        return self.desktop_entries_dir / f"{resolve_internal_id_from_appstream_id(APP_ID)}.desktop"
 
     @property
     def self_integration_state_path(self) -> Path:
