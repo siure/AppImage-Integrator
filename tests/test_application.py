@@ -4,6 +4,10 @@ import logging
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+pytest.importorskip("gi")
+
 from appimage_integrator.application import AppImageIntegratorApplication
 from appimage_integrator.config import APP_ID
 from appimage_integrator.launcher import build_app_desktop_text
