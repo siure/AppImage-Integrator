@@ -1,0 +1,16 @@
+[Desktop Entry]
+X-AppImage-Arch=x86_64
+X-AppImage-Version=0.1.3
+X-AppImage-Name=AppImage Integrator
+Type=Application
+Version=1.0
+Name=AppImage Integrator
+Comment=Install and manage AppImage desktop integrations
+Exec=appimage-integrator
+TryExec=appimage-integrator
+Icon=io.github.appimageintegrator
+Terminal=false
+StartupNotify=true
+StartupWMClass=io.github.appimageintegrator
+Categories=Utility;
+Keywords=AppImage;Launcher;Desktop;Integration;

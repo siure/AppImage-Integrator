@@ -1,0 +1,3525 @@
+Package: clamav-testfiles-rar
+Architecture: all
+Version: 1.3.1-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: libclamunrar
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: ClamAV Team <pkg-clamav-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 55
+Depends: clamav-testfiles
+Breaks: clamav-testfiles (<< 1.0.0)
+Replaces: clamav-testfiles (<< 1.0.0)
+Filename: pool/multiverse/libc/libclamunrar/clamav-testfiles-rar_1.3.1-0ubuntu0.24.04.1_all.deb
+Size: 12828
+MD5sum: c07ff2cde88955d9aa701c4f86bd3132
+SHA1: c695c640459ef393692e2fd514a306d83da03a45
+SHA256: 4d2648370eab9c50ade0af902c56d45ff5b9c0d748740bb10b9f70dfe8880d58
+SHA512: 420b1c02a5189de00dfa00a5a783242e4d1abc49173f79a3eff2c0a6f16fe25f8c686baf80dd7631b0d8b3ed80f6dac2b89112976c5b944af67953dc0dd6c8c7
+Homepage: https://www.clamav.net/
+Description: anti-virus utility for Unix - test files
+Description-md5: b543a48c75c4b07d1924eccf1275d8a5
+
+Package: cuda-drivers-fabricmanager-460
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/devel
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: cuda-drivers-fabricmanager-470
+Filename: pool/multiverse/f/fabric-manager-470/cuda-drivers-fabricmanager-460_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5364
+MD5sum: 41186657ddc8a70faf93cf8900a8d67f
+SHA1: 38676de1cd8aeab0df61d224a3b2508c8d4feb75
+SHA256: 55199caaa7cba65a947075a3c293765af6a9f267f2fa2df262d7702a3e7adf26
+SHA512: 4587427b96af1dee21dd4c4cc04608e2296d5873fc68dc5bdd84c218641322f0e11fec99018d4d1803f2477ae07e08b1cec79706f4b754f779a92d0de38a88d2
+Description: Transitional package for cuda-drivers-fabricmanager-470
+Description-md5: c746aee8cee32a07762f629e3f8575a9
+
+Package: cuda-drivers-fabricmanager-470
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-535
+Filename: pool/multiverse/f/fabric-manager-470/cuda-drivers-fabricmanager-470_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5372
+MD5sum: 1f597ccbfab07bf509f1bb7c2ad8d265
+SHA1: 6605af078f926d95b8dcfddab779db75aa855f72
+SHA256: 437e6409d6a6d41139cee55d5c250e2504a53e8fca9a72ffa1fc3f81a8c7dbf7
+SHA512: 1d95f34578eb57ed0b0cac4338c18ecd479650f84c91c007107420f8704034cb2a6848d03d2e937e778c96480f5c649655b8bbe6c490ff21d15f7323a9b32fb6
+Description: Transitional package cuda-drivers-fabricmanager-470
+Description-md5: 90de5de7a10dbf7421b14c262b371c52
+
+Package: cuda-drivers-fabricmanager-535
+Architecture: amd64
+Version: 535.288.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-535
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Provides: cuda-drivers-fabricmanager
+Depends: nvidia-fabricmanager-535 (= 535.288.01-0ubuntu0.24.04.1)
+Conflicts: cuda-drivers-fabricmanager
+Replaces: cuda-drivers-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-535/cuda-drivers-fabricmanager-535_535.288.01-0ubuntu0.24.04.1_amd64.deb
+Size: 5410
+MD5sum: 4b09eb3b3a2cce8cb3efdffbef7e1b14
+SHA1: eb3e7b4951cea05408a70a3d5c230115eced91f4
+SHA256: 44e36782e538dc47e251d6b1f572145f96981856b42e8e2d901af378495dec50
+SHA512: 0b264f91bfef2b825139c6d196d599f7f6f3412105591f86cfad37ea770a57b92c62f4c5af54fc85e8a144aeda965720c41c0021a31ba74ed12c758c8940ff59
+Description: Meta-package for FM and Driver
+Description-md5: 6715a1a6e39ab2cdf04d9fe216556c20
+
+Package: cuda-drivers-fabricmanager-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: cuda-drivers-fabricmanager-570
+Filename: pool/multiverse/f/fabric-manager-550/cuda-drivers-fabricmanager-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 4992
+MD5sum: 652ff97ae9b702bc3f418952f16ad241
+SHA1: 36479d779e7957d329aa99b373edbfb12ce07d76
+SHA256: f31940902d4f1934c0d7e68481f5eca80768e9cb05d3571d57e8abb207928f1d
+SHA512: bb49f1caab66d9fec16d5e7ace5d1f8e70de39fed6610919bcda660f3209d79cbb035c03f783231f486333c9dafc3887bc3c426b66d7078e887f5fa58185a51c
+Description: Meta-package for FM and Driver
+Description-md5: 422a8dd6a788c30060f1f95db55487dc
+
+Package: cuda-drivers-fabricmanager-565
+Architecture: amd64
+Version: 565.57.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-565
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Provides: cuda-drivers-fabricmanager
+Depends: nvidia-fabricmanager-565 (= 565.57.01-0ubuntu0.24.04.1)
+Conflicts: cuda-drivers-fabricmanager
+Replaces: cuda-drivers-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-565/cuda-drivers-fabricmanager-565_565.57.01-0ubuntu0.24.04.1_amd64.deb
+Size: 4412
+MD5sum: a86bb4d0e087c3748dd66905238d531f
+SHA1: 01bba1009f2baf4eba68dea09afec8012ac3a6dd
+SHA256: a277b8baf6a503dc647ab0a0b825427b0a372e990a7a1f9fb7f056126821644f
+SHA512: a98937790d2b7c3b0d14b932e3c0f42af0c8132296ec40a3272ff884e92abaac53b3adf35a816ea691c160fbaf19d2abfd5a4c727a2739b9ff437a0753be758b
+Description: Meta-package for FM and Driver
+Description-md5: 6715a1a6e39ab2cdf04d9fe216556c20
+
+Package: cuda-drivers-fabricmanager-570
+Architecture: amd64
+Version: 570.211.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-570
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Provides: cuda-drivers-fabricmanager
+Depends: nvidia-fabricmanager-570 (= 570.211.01-0ubuntu0.24.04.1)
+Conflicts: cuda-drivers-fabricmanager
+Replaces: cuda-drivers-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-570/cuda-drivers-fabricmanager-570_570.211.01-0ubuntu0.24.04.1_amd64.deb
+Size: 5110
+MD5sum: f7fd1e603821d46f669de43b4ff0d7ac
+SHA1: ecc93917135c02df61693d3bf6f1b506f4216818
+SHA256: 7bae9c410edf6e3c62091b4db58d75d253cea8ac75622ac6bcad985c1cbc2dec
+SHA512: 6b54800499f7139bba99bbed7eb818e3aa43a7d62acf6447a364006371e99a0ede86d579ddb479dd33e248e3725e94d801ca4cd5e1e70f35e5cfe6cd2f604cd5
+Description: Meta-package for FM and Driver
+Description-md5: 6715a1a6e39ab2cdf04d9fe216556c20
+
+Package: cuda-drivers-fabricmanager-575
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: cuda-drivers-fabricmanager-580
+Filename: pool/multiverse/f/fabric-manager-575/cuda-drivers-fabricmanager-575_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 4700
+MD5sum: 2597182f2278a2bbc7fc314306f04f1a
+SHA1: 481b5de543a6820ea529677d56cdb6db98144554
+SHA256: 823db847f519fb34c8f6de7bbe599d4a503c05aa54b7536eb0ea377254db39dc
+SHA512: e24ebb48097ae9adab7900cc655385af2a7c74a0578425879acfe3fd6cecfd706c174c28d7ee7e8d2727fafcfab9cdeba24a772f3a017d049f997e01bdca75d7
+Description: Meta-package for FM and Driver
+Description-md5: 422a8dd6a788c30060f1f95db55487dc
+
+Package: cuda-drivers-fabricmanager-580
+Architecture: amd64
+Version: 580.126.09-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-580
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Provides: cuda-drivers-fabricmanager
+Depends: nvidia-fabricmanager-580 (= 580.126.09-0ubuntu0.24.04.1)
+Conflicts: cuda-drivers-fabricmanager
+Replaces: cuda-drivers-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-580/cuda-drivers-fabricmanager-580_580.126.09-0ubuntu0.24.04.1_amd64.deb
+Size: 5024
+MD5sum: 7fff377cab4b5f97c92f46f546f8cce4
+SHA1: 376a8ec08fbde801d279cc3da153a3a0f5a3c42d
+SHA256: 13e3f758636f76190fa9b0e6188be2f09a2bd0ed0e5926161e59566f9d87d843
+SHA512: 51bf69868278961b2e464dde2984f566bedf0a3a1a0a1d81e2f0468142bac73d659ff879017a37b7d7ccb733135f797b899d2165051b267e4ab9c10764f6ab1d
+Description: Meta-package for FM and Driver
+Description-md5: 6715a1a6e39ab2cdf04d9fe216556c20
+
+Package: cuda-drivers-fabricmanager-590
+Architecture: amd64
+Version: 590.48.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-590
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Provides: cuda-drivers-fabricmanager
+Depends: nvidia-fabricmanager-590 (= 590.48.01-0ubuntu0.24.04.1)
+Conflicts: cuda-drivers-fabricmanager
+Replaces: cuda-drivers-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-590/cuda-drivers-fabricmanager-590_590.48.01-0ubuntu0.24.04.1_amd64.deb
+Size: 4708
+MD5sum: 9acc6f55d879ad03c45164c8dfbd9166
+SHA1: 6eedd1c951fdcd025ea5d4d8c8c9931259a6ecd0
+SHA256: 7f15cc23bba34c5f5432ad24a31d52abb706a2b8d7776008fd14a67625743cdd
+SHA512: 62cefe93bb010aaa92681ac530801abba3aeba5738c2cb995a9ba72a1aff5a692aaf3471304018b08667efe8dc4ce363f9b409a8719e15dec9c0b721fbbb8b26
+Description: Meta-package for FM and Driver
+Description-md5: 6715a1a6e39ab2cdf04d9fe216556c20
+
+Package: firmware-b43-installer
+Architecture: all
+Version: 1:019-11ubuntu0.1
+Priority: optional
+Section: multiverse/kernel
+Source: b43-fwcutter
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian QA Group <packages@qa.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 28
+Depends: b43-fwcutter (>= 1:019-11ubuntu0.1), pciutils, bzip2, ca-certificates, wget
+Breaks: firmware-b43-lpphy-installer (<= 1:015-14)
+Replaces: firmware-b43-lpphy-installer (<= 1:015-14)
+Filename: pool/multiverse/b/b43-fwcutter/firmware-b43-installer_019-11ubuntu0.1_all.deb
+Size: 5692
+MD5sum: f880315206f5a9a837941788e3af0572
+SHA1: aae214b3000d267096b91feab317f4b864b635c0
+SHA256: 6da9df498a52cfabeced8acda0aefe84a2f19eb572048aaf566f2891a78e25ac
+SHA512: 8336d244db7638cb369ce18c586523e94cc25019dbe95ba2138f4b305505dd90847f060684e44216e12a623847299d11bc85e8dcfee333c1390fa64bd48e3b88
+Homepage: https://wireless.wiki.kernel.org/en/users/drivers/b43
+Description: firmware installer for the b43 driver
+Description-md5: 571d238de28bee9095c3b72db3bada7e
+
+Package: firmware-b43legacy-installer
+Architecture: all
+Version: 1:019-11ubuntu0.1
+Priority: optional
+Section: multiverse/kernel
+Source: b43-fwcutter
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian QA Group <packages@qa.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 25
+Depends: b43-fwcutter (>= 1:019-11ubuntu0.1), pciutils, ca-certificates, wget
+Filename: pool/multiverse/b/b43-fwcutter/firmware-b43legacy-installer_019-11ubuntu0.1_all.deb
+Size: 4856
+MD5sum: 5e93c64ed0e265694f1308f7c7a6cec9
+SHA1: 69190cf9fa562c1a20f9f803e19adb023abbcfee
+SHA256: e950e98cb63c78e9031717ca6c56888eff1b547d0fcb75e77087161a481b8165
+SHA512: c7d4d8eeaea4542ff704bd8d8b66950a970a3734228349cf746540296b69fedf01d63d8ce2cc2c9dcecee69493ff0e2633f89f17a6a167a396b628c45b8001ab
+Homepage: https://wireless.wiki.kernel.org/en/users/drivers/b43
+Description: firmware installer for the b43legacy driver
+Description-md5: abb8ff7bda8ade8bcb3e2ea7c10b69ef
+
+Package: i965-va-driver-shaders
+Architecture: amd64
+Version: 2.4.1-1ubuntu0.1
+Multi-Arch: same
+Priority: optional
+Section: multiverse/video
+Source: intel-vaapi-driver-shaders
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Multimedia Maintainers <debian-multimedia@lists.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 8072
+Provides: va-driver
+Depends: libva-driver-abi-1.20, libc6 (>= 2.38), libdrm-intel1 (>= 2.4.52), libdrm2 (>= 2.4.52)
+Conflicts: i965-va-driver
+Replaces: i965-va-driver
+Enhances: libva
+Filename: pool/multiverse/i/intel-vaapi-driver-shaders/i965-va-driver-shaders_2.4.1-1ubuntu0.1_amd64.deb
+Size: 1124340
+MD5sum: d0a71b45edb7a7e30b2c0a9ca3d4fc6a
+SHA1: 75f2b5af96e98e184df40cf870866e8b4319990e
+SHA256: d127bce841704e8d1f533695ba4949937955ddcfd7602a958708eb4ef7ab8515
+SHA512: 2b6aa82eaef2c04c046695d42eb74b9f1823f5e056ccfb57f4fd42dca9e537cc07c289e65e25fdfaa3279efb289b07916da518ba8657dfde4b3e7676c2ea0953
+Homepage: https://01.org/linuxmedia/vaapi
+Description: VAAPI driver for Intel G45 & HD Graphics family
+Description-md5: 80db85e05c498f264aa3d7c0e393ddc9
+
+Package: libclamunrar
+Architecture: all
+Version: 1.3.1-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: ClamAV Team <pkg-clamav-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 52
+Depends: libclamunrar12
+Filename: pool/multiverse/libc/libclamunrar/libclamunrar_1.3.1-0ubuntu0.24.04.1_all.deb
+Size: 10668
+MD5sum: 7bf6cafb2d0ed36d14a057c04af5e066
+SHA1: 188f55819e0a340eb4110ce9845cfa17eff200c2
+SHA256: 173c7bbf427d516decd0f17245b7e3a7e16e9ebb22eef7e1a0be785649efab56
+SHA512: ef30024dbf5e4e44a14d242a001b03fb2c6cf354a751bd77ff4bcf70c2385b9dd28cec79c017925d60c4d5b2f26f2d248e34e33e41f58c83a38bd009d7f17dd2
+Homepage: https://www.clamav.net/
+Description: anti-virus utility for Unix - unrar support
+Description-md5: cf0a518e1367a7cff81c7549b758d9d4
+
+Package: libclamunrar12
+Architecture: amd64
+Version: 1.3.1-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: libclamunrar
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: ClamAV Team <pkg-clamav-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 242
+Depends: libclamav12, libc6 (>= 2.33), libgcc-s1 (>= 3.3.1), libstdc++6 (>= 11)
+Filename: pool/multiverse/libc/libclamunrar/libclamunrar12_1.3.1-0ubuntu0.24.04.1_amd64.deb
+Size: 101468
+MD5sum: 5bf840d41a07460c5dffc416a593c512
+SHA1: 4ed608e9478c96cb74c2c48450403e0e2b337c1c
+SHA256: 414381ca5b3403a375bbb00db7f6eeb22a37b3fce5e6ad6579dd0518e69f0d7c
+SHA512: cb423c2fe6fe06b6f10d6c8c2e0aa538254d5187f3cff2da80168115a01eebe8c6d7e631ac67aa8893d0b54f67ba8f294deab69af9ea3b16d7686b14da2fee21
+Homepage: https://www.clamav.net/
+Description: anti-virus utility for Unix - unrar support
+Description-md5: 917a2a3c171f190c6df62b894d3d9153
+
+Package: libnvidia-cfg1-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-cfg1-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-cfg1-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11008
+MD5sum: 74f03c81126dd11b00a9635b207e5999
+SHA1: 4e7005be44853d51cd34884cb14c2742acf94ad7
+SHA256: 9dee5d900d9e0012df8a485cdf9c135739f013e80560f135e740ed5115ed5275
+SHA512: c5f5fe139ac3117253e5b71f318d6d3342d07624c25650bd7f113879e0e1ffe6a1523d74b2ff6a88f75c46432eed9d7f8825b3f627f1cedebce0113ce1035369
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary OpenGL/GLX configuration library
+Description-md5: 3b5e1a4a7f3d3880281559c9ee2d1da5
+
+Package: libnvidia-cfg1-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-cfg1-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-cfg1-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11974
+MD5sum: bbb48f62cb875bb61102abd20d809c7b
+SHA1: 4cf20cdab66ef819bad30f6b47d2e40af45780bc
+SHA256: 5cc8b7b9835678128d0ccaf5a412274021149ba82dc6b20b75a58d9f7665a900
+SHA512: 834e7a00c12f49ca5bbb5efe4dd10f4b44c60ff0fb6e04b821d47435419ee512e505d38585da5c7cbccf6bd1bee3993b3069ec3b591efb9ff9fd3edbc7075a19
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary OpenGL/GLX configuration library
+Description-md5: 3b5e1a4a7f3d3880281559c9ee2d1da5
+
+Package: libnvidia-cfg1-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-cfg1-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-cfg1-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10398
+MD5sum: e6102df05a4a180a3195f9b142b652c0
+SHA1: 18cf992d0c5dece5b6701b858969b5a113a7112b
+SHA256: 2fd33c01a39190231f0b5035de3b655713daa002be677b3a2356ede6cbd3a18b
+SHA512: 6873c0bdffd9f66469ffb8a35d3737e3af405faf8d39866a3772a1ba1a7be358661411c649778f82ba16adae2d28c84a2bb7c1f2911b32465aa0ac29aa357882
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary OpenGL/GLX configuration library
+Description-md5: 3b5e1a4a7f3d3880281559c9ee2d1da5
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.127.05-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 58
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Breaks: libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Replaces: libnvidia-common, libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.127.05-0ubuntu0.24.04.1_all.deb
+Size: 15120
+MD5sum: faabb9e4a0a5b1f2bdb9a54e3099ad90
+SHA1: 4ade6ee9c85588731da36ab5b560fdcc7705af2c
+SHA256: b4851f2b6cf4b44b68ed448be0b555d67baf6729c7c1b1fffb0e6f135b8531b1
+SHA512: 05e2041f62c22d478e18a4ffbcbfae1854787791577f162651ae3c3337d883aa2bb4b3430a85f7ba7d9dc1408d4640b6986ae72e154e26d0317a60c1d3ecf6f5
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.127.08-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 58
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Breaks: libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Replaces: libnvidia-common, libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.127.08-0ubuntu0.24.04.1_all.deb
+Size: 15172
+MD5sum: 5b7df5b0016a177347fc608616af2e19
+SHA1: 8d884eaf9f771d08128cca133888ddf1df502434
+SHA256: fea0e26b9187b86580f1e621badde4c2ae6a4c81b41254a52eecb5182fe572ca
+SHA512: a6a44938ed87e6016354653e0436991fc5a95cf8e39d153d14995f4c71bfa28996cd5638918d57909f0a5985d6d099ddb5b0cbe176de5f449e2f8b3091c88318
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.144.03-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 58
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Breaks: libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Replaces: libnvidia-common, libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.144.03-0ubuntu0.24.04.1_all.deb
+Size: 15162
+MD5sum: bf8fbafb0d14377e74b9ea03e00152b1
+SHA1: ff31cfeb1d72fa90c504948311333e6ecdac8132
+SHA256: 261ac977c7cc6b0f7a0c016e94b09cc333a397b8a9feb77591be7ed9da72ba3c
+SHA512: 64ae958590c4429a443dd51946d16309afa6492f1e576d259558f2e68462ae7571e67abe69192ab7f68702b1e094e382bb16e051d789470c5843bd88cfcc9d37
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.163.01-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 58
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Breaks: libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Replaces: libnvidia-common, libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.163.01-0ubuntu0.24.04.1_all.deb
+Size: 15248
+MD5sum: f67e4f1565e3d652f7254a47015b83db
+SHA1: 44be770caffc6451716fe5d7aa927b18be961106
+SHA256: 6b5854f4c6d48c1ce6a8310cebc46cd745ad77a05d41ac32c16e2407a22c8b9f
+SHA512: 9bcf2ccc1c8af2b3f74e251524b2b039c25ff228378e8b4f34d8285f4231cf25376ab8a46758d437781ede9aeb7e90545e96d8df00572ca48bab9aa1ed9f0629
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-common-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.163.01-0ubuntu0.24.04.2_all.deb
+Size: 11010
+MD5sum: eeec12f719362201949b34c3a7d762d2
+SHA1: 337a8128b6e75d3b5f9880e26bea11473c559698
+SHA256: 87c277da74f31325281358ca5c66b4c52819899cdb3cb1264c30c442653f0ce4
+SHA512: 233aa0435171f63b157dd8e9f6d85e90b8a87c1c273681e9ddce0b9906f17f021d991f36932a0f24a1b0d4ea1ebb3afd1675a07658d49825e07bce4fb22faef9
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: c222cc663eeb446e82a9725704de5c7e
+
+Package: libnvidia-common-550-server
+Architecture: all
+Version: 550.90.07-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 58
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Breaks: libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Replaces: libnvidia-common, libnvidia-gl-550-server (<< 390.25-0ubuntu2~)
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-common-550-server_550.90.07-0ubuntu0.24.04.1_all.deb
+Size: 15046
+MD5sum: 64ec9b2c2b9cdd06f365a01aecdb19bd
+SHA1: a7d4ae464ef5ff6f034f08f5b89d53aaedd119d5
+SHA256: 64a2921b9868a3191fe435fd51ee4b3c695ff2a7a6c255081d1e159ae7602d49
+SHA512: 8901f74d0d6cd71ff6e9dacd9e7539d906445b546c8c455b9ce87edccff0c0959fa417d15303a7050228ae720299f12d24e27f11d6b1f613f29832994a0805c9
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-575
+Architecture: all
+Version: 575.64.03-0ubuntu0.24.04.1
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 84
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Replaces: libnvidia-common
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-common-575_575.64.03-0ubuntu0.24.04.1_all.deb
+Size: 17754
+MD5sum: 889acf78310225ecf605d4552fcb9570
+SHA1: dfabdabd9f9e4370ae691febe82c7cb13bf197d8
+SHA256: d3253c7f0f3b8222561ecd39bb76b6be0d64d8fa852fe9e1c617167c79223bf4
+SHA512: b20a41f5e8a94e8bca4a3ffdc22e5f5352f1b39e1de20452727526a00f0a4cb8f24de8a5b40185332bca20b75511817f8ad597ddff1ec36ebcdd290d081a11ab
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-575
+Architecture: all
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-common-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-common-575_575.64.03-0ubuntu0.24.04.3_all.deb
+Size: 11970
+MD5sum: 153ce765c42fd9bece1b5bc30faf7ae4
+SHA1: 0afa06024abf7a4d83fb732134624ad223e829a0
+SHA256: ea98b14a24e1bf5cce9b246f7b62ded5fc97cf386282bd0c11a63a43263b5efe
+SHA512: 5630dfd53584c5a23f2a92f10f0f87ec663dd6d09381cbdee1fed7dfbf72e64acc37f8aac008cee2574b10b63164a447271d760689ad88681b5ea4a11929bb4f
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: c222cc663eeb446e82a9725704de5c7e
+
+Package: libnvidia-common-575-server
+Architecture: all
+Version: 575.57.08-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 79
+Provides: libnvidia-common
+Conflicts: libnvidia-common
+Replaces: libnvidia-common
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-common-575-server_575.57.08-0ubuntu0.24.04.2_all.deb
+Size: 16154
+MD5sum: 47ae934631b9830f5d758b8025522e9b
+SHA1: 6ae75c7591d90db0fea1dedbd308fbee608bbee1
+SHA256: cb1a04d8eedffff105e87ecdd955bfa4f20c35e315211cd6a778309aab0037b5
+SHA512: 7b784abe6e2298e62d1ef26f5f926ff8ecc051bcc570f7222cc16fa6309fc5dbf224b611c4c2dc9ee3a620a9ffdd53d5e09641f3f671f2257e97d2df2227b906
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: 259c61ba4e777f5a2f1e7ee2fd1957bc
+
+Package: libnvidia-common-575-server
+Architecture: all
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-common-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-common-575-server_575.57.08-0ubuntu0.24.04.3_all.deb
+Size: 10392
+MD5sum: 177a4d7e5e54492fb7055a9d68093391
+SHA1: 6c1c6d9742197c295343fe6946dea17697c1cfa7
+SHA256: 2c8788121c17785083c6275071e67cf8fd2ec0a9afd796609cd3ab57c229725c
+SHA512: e9baf40bf8d831fbf078fa1b0ae496972b198d248936d004227dd45d64cfcb05551f0e9d78dcbfc67dca533d807de0e6bbd0ee21df73b0996761d314395a2a28
+Homepage: http://www.nvidia.com
+Description: Shared files used by the NVIDIA libraries
+Description-md5: c222cc663eeb446e82a9725704de5c7e
+
+Package: libnvidia-compute-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-compute-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-compute-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10994
+MD5sum: 8311b376166c9d195303fe6049049773
+SHA1: 62d2033d5613f1b5f38648ad097136c1fc15e4f6
+SHA256: 681ec1ca35db080fcedd1bf33cb600453b83c2653f18b55d87ec2c5d83424cb4
+SHA512: 6b24bc1d18360b76cf2405799e5102185ae215830def6afd6038538712b7236e53ebd4dac579d949721135ebe598b3c548fd3b7a8a0bc7c7522f268e9c30a122
+Homepage: http://www.nvidia.com
+Description: NVIDIA libcompute package
+Description-md5: 1e135edb8c4fdf70dd25e304b6405cd5
+
+Package: libnvidia-compute-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-compute-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-compute-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11952
+MD5sum: c93d718498cc159a2eb3b3c7e57e4185
+SHA1: bb4e4117a2223884815c985cd7bedc1c26431b1a
+SHA256: beccfd07281c05d72f915a8227b5e89384534ca5f2238428ff011a3014931fde
+SHA512: 8696477ee3d9ab66b7a9b535bc9f999139678948a260d7dd9d11361e98c1a1051a4a873e0e820df50bf3f307af1068ebb7ecdbf1fd1ffdddb63daedaacd3aa8d
+Homepage: http://www.nvidia.com
+Description: NVIDIA libcompute package
+Description-md5: 1e135edb8c4fdf70dd25e304b6405cd5
+
+Package: libnvidia-compute-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-compute-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-compute-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10376
+MD5sum: ef9f2ec3ecf952bfef34748c5ed794b9
+SHA1: 3549e73b35f0119dfa4335131b0977a2e02ed09c
+SHA256: f438febb2f738a3984a86ec2f50a8e18e87d90780af11b750b4d8b20724635d3
+SHA512: 5328ec170b1959c1552e02f3a87678b33c337424d0ad2b474287a3862177f35cf036ef122b9730c336dde7bd1b923109fc26836dca2633e9a90c3af4bf37b116
+Homepage: http://www.nvidia.com
+Description: NVIDIA libcompute package
+Description-md5: 1e135edb8c4fdf70dd25e304b6405cd5
+
+Package: libnvidia-decode-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-decode-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-decode-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11002
+MD5sum: cbc3353a42eb0c6e56bffccbc930fa00
+SHA1: 2dccbe1c069b3edd186e4dec104e29172acffd01
+SHA256: 361bf851ef3e839eb9e722c60c04d0703b7c4a8d255a601a6c2e7eb50bc4726a
+SHA512: 27aa5cba21f8cc3dcdc58b9b43f487b9cd1fb42dc76d7fcf327109acaf9b7e007b1287486815e4ae91e35d27ee88044dab0419deee9654519febfdefd23c8e3e
+Homepage: http://www.nvidia.com
+Description: NVIDIA Video Decoding runtime libraries
+Description-md5: 54c39f3fd48c6482600cca04e70e422c
+
+Package: libnvidia-decode-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-decode-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-decode-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11964
+MD5sum: 3c1df067c1c0e51d85dcb1aaa233d68a
+SHA1: a5d9473751b1ad3b20b32a9d8fccd8babf55889f
+SHA256: 018ac8b0fb233a18bc60a799be62bdd71d8d8ae56adee11494296acf83a4b2a5
+SHA512: b85e5d9fc315377a415e13298b33acea475f8d28546227c936babc6791dffb3d91cd470c266eef3196a1fc633abe52d63ce62825e041602cf0dd3a0f9ddf26d3
+Homepage: http://www.nvidia.com
+Description: NVIDIA Video Decoding runtime libraries
+Description-md5: 54c39f3fd48c6482600cca04e70e422c
+
+Package: libnvidia-decode-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-decode-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-decode-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10394
+MD5sum: ed7b6b920cc3c1ca208d731cb7f60dd6
+SHA1: 29712f5984a63795d7eb12f79c4b43930e76b5cc
+SHA256: d1c76e06782cd77bd62d7cd4f3f14989430f7f1b5531a8d17ce684d08e89bea2
+SHA512: 78d07abc2165ac9a14fbb128fc63573357cc66810492335de47fcca88f16e16eec7ee33a4fe052acba6041b358ced8ffd18f4702d6d10b443420b8c8ac8c0ee6
+Homepage: http://www.nvidia.com
+Description: NVIDIA Video Decoding runtime libraries
+Description-md5: 54c39f3fd48c6482600cca04e70e422c
+
+Package: libnvidia-encode-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-encode-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-encode-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11002
+MD5sum: 85a1a6f7e0fc9e1c389e418683202344
+SHA1: e08f53fcfd475ce380111f1ba9ba122dc762d8ff
+SHA256: 357f84793724a326c042ded1bb8c1497879358246abfd6f878647d2123ee9afe
+SHA512: bd5dfa58daaf21a18906c3cfaa35c9761d746f1970aa25cd7a90c0d9030ffa892560f37b628e277d3ad64032a37cd47a29b8505cefba8c2e83e17c798256082d
+Homepage: http://www.nvidia.com
+Description: NVENC Video Encoding runtime library
+Description-md5: b3a62ed2e7cfad84d19c95e4e3b81558
+
+Package: libnvidia-encode-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-encode-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-encode-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11964
+MD5sum: 57a710be90cab600dc392e51f475d613
+SHA1: d97855f515ab7a0de0c1981ec2460243259c82e7
+SHA256: 853d92a03f1ef7b08dc57894b5d8fcebcfc22064a3905cf5307883e4a5a3f77d
+SHA512: 44da562372efe660557c9903f8551fb0b46e7e260c5a30f0f3f23adc76e01c55ac6236e3d5915848885afdc55172383de2ea3fec9ce39fb470a32eba0cf2c1ba
+Homepage: http://www.nvidia.com
+Description: NVENC Video Encoding runtime library
+Description-md5: b3a62ed2e7cfad84d19c95e4e3b81558
+
+Package: libnvidia-encode-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-encode-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-encode-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10390
+MD5sum: 181937c47341ea055017b647fb9a25fb
+SHA1: aebb19c66c5cebdc71b3d447168c6be5c2b9d9fe
+SHA256: 4b210255e7c3cb0463afb2ca50eb8646f680491f45722953b24141b240116971
+SHA512: f26c06ac6b9a29b74541abea44c622b3d44e2fc604d038f27d1007db974b391d3b7cd26ecc4d8db492a41fb95534330fe0cae2f24dea900f558eb10fa82a0e28
+Homepage: http://www.nvidia.com
+Description: NVENC Video Encoding runtime library
+Description-md5: b3a62ed2e7cfad84d19c95e4e3b81558
+
+Package: libnvidia-extra-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-extra-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-extra-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11006
+MD5sum: 091cde98364ff8a2b5fc4d3e05fe6fb5
+SHA1: 001dc4b2f3b76a512b5e608ec4f1787f22809c4f
+SHA256: 106737518dbabfae0004835eeb9176b92a7c380b1fd98e4b3235592453de5d8f
+SHA512: 9c5f4445e34c55a2beecd1879a2ef56ef7826cca4bb1ee5f1a639039477683671e66019f81a5aa4b7fa2e4c97bd1736a1675774caa6030e12287697b30d37dad
+Homepage: http://www.nvidia.com
+Description: Extra libraries for the NVIDIA Server Driver
+Description-md5: 0204cf0eebec82a16e0c805c695e0598
+
+Package: libnvidia-extra-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-extra-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-extra-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11964
+MD5sum: bf9c46e9caa96095692a73e06ced3c61
+SHA1: dec3c246f267b4edfc9a315511f3948ba674c2fe
+SHA256: 9122319e26bf864b21395b745e6ab75c46be670ead644e53da99bd6a1bde207e
+SHA512: 07b0f842887399d2a650ecc824e2a6755ac0cf1ce47afac087c4a7f9a1378800255a26e1381a1b3a3c9a6a07f3b3689ae9abfa0cd808a34faeafdb8a2bb8cb81
+Homepage: http://www.nvidia.com
+Description: Extra libraries for the NVIDIA Server Driver
+Description-md5: 0204cf0eebec82a16e0c805c695e0598
+
+Package: libnvidia-extra-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-extra-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-extra-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10396
+MD5sum: 7aee26b3d0a9013e625be3593c2c9602
+SHA1: 647b5040870888d349306eb8d1993f5475538590
+SHA256: 75db5d268006ba312ac759b917c09c65f87cf8905069417eb220dbaa0f7e40a6
+SHA512: a1dfe618ed0333d473f06e7339b10fb49505f142a6f54252e511e5dec28ea02d15f6fe4c2bb11c8af745c7cfb9955fdebb1f8b0acb2107690188efab8cf8a6f1
+Homepage: http://www.nvidia.com
+Description: Extra libraries for the NVIDIA Server Driver
+Description-md5: 0204cf0eebec82a16e0c805c695e0598
+
+Package: libnvidia-fbc1-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-fbc1-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-fbc1-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11020
+MD5sum: 8ccf2f12e6585a9dc6cf68d0e78160d9
+SHA1: e01b57dfb569b2670f379f986f16b0ccfed0b2b6
+SHA256: 132e8db3a5ab05d9e1219409eb4abc27a889eed44b74051b45877625d17d738b
+SHA512: 6ad8dad652747b0d1d28b703b8dd4a79f693f00358153e14df4540abb4432d03ca3990ad0c38d3da1c4b4de485c9486cf27482431066d6fc70522eed42476fc0
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL-based Framebuffer Capture runtime library
+Description-md5: eb2759774c27d02307a91b7fe1728422
+
+Package: libnvidia-fbc1-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-fbc1-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-fbc1-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11974
+MD5sum: 40b29eead657be88ac3ef72a2cd36147
+SHA1: 9586e93c9a001013dff107846da93ec8409adf4b
+SHA256: 223f8dabf0ce2b3964a6781faf0503e4a56caba0b3ad9f78a8d3029124ed563c
+SHA512: cc1908a0e5864fb808fe0dfc121b14826b2ceb5d78a670bb9b3bdc01085a19416a2f026c3bb425871537b3d31ababd8749d34208409187aff2b91d257865f30c
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL-based Framebuffer Capture runtime library
+Description-md5: eb2759774c27d02307a91b7fe1728422
+
+Package: libnvidia-fbc1-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-fbc1-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-fbc1-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10398
+MD5sum: 22761785bd2678fc60b6e3a1e6edba78
+SHA1: 0bf08619ffd648cb75dbc8bdd7ab329aad33004b
+SHA256: 96d789d4f0f0e4d3ecb153dbfc39c0df8790412d21739341272a4c7f6ac1679a
+SHA512: efe5bc5c92bd07415a25a76a3f8f5ad2f8c1886b6406b03780ea0ced09567a42018e5af97f0cb1f0503ae3600b663fd232f7361f9a5db0cd91a53a3140b67eed
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL-based Framebuffer Capture runtime library
+Description-md5: eb2759774c27d02307a91b7fe1728422
+
+Package: libnvidia-gl-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-gl-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/libnvidia-gl-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11022
+MD5sum: ac237ef61fd6a7aa9e46e6f5284f5cce
+SHA1: 89d8b0527e84c15ec27f01d437bd682724b8d7c4
+SHA256: b4fe763c066fc7f2b081715828ea9801582c58d869b8bfeb54f2f3843cf14454
+SHA512: 2fc553d288b6cc11ae13eea60f7654a68dfb9a2f08483314fa35984cb6572743570f9bf7ffd5ce2629d4a0a371eac1abdbd1023671e82b2b6bde51d7b82b3bda
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL/GLX/EGL/GLES GLVND libraries and Vulkan ICD
+Description-md5: 050b7d6ed180623e7383dba8671f1b39
+
+Package: libnvidia-gl-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: libnvidia-gl-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/libnvidia-gl-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11974
+MD5sum: 9165e6b32a4202c7a0c2964d381ae275
+SHA1: 20e64b5a576e4efcc5006ca2f690d47b63be2672
+SHA256: 66aaa19d6efefc520dc6cb2e443edb26c538fb692e82580723fae5fed8e3415e
+SHA512: 3e2d2f3b08e2641e44e7078ad9b8df4fb66a17f315ebf6999f368f4319691da7901136dde3e2c192c4814b9b8f40afaf9dabc743b96a6d404420ee4ab09ac6f7
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL/GLX/EGL/GLES GLVND libraries and Vulkan ICD
+Description-md5: 050b7d6ed180623e7383dba8671f1b39
+
+Package: libnvidia-gl-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: same
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: libnvidia-gl-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/libnvidia-gl-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10404
+MD5sum: 8054d2a759778c65af823399dbf51793
+SHA1: bcd7d806292b982b414636ee098c5557ec693894
+SHA256: a152f6dd1fce33af4c7279d8e53ef207db513cdaadccd8a36e06a04d3ed703c1
+SHA512: 6fbb8edb9b601831e714667eaef792cb8aab103c55a11f49525931f9f77b3332416090e936a16564b99b90f1b3963b794f01a92ff08bfe2ac9e254afc052f4fe
+Homepage: http://www.nvidia.com
+Description: NVIDIA OpenGL/GLX/EGL/GLES GLVND libraries and Vulkan ICD
+Description-md5: 050b7d6ed180623e7383dba8671f1b39
+
+Package: libnvidia-nscq-460
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/devel
+Source: libnvidia-nscq-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: libnvidia-nscq-470
+Filename: pool/multiverse/libn/libnvidia-nscq-470/libnvidia-nscq-460_470.256.02-0ubuntu0.24.04.2_amd64.deb
+Size: 5250
+MD5sum: 7f5f87ded2954be8bd256377ef0942fa
+SHA1: 188d1be8ebde1d0a205a836712954709d90a9b14
+SHA256: 043b03bf65be9b0e0b0d585efb6db302645e251f524a4ea880023fca5df5acbb
+SHA512: d060c7e3cf1f0d4ce8dfe7b66fcfc41f85553362effa68d706d4fe3c2ebbb86d8facb608a30148327a9bdf40767153102b28bf59268540dab8dcde755c445363
+Description: Transitional package for libnvidia-nscq-470
+Description-md5: 5c18da8fbc7182f2b6ef12bba5b490cb
+
+Package: libnvidia-nscq-470
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: libnvidia-nscq-535
+Filename: pool/multiverse/libn/libnvidia-nscq-470/libnvidia-nscq-470_470.256.02-0ubuntu0.24.04.2_amd64.deb
+Size: 5248
+MD5sum: f0049332b4e02e51651d536ca51d78db
+SHA1: a8844d9ddb595733c828bfa2bcec275575676c2d
+SHA256: 7af89185296c7d22cffdba402046163e8b00ad0285f83cb1723c6556220e30c8
+SHA512: c9cdda0670ec5555ba9114d3f37b8ab370dcd18af9694d8a8406dc9031e90f329c3cbc406f83bb04e879eb201edbbe45e126a2b2c0c42054d82dacad9adbd332
+Description: Transitional package for libnvidia-nscq-470
+Description-md5: 5c18da8fbc7182f2b6ef12bba5b490cb
+
+Package: libnvidia-nscq-535
+Architecture: amd64
+Version: 535.288.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1585
+Provides: libnvidia-nscq, nscq2
+Conflicts: libnvidia-nscq
+Replaces: libnvidia-nscq
+Filename: pool/multiverse/libn/libnvidia-nscq-535/libnvidia-nscq-535_535.288.01-0ubuntu0.24.04.1_amd64.deb
+Size: 395986
+MD5sum: 5e680073c0fa80fc0d5ff5386f7e8a67
+SHA1: 46c2c07ce6d3766fa02f28ea7b8c2c4614f48482
+SHA256: 3f1ba0838b999c430cc5aea331efdb485cfcfc36ca44f4543056a4fc6d7655db
+SHA512: 70612ca31e25d955b7ee308d5784b9b5d0d3c151d16ce71d93366abfd8a73f3c4d085f0cd957b4a83489782bb5a61f70581cf81e54d8dba2882ad6cbacf597ad
+Description: NVSwitch Configuration and Query library
+Description-md5: 06d90fb68ae67655c00815a4db03a64e
+
+Package: libnvidia-nscq-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: libnvidia-nscq-570
+Filename: pool/multiverse/libn/libnvidia-nscq-550/libnvidia-nscq-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 4912
+MD5sum: 379c0183f0ce7ccad66a86ff5cff0cd4
+SHA1: 798a53c2550b60c97b6bb510b2afa27a17b0ed9a
+SHA256: 9360c3e2cc193b834c4a070121da8d10e3da261b6dfb6a4e20c1cfc7f7840f08
+SHA512: c7f84f140b1484ef782de74528744ba08358740bc06a5aa419b7bddc5936c0cd0967c489afdabe3b670f7fc20ef4386ef6d4b118c15c1584e1a551a955735c31
+Description: NVSwitch Configuration and Query library
+Description-md5: 9e3814be16130771b3205a08146341d9
+
+Package: libnvidia-nscq-565
+Architecture: amd64
+Version: 565.57.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1621
+Provides: libnvidia-nscq, nscq2
+Conflicts: libnvidia-nscq
+Replaces: libnvidia-nscq
+Filename: pool/multiverse/libn/libnvidia-nscq-565/libnvidia-nscq-565_565.57.01-0ubuntu0.24.04.1_amd64.deb
+Size: 403184
+MD5sum: ddf29efdd84fba7c3cb8175270eef77a
+SHA1: 6ebfe012bc5279ca2ae41dad3aee8d64ac924f76
+SHA256: 6a3d67c161fc65ec4f2e5ef80730d4abab9b948e38bf24258a682b19c8b31860
+SHA512: bdaf9ac29d7672295f1ad4275ae23b61db31ec4532010af4298271417ce3387b930d10eb4e0889429c69d25d658602bf9117cfcb0dd40b228b276284f3693069
+Description: NVSwitch Configuration and Query library
+Description-md5: 06d90fb68ae67655c00815a4db03a64e
+
+Package: libnvidia-nscq-570
+Architecture: amd64
+Version: 570.211.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1621
+Provides: libnvidia-nscq, nscq2
+Depends: nvidia-kernel-common-570-server-570.211.01
+Conflicts: libnvidia-nscq
+Replaces: libnvidia-nscq
+Filename: pool/multiverse/libn/libnvidia-nscq-570/libnvidia-nscq-570_570.211.01-0ubuntu0.24.04.1_amd64.deb
+Size: 399934
+MD5sum: d526a3d25474e72d0e57c4752ce0a2fd
+SHA1: f2fc55a87fc8d482dcf3ff3b2131e487bc901ac7
+SHA256: 9acafdae79b5cb58c72b3981299953beaa6a36ad37f254bb72f8f2f5d04acc97
+SHA512: 467eb69beec766e512df317feaa9e2cb3abcd4a2c0ac41a5ad007c8e4d9abee14599a4cf94027f3df786089885b0c7d3ece4d774379d0f8f475c047d740dba33
+Description: NVSwitch Configuration and Query library
+Description-md5: 06d90fb68ae67655c00815a4db03a64e
+
+Package: libnvidia-nscq-575
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: libnvidia-nscq-580
+Filename: pool/multiverse/libn/libnvidia-nscq-575/libnvidia-nscq-575_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 4656
+MD5sum: b6031a7f08df6654bc0f0d59a8fbe37b
+SHA1: 065b66fe4fc3b10c48abf29c2b5aceb0d81957f7
+SHA256: bec9d55b2f163115a88d76dcd8183382c2d1cd82a082c10e42ef258183ef66bc
+SHA512: 5168758017ef13095afe435daf021eb78584f3dd050b69aa71c1a6cde32b446ee0327199ec67aba1876f762332aad23cb558d3b543287c7525c7af3383326ea4
+Description: NVSwitch Configuration and Query library
+Description-md5: 9e3814be16130771b3205a08146341d9
+
+Package: libnvidia-nscq-580
+Architecture: amd64
+Version: 580.126.09-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1573
+Provides: libnvidia-nscq, nscq2
+Depends: nvidia-kernel-common-580-server-580.126.09
+Conflicts: libnvidia-nscq
+Replaces: libnvidia-nscq
+Filename: pool/multiverse/libn/libnvidia-nscq-580/libnvidia-nscq-580_580.126.09-0ubuntu0.24.04.1_amd64.deb
+Size: 428340
+MD5sum: b480cccc50328e174aad2e73731c79e5
+SHA1: 34ea729e4d2cf41dfffe05ac01d885c4df413184
+SHA256: a05b40ac59eee3bec8aace96edce8ec3d36ccf88cc2ed126cdf4af3130ffb440
+SHA512: 4786535f79bcbe7ffc8225d8c7c635a001cf6a8df16c76b4de800f5c6b51253c5e55c65fe89eea32fd2a67c70b0726de648f380065a3a36e42d5aaafa8894cf1
+Description: NVSwitch Configuration and Query library
+Description-md5: 06d90fb68ae67655c00815a4db03a64e
+
+Package: libnvidia-nscq-590
+Architecture: amd64
+Version: 590.48.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1574
+Provides: libnvidia-nscq, nscq
+Depends: nvidia-kernel-common-590-server-590.48.01
+Conflicts: libnvidia-nscq
+Replaces: libnvidia-nscq
+Filename: pool/multiverse/libn/libnvidia-nscq-590/libnvidia-nscq-590_590.48.01-0ubuntu0.24.04.1_amd64.deb
+Size: 428022
+MD5sum: 98c5aa8fbf37b992c5a824d39580903d
+SHA1: 5982ce4259195f05fad773b15b64f2275456be44
+SHA256: 899795d009ce316c177895c5aab05ff9e60b703440069c71acdbad73b1a32023
+SHA512: ad276b040a2cdfd71114e9f41db97953a0d8ab1b79326edd4800117ada3fa91f686c35305af1429eb89baf17d8f960710fa639fb48d05b4381cea087aad054bf
+Description: NVSwitch Configuration and Query library
+Description-md5: 06d90fb68ae67655c00815a4db03a64e
+
+Package: linux-modules-nvidia-470-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-470-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-470 (>= 470.256.02)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-470-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7642
+MD5sum: 6c2901093fd77a28289e4d164feb6249
+SHA1: 9d77bc634c1e3e60603c3644d50f5f2dd3b079cb
+SHA256: 6de86b34d895f4aeefb05a2e90707b55f37bf3ff503a5b86a838d611346e6305
+SHA512: 772b6acbb7d3faa14b046aad1493ad042430b95300ee687662d3c5160c3980b85315776058f490124011e16221d83bbd7d3dd3ea35bf6a18324a53d6c7b2ffc2
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 3b649d7c9605dccdaa3afee513f748b0
+
+Package: linux-modules-nvidia-470-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-470-server-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-470-server (>= 470.256.02)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-470-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7652
+MD5sum: 89de8cef00fdd2485e5ee4f4f2accad0
+SHA1: 10ef53dd1085c4d566faf2a2141a65583313d0a6
+SHA256: a31b9b9481a933d89677df51ec13bd46f3832efbaefe19235546b7c09a3f310c
+SHA512: 8f0f20f3b3f6a2aed58f45e760dbf37a68df3a5b2cb0b8bf0eafb52d949745bfa4b2311f16f841324cb2ee0ccfdcc7ddead670d4a83798d85fced81f003dc921
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 825c79213bfbce4ef1b5ffcea48bba7b
+
+Package: linux-modules-nvidia-535-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-535-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-535 (>= 535.183.01)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-535-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7642
+MD5sum: 1c8ff80aff6810bcbf2de2a5f1c24857
+SHA1: c3922a3db25999a5bad77d6b9d1ce03a61f68ea5
+SHA256: 356dc9200395550ea2aefdde11a14ba1b0ebbb99349a691f234c57420e935c65
+SHA512: 753f6f948b0b470ad34a3800018dc0e5a5a8751b5dec66fce0a1a2d4e4bd309272c8997849a06d631c38b320cbd6371145642a4c799d0af040990910db48f242
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 7eacb1d6f286204dfc683bab84e32345
+
+Package: linux-modules-nvidia-535-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-535-server-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-535-server (>= 535.230.02)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-535-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7654
+MD5sum: 675718295f554b1d7a8d877ff48a2153
+SHA1: 68871f38d24adb6f23a25a7612ce6b08a4d5be3c
+SHA256: d95f72f5063aeda88616353f00ab5d81d38bcc5c7467db10a6cd5072823624a4
+SHA512: 62bc0110bf3c4075b80f8320f8158b4a552079ef149603c5098a49c8e2fcc0df52be9e25a541b051f28f42d70f7cdad5901d067ac6667d1b25ff82824d6aa284
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 42fffed4165868f64fab69630f46e2bd
+
+Package: linux-modules-nvidia-550-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-550-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-550 (>= 550.120)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-550-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7638
+MD5sum: 4a91072eef30d08e8f6beb1f6967f677
+SHA1: 745111acbcec8a8a1aa6a4cacb6669ffb009c69b
+SHA256: 4dadcc28a49a134287b3fc459348090174f1a7a21fe0b0c3c802f5d279419b7d
+SHA512: 673ee34bc857ecb34b9cc7825efca715fcea9925c3f474d2e033f079b4b79b5aeb7e56229d28700428fd3a1d1cb5b99d3e9d871cfb2ac8aca7ecc2f161a4088b
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 97049833c84303c6598dd77071da01ed
+
+Package: linux-modules-nvidia-550-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-550-server-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-550-server (>= 550.144.03)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-550-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7650
+MD5sum: 30520561ff738c707c3b3440c68e4af3
+SHA1: e5d93974fd67fda6b10aa68361846182126db7db
+SHA256: f7af65801606293dfc799dfc0a99f2e4b558852d18e3563ddc368c32ed769843
+SHA512: 5ed018ff43d35cea6305af9b9dc946fa45dbc16eb130d98e980e45837c325934da71df32d17de9f39d5b3585ac13af9444a6580f8ada72ed34debba855ea76b7
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 251dd25233e26944468abdc135869efc
+
+Package: linux-modules-nvidia-565-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-565-server-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-565-server (>= 565.57.01)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-565-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7650
+MD5sum: 9715badff50e5225b3fdee9f18a3a904
+SHA1: 6ce1109e6d0d115efc633dd99d1e503096c4ee97
+SHA256: 224da00e79ed7aa071af0d75405a966a90a095a5f111a9bb01a281cbdb80d87a
+SHA512: 6ff5bba3cd7d81fa670d9b98d05ddab9347b34599dd5af1d0970c12c03ffe2f4d55323c7348367c220366cb4abe5067ed84db4933fa49a9a71879e5d3a285898
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: dfce3981f8b8ed39ba4f7a8cf5e65cbd
+
+Package: linux-modules-nvidia-570-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 27
+Depends: debconf (>= 0.5) | debconf-2.0, linux-image-6.11.0-1008-azure | linux-image-unsigned-6.11.0-1008-azure, linux-signatures-nvidia-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), linux-objects-nvidia-570-server-6.11.0-1008-azure (= 6.11.0-1008.8~24.04.1+1), nvidia-kernel-common-570-server (>= 570.86.15)
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-modules-nvidia-570-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 7650
+MD5sum: e21414e15d402d9ab520af4133ca56df
+SHA1: ad751a397c05ac2779329c90b9b6b6db1456df93
+SHA256: 29b616209afd080659f4ee8777ed24f2c73e8bac7f63f8661795a437655023fc
+SHA512: 7461f2c9358ac37aabf3ab5797b9ec911e2565da24001bb7a17408b82c38902d5611f386297aa60210c6c43dfefef6a96c1ccb31eaf3b56f0d8915e96730b72a
+Description: Linux kernel nvidia modules for version 6.11.0-1008
+Description-md5: 9bfd61e91279ac7cef3b685f79fb1499
+
+Package: linux-objects-nvidia-470-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 101939
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-470-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 35928810
+MD5sum: d23a3414cddf38a48f7847071a3a5fd1
+SHA1: 997afbd466152b252ac9d195f0c221b2b7f17d81
+SHA256: ba2fd0baadbb0e9426dec928ab7648ff948d257de581f86d91676992435f0899
+SHA512: bd04d8849eafe1d04c966b9e15905de82ab151e12dc07ffc15d0bf5d623a9106a13f7a2bb302faad0e2c499ccb5172f5717c53a550ae23533b069db5e849c6e7
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: a41454535e9111a48a943c5386b2707f
+
+Package: linux-objects-nvidia-470-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 101941
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-470-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 35896512
+MD5sum: dfde59efb2756748c56423474089c28b
+SHA1: 81529165b9a61910ba44c734e31306e865a2ef03
+SHA256: 05670021736b3a08f41d57b2554743f0d00046ad333cef5a16da470d015c36c5
+SHA512: b97021b7abd93aea20bcee6a19744395bd596ab03802fcb9e772bee4dabbaf41ebf8ec39672dbd65fb31e845413be806a266cd880e0aad1d6ed2ae0a664f565f
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 5ff4bbefa552548c2a1d77a5a3a865fa
+
+Package: linux-objects-nvidia-535-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 135249
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-535-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 57482696
+MD5sum: cda7db74870971276cc4cd819d1995df
+SHA1: 5045fef8f11172017739e8aa4a376e0bfe2839eb
+SHA256: 06f13febbd8071ba2060db1f34f882aff7f1932eed01ad13d9f939a33e445907
+SHA512: 9dc6245472688856053d1dab9782301129a9f0f1f296b737af48a7ca3a3896920ec231cb227e1ab82523129199a3c8556071bdcfab8228359d796897f5e46675
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: abe9e34f20c253485d4e7ddfd4023509
+
+Package: linux-objects-nvidia-535-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 17170
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-535-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 4749600
+MD5sum: ea5ca1cf4de82b7e1cd9404887e26260
+SHA1: 325eabb2b85633cc4027de84cd879ad463bbf01d
+SHA256: 70119e5049b88b0df57d2e71ee6fb8d661854b8a7e346441bf44eaac30188c14
+SHA512: 0baef8697b56b9e0adec44984e6c2bb87f3b4cc63da4ca004521d8313bc63b744917056b089ad7619de9b9106999911f97c049f6644df4b11e7d652ea795ef4a
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: efbbfeca7aabf6f9f3fd16313b0c45f3
+
+Package: linux-objects-nvidia-535-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 135273
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-535-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 57490268
+MD5sum: 1ee732614917c525189f6b5ec4246310
+SHA1: 122d0b49aee6ddc18b1df973ef202ac57cfb56d9
+SHA256: d3ffbb79f49731c483bb7e95ee5f9958c362945af52fc6ce788ed8523c740b93
+SHA512: f6fc4c49771dc94a3727e98cb4d07bcee7be938b479675de9e2619632d592aed1841380fe4a0f5a0581416d194c4afa6c6b6c142aa1e41759acc9ccaf33830c3
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 3059684461523dfa3e64ae47ba170693
+
+Package: linux-objects-nvidia-535-server-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 17171
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-535-server-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 4748228
+MD5sum: 6fde735966bda8e07017e6793942018f
+SHA1: fea5708e9cc00e2cd4d5a1458b34e378543ea088
+SHA256: d218b35017bd2ccdb3a231f7b70b78673ed1a78b690f4f3540a8300aaf44460e
+SHA512: 2141b4f2de1241d1e801523ec6f7d7286dbc11e84ea74878c3c120701c5234645a9e449641efebae8b15c7249a95c7e191abf5aeae988dd4097438af1b38fa9e
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 72bf72326c2754efd50f722dd326535d
+
+Package: linux-objects-nvidia-550-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 136210
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-550-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 54847390
+MD5sum: e6bb67bf91e98e2a3ce9a97c25603ba9
+SHA1: ae659205d2b4632b4d973c4f97202c8daf6ec104
+SHA256: 632ac8dad6aed9b94a5099d88ea66fdfc49946fa910c04bf58ec939838ccb0d5
+SHA512: 64a6657c2484bfaecd893ad3392e3c3ea210272a3075b58eea8916698cfa2896a794b5b071f31b351a791b45ce58d964d68502193b72b1a0686823145f9c7c3b
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 1040dd6746ecf44b8a520961873ee0d6
+
+Package: linux-objects-nvidia-550-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 18886
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-550-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 4965208
+MD5sum: 7faff61f2f6f616921a7d2db4b230e13
+SHA1: c696ff9e4f3e34c216e8aea6e923a3be8f386d6a
+SHA256: 364f17c2e1e12dcfc52f068522999cacd7bcfde8e44840d2e3e354dc6c5a4d7a
+SHA512: f5499d0d7480a6f919d61f521ae84c32d4ff26c0106d9417da2cec9bbc90d671319e9bf10946beaaf0bd4399e9e1470c5767f01efc876f7fac59ac8cb73b87b3
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 4a567075c3116a9d696a9c8f1ce2de9c
+
+Package: linux-objects-nvidia-550-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 136287
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-550-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 54824320
+MD5sum: a164f8decbde7c92a09cd2c3cbf607d8
+SHA1: f077db09fdd8afdc3f1a75fdc49cfed36303d23e
+SHA256: a30e43248afbafd42f990f9800aeefeaefe945f25134be34178cf9231f5082d6
+SHA512: 8a68a953bc5a5721fbe896f15bfe475718dcb126ea27115a57924d44f785c5cbab5fb45e8901a3584ad140d5b92b7218daddb58f711b422b694bf7bac65bb08e
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 80c0024157aefac8d14de7b73eb445eb
+
+Package: linux-objects-nvidia-550-server-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 18931
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-550-server-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 4977658
+MD5sum: ee3a5f530d29bd47bf68ce86c9231cc2
+SHA1: 11559d1149044ad93b561669732d5af33e2cca1c
+SHA256: d5429bce50bd5dc2055f458180b67caee3bb992fea62a5e0e8834b78a36b864e
+SHA512: 48ee6dc2bf623bca2ad0e684745abe833683970126f1d102a97915f09f12b622aab150add02c144d08ff21d92418fedeb0a7412d5c8f36fcd02c25e87944d102
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: b757ade3071df83bcf7d17abeacce248
+
+Package: linux-objects-nvidia-565-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 155421
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-565-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 68217914
+MD5sum: dee24d9cf34e33b98e3f51140495c6b3
+SHA1: 8e2e120c6611198716b35bd0b648b46cefebc905
+SHA256: a8d85a304226ff6b2f3bc71478b1a67d40775e9a9d649461c8544e9d9f8630dd
+SHA512: e02e5f786cacb464ec2767f4ace4eac1ed005f7afb7fbe0e63e5082504413d2a6beb65c65543157d206bbb882220c98d6147861352a436308df5cb647ea93e4a
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 0cae6beab61cb1b8241ea8bb4358ade6
+
+Package: linux-objects-nvidia-565-server-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 20706
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-565-server-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 5718838
+MD5sum: a9d1fd168573329ad3cfdd35587b6f3d
+SHA1: c28c12cc105bc8780d11528a42b995c7e9454232
+SHA256: 81653bdda2a7b7cdc37bbc2ade9cbc0910958e1c3b94758967003bd1bae54211
+SHA512: 96b9afec5c32da195934c8c95bc94ad72927dd3eda932654031fd8eb43d5e97ab33221bae89a72e98e305547b506eb65c20894fbd27c1fb05f4dac6c0e092194
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: c257aac0ac623de379847c8147d8a574
+
+Package: linux-objects-nvidia-570-server-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 174582
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-570-server-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 85904998
+MD5sum: 8e663bd32a61b883f9361548cb7ee375
+SHA1: d07814bb7b9c46a5ba0eb018de8d26a86cda3851
+SHA256: 1831365607f23f180980e518ba5c73889044b21f762210ef6ee86fedcf1aedbe
+SHA512: cfe86e1feea6440e69f6f6c0061c364c03ce284bdae2b2b9e350d712ba0ec6da8cc88e4bb44244ff4d911d08ade08944a75fb4a61338f6b867279bbad98da9a8
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 496242c60e8ea339904380011450a986
+
+Package: linux-objects-nvidia-570-server-open-6.11.0-1008-azure
+Architecture: amd64
+Version: 6.11.0-1008.8~24.04.1+1
+Priority: optional
+Section: multiverse/kernel
+Source: linux-restricted-modules-azure-6.11
+Origin: Ubuntu
+Maintainer: Canonical Kernel Team <kernel-team@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 22719
+Depends: binutils
+Filename: pool/multiverse/l/linux-restricted-modules-azure-6.11/linux-objects-nvidia-570-server-open-6.11.0-1008-azure_6.11.0-1008.8~24.04.1+1_amd64.deb
+Size: 6522486
+MD5sum: 850102aed1202b2aa565758ac2a8c77e
+SHA1: a0ccc9ea1353dd0d9524566bf735dcc61a5fc983
+SHA256: 675228353066031c37dd0827d7722f236a6bd7becaaf1a06c5c51f59bf65bed9
+SHA512: c3d85b438ee44707e77560151b99102c8f473d954a257082e3138b09bc7d64faa7bbace0e6bddddce2a4cd2b011838ae82566347da93557f0844df5301412a23
+Description: Linux kernel nvidia modules for version 6.11.0-1008 (objects)
+Description-md5: 688cceb99e065b5f6998d9ff4f12e254
+
+Package: nvidia-compute-utils-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-compute-utils-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-compute-utils-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10982
+MD5sum: 467e70c1b1d9aadb346612c75e51540a
+SHA1: 5f84bf81a58df9b35b7f9d28533dc613d3ebf78e
+SHA256: 2ca881e66b1422c9af0cc0befdb5ea1b5c44585ad7d5df872028354f4e2a8798
+SHA512: 3d51e2be98f5b724962cb5decc1006cd6bb17dc86b1609b9e84e7f79a39181889d66bb836893f3414b5bf4f8a0a4478718a3bb44039553205677a48b9ee7f272
+Homepage: http://www.nvidia.com
+Description: NVIDIA compute utilities
+Description-md5: 2e1db6d5084077f4d39c74d5bc8f12d5
+
+Package: nvidia-compute-utils-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-compute-utils-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-compute-utils-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11950
+MD5sum: 5e99f04a19e727de8ba495dc16a87f3b
+SHA1: 2dad2470e1a260a108cdfe532667916c8b72a6ba
+SHA256: d99688ab11442f86eefe77894c337bf70ff0db287474935018789edc11124860
+SHA512: 5f84ce5569b50043a3ad17bedecefbff7f5543c128721a94ff937bca4d5d8011ad4ec2a57165e6e0dd77127fa12cd97bdd9b89af626cbcce5f3fbe6a852a2766
+Homepage: http://www.nvidia.com
+Description: NVIDIA compute utilities
+Description-md5: 2e1db6d5084077f4d39c74d5bc8f12d5
+
+Package: nvidia-compute-utils-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-compute-utils-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-compute-utils-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10364
+MD5sum: f489db7004fe48a027d7e5eea917e191
+SHA1: 15a966f9bd1dbd5139d1ca7812198f6f32566707
+SHA256: 21b4e912c496f63303c7a9b46f553550bdadb033d13937f6fc060d0248c5c92b
+SHA512: 785fbc4afaf55c30f75789430ca7d3ff58bb4904431de812e71a32e7e5d9102cf6856c545ad7bcc3b38350654b4b3fdb23b79eb01c95e9559a52f476552258af
+Homepage: http://www.nvidia.com
+Description: NVIDIA compute utilities
+Description-md5: 2e1db6d5084077f4d39c74d5bc8f12d5
+
+Package: nvidia-dkms-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-dkms-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11098
+MD5sum: 63a27bf83a144fd106adf30842ff88cb
+SHA1: b285eea17214cf25ef882f8183f26496a11dba9e
+SHA256: ea240efe89025bc7e384fa641c4860cb30547b4f41f0ecd66236b3b6ff7c0f0d
+SHA512: e8ff8447c05f6ae3f54b10a3f1fa40b3e17202248919fcfb7cc55dc84c434f105d89e04357adb33e17f49e5ebcf063cf1d521aef4608619200e4d5345c51127b
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package
+Description-md5: a347abf1b58ca811e614eaaf299d05d7
+
+Package: nvidia-dkms-550-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-dkms-550-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11104
+MD5sum: 332024a32add65640729db29c8f096c4
+SHA1: aa30a47755f9387d406c0cc8caa2e3eeb51516a7
+SHA256: 5aa3becc229640680740441df7daa001800103eec5cfb5a05f0afc65a836ee49
+SHA512: 61fcc92174e1fa01fcfed25230c303a3035ffd090800c94efeba11d351e8e566dde17b85b723813b147f0d339a875a3ea123c2aa04d9172e1769139c5746343e
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package (open kernel module)
+Description-md5: d10226eaee2a7cc487a5e3ce0b948199
+
+Package: nvidia-dkms-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-dkms-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10984
+MD5sum: 0744cc14c61235f23feff64870170140
+SHA1: b7dfccbe9d07f36a849d47015bafb04fe0b77bfc
+SHA256: 7f998f9335fc17cec4d7315363ddc9743b061a26ef0f4eeba470f086bf0ccf67
+SHA512: e07af59ce30377b912f0e69dd0593e110f15a02e8fb82fc2a65ba797d07fa259e71a6107721675ab748e9e4e9b8b937339abe6d2db5b668ece6d5ab1073cd0e0
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package
+Description-md5: a347abf1b58ca811e614eaaf299d05d7
+
+Package: nvidia-dkms-550-server-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-570-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-dkms-550-server-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11004
+MD5sum: fb8e49311e6a4c9a8a457e806a55edb8
+SHA1: 2e511d4ade277f6e5e94730d250b0b3412d9686d
+SHA256: e51e285886027192071479e27eae04a4b07672a18b191931dbbe9b72693f8790
+SHA512: 0921e82fbe283f0c3d744fb97e49528be74833e9c59456d4d76e346e6c1a9e194b9ae0fff4ca825285ec48fdb6a7d5f8173259ef6b552146f7ee906287d48e12
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package (open kernel module)
+Description-md5: d10226eaee2a7cc487a5e3ce0b948199
+
+Package: nvidia-dkms-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-dkms-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-dkms-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11946
+MD5sum: 7761b2d91f800b6b105036ad946f87a7
+SHA1: 277e366f6914d9fb9e326b3e054ed613b0a54728
+SHA256: a468cc165b0e3d667515b1232dcdce94dcfc1dee4faf8ffbf539e1da0926ebbc
+SHA512: b7bad04dec21577852561bdc782992bfd3dea2b84247e99cd2660185ebc304e0fe7310896058d10789d40e742f28cd90ada548305889c1d06bd993b8843a918b
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package
+Description-md5: a347abf1b58ca811e614eaaf299d05d7
+
+Package: nvidia-dkms-575-open
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-dkms-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-dkms-575-open_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11972
+MD5sum: 1490b51c24445ce8fe50855966d17edf
+SHA1: 2aa6009328d944c9c77315d9c6a46949f9f0cd61
+SHA256: 3df16158da08a9bd287f81047f579b732709db8786e1cfb925adc292b17e5f77
+SHA512: 0a7f102397d661ddafab0e9486cb17cc1ce485f47cc6eabdc98c9bb0c0f8ab8d322d3fe7fd627d15de6fe87681669ff0fb94d37e217f2524a2d8a016b950e410
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package (open kernel module)
+Description-md5: d10226eaee2a7cc487a5e3ce0b948199
+
+Package: nvidia-dkms-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-dkms-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10366
+MD5sum: 30b7aca37573d20ffe7a0ebc877ddf1e
+SHA1: 6888ba9c4f662c263703280ead7bc9ab49b84a0b
+SHA256: 9e247bfe0352085545eb5248ad4fe326f3716108cf22b2e377ef823e297cf8cb
+SHA512: 77377c3ac1cd5b347e6198203545a320925467cd95a8880e8167c9dd51374f627fee38bb8b44f7c4b3f6148e7a09582bf4fac458f1c2daf5181352b0e16fd62a
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package
+Description-md5: a347abf1b58ca811e614eaaf299d05d7
+
+Package: nvidia-dkms-575-server-open
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-dkms-580-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-dkms-575-server-open_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10386
+MD5sum: 4d9bd725b0236d0c22fe695d547f3318
+SHA1: 0ce98d14ef8a4997f801ca63317d7ef9c8edfdb7
+SHA256: 8d1a5b4432b5e9f426596e3d6216daec3286a7e69658bd7b00a83305b7b8ba3b
+SHA512: 59412becc8377be011a72843da94730c75d42d34b62ba5521618287777e58fae54f50cf3d3136aa1e31e5cb89f52f6d8b380b9bd4647a7f0d51f97b3720203ba
+Homepage: http://www.nvidia.com
+Description: NVIDIA DKMS package (open kernel module)
+Description-md5: d10226eaee2a7cc487a5e3ce0b948199
+
+Package: nvidia-driver-550-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-driver-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-driver-550-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11098
+MD5sum: f5b5b5566084087848fbfeac07778aa2
+SHA1: c4960c9a16b167b8fa26bf75bf3981582e469db3
+SHA256: 02b3db0512c7d5eee2a87fbd04c669a01ffda98b64d479f06b25efd7ea9b6806
+SHA512: 10c33c7ab7de0a38395233ba5e308c55345ec41fbf29c79dbc7909ca893de18452ae0a2ac05e476566e1566c47091ce3ced4043646c365369f01efe72796de09
+Homepage: http://www.nvidia.com
+Description: NVIDIA driver (open kernel) metapackage
+Description-md5: 27d0817bd10bcbc869df4f9387ff9522
+
+Package: nvidia-driver-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-driver-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-driver-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10970
+MD5sum: f3f0a202b395c8d0f7db8dcdde5102c4
+SHA1: 3b22b9b85071879e67f9290f2aadedc70fe5dd1d
+SHA256: c063019cf2079673e857a86342c3708697cd4f0d5febc47363c614cb88c4b3f1
+SHA512: b3a1295e8a8299772c9779b2bd2c7481f450bd386e7f0622bc455bdd8c7bf7dc33db53353b7d0717ebdf2ba1a57d586e8964de4da1e16b02500209d896c114f4
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver metapackage
+Description-md5: 86952170fa3d086614aec7a9a0092360
+
+Package: nvidia-driver-550-server-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-driver-570-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-driver-550-server-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10984
+MD5sum: 24a34f53f2e8f23302b5c8f70210e1ee
+SHA1: b3da6f61162cb8c82e6719d1f916e7c79115f589
+SHA256: a2ff04731fcd08dc8eab2346bbdcc4dbb140689c560e83bcddc1a52ab51dd2db
+SHA512: 79162e9f056798310487ef6ffac9bb2266f9ac084ff605be584293d28bda157ae77442c5c4e1959fe50ba7b09cccf6f01c6e712f93f4811aa77e50d4503f57ed
+Homepage: http://www.nvidia.com
+Description: NVIDIA driver (open kernel) metapackage
+Description-md5: 27d0817bd10bcbc869df4f9387ff9522
+
+Package: nvidia-driver-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-driver-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-driver-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11940
+MD5sum: 671f4becb48dd08e405a02bf87174bcd
+SHA1: 5401d5582946a6b68b53de54697d380e869f8562
+SHA256: d8f7feaecca6c4c1dc26df244ae370489dafe75dbdeb7ffba2dcb35ba132caab
+SHA512: a10a3a51fe852dbe70537f641d265a65643af3ec8b6ec796fdf12209e29ef67a97796a6de13ecbdf499b2ef0a1ca94c7c08af1e3425037ad9179e7682889dee9
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver metapackage
+Description-md5: 86952170fa3d086614aec7a9a0092360
+
+Package: nvidia-driver-575-open
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-driver-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-driver-575-open_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11950
+MD5sum: 2d9322d7f586d09df99e25747e86c0f4
+SHA1: 5e90712c5648a3ed79ab8340736ae3b34036a3e8
+SHA256: f576f6289254696ce8277a11b7da19980dd32e1e1187043c6180a4a53d4e7679
+SHA512: 9b9d269d723637fbad8afde9b747b58be758cf47fe9904e3e937b610e989ba221245da13f83fa55ee9651529016c5a45af928944c885240ecde1e969c0dbffaf
+Homepage: http://www.nvidia.com
+Description: NVIDIA driver (open kernel) metapackage
+Description-md5: 27d0817bd10bcbc869df4f9387ff9522
+
+Package: nvidia-driver-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-driver-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-driver-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10358
+MD5sum: 555558bf16af4145a46567d6a0e6ad53
+SHA1: e4aaf9562eeb5494ca9c481aae52d2c512b4ad0a
+SHA256: 7244090f422118dc9ed682bea976804d61f29ca75bede3353e7e350ab4b0f94d
+SHA512: bde172897cc661a5b0006150a9e9245f78790c54c2621c564c770d1cb4a29ad2e2f060a02fecba0f8f918e93e09976ed5e80ed5b7947017e88890039f6b4b0c0
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver metapackage
+Description-md5: 86952170fa3d086614aec7a9a0092360
+
+Package: nvidia-driver-575-server-open
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-driver-580-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-driver-575-server-open_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10368
+MD5sum: bdf5efad82cad0c75ba66ab81f058a47
+SHA1: 753b13fb151b5169a0b713a1763230d75d46ac7b
+SHA256: 431e4f6bbbfb94352039a5b9350098a63e2c111e85ccd0d4314563407ad34c9b
+SHA512: 3af37eec6da018e5b28a8ddbc5a1856392e7b0a2dcca24fd55d28e188095814eaaae40513f58c85ee82c5788b72801b47b0864a6f7877294f8bb42e70df5afae
+Homepage: http://www.nvidia.com
+Description: NVIDIA driver (open kernel) metapackage
+Description-md5: 27d0817bd10bcbc869df4f9387ff9522
+
+Package: nvidia-fabricmanager-460
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/devel
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-470
+Filename: pool/multiverse/f/fabric-manager-470/nvidia-fabricmanager-460_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5358
+MD5sum: c8a03c5d9658387cfd3f8c16e423d78d
+SHA1: e1369e091bcd415a47c3a361290b846a3000141a
+SHA256: b9eae7b05633c372c3dddb54a13d4dac7bc61912cc2af5d98ba2f76c5d05eedc
+SHA512: afd6af0119b3cca6aaf2e226f9e5f4b303c49524bebf426feb8da6c3b59555e0d87ffe1b36e9071c698a87b8f3d8ac44a5a424e8a06bff3370b4078dcfc64263
+Description: Transitional package for nvidia-fabricmanager-470
+Description-md5: 9161ba1fb1465aa474f5771de163cfc4
+
+Package: nvidia-fabricmanager-470
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-535
+Filename: pool/multiverse/f/fabric-manager-470/nvidia-fabricmanager-470_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5362
+MD5sum: 3358f98e9a5186c4b83d3e2847a2a780
+SHA1: 3eb77beaf8a9b7c35119898cb8ffcfa3230c2ddf
+SHA256: 4177a843976fdddb6731036626d679b2c60d343bc2997919e109f3a05f102f0c
+SHA512: 11fcaab405645cda38e744f142e641b043618afe8a0aeb866fc4081e7dd486ea52eb92cf260f596536914cf960970985f33adf02e2d740f44ef8664a9019c892
+Description: Transitional package nvidia-fabricmanager-470
+Description-md5: f549b16a68ec6836fed943dbb070d299
+
+Package: nvidia-fabricmanager-535
+Architecture: amd64
+Version: 535.288.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-535
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 8980
+Provides: nvidia-fabricmanager
+Conflicts: nvidia-fabricmanager
+Replaces: nvidia-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-535/nvidia-fabricmanager-535_535.288.01-0ubuntu0.24.04.1_amd64.deb
+Size: 1848932
+MD5sum: 8055db63487f22ce49af28722c4ae53a
+SHA1: 64d11275c4235c7f7048f0d9e6fb4c30af4088c3
+SHA256: 6c131778b49948266abd1bc0fb0f5c7e07531ec51f69eeec69186c67df83bfbd
+SHA512: e867503b2660b06380d628ea1527c7891d2b807ac8aeda7bff65ce37d6f43337c2bfce2b3d5cf1566c6b87248b96a0af97f32bbb68f9e6c3c307d4644267d41e
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3d49e1346de8fc10beaca066b0eb5df0
+
+Package: nvidia-fabricmanager-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-570
+Filename: pool/multiverse/f/fabric-manager-550/nvidia-fabricmanager-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 4998
+MD5sum: 082253937d3534671f9e57f5a9ce958b
+SHA1: 55df176c13776b9ee28c93aac832f09fa275f2ce
+SHA256: 86264c04ae1c7f218b525ebbd7dec288e6fc044ec1fed46f62e6f25e604ec6f8
+SHA512: 67d92416d3cf78ec10f6f3a7c665d2ce39604cdbedfe018712887621456defd274711c21d2c7304b1d31eeb6c1e54de6f2b62dceed726db06922e4e9565f9cd9
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3710873766d2a2d831d4e85e739d1681
+
+Package: nvidia-fabricmanager-565
+Architecture: amd64
+Version: 565.57.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-565
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32471
+Provides: nvidia-fabricmanager
+Conflicts: nvidia-fabricmanager
+Replaces: nvidia-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-565/nvidia-fabricmanager-565_565.57.01-0ubuntu0.24.04.1_amd64.deb
+Size: 6344794
+MD5sum: 78331edf5868533c05b76f45df02962d
+SHA1: d912afc28dc349f853b2cfae532ecb2febe465d6
+SHA256: 8a4a827a142c8461cc64e2e7a91d166282c3f76c5fd7ccb6499fef766d147b6c
+SHA512: 07c2345c149d7f0988e2cbe39c6c13c5e3905b7c719b4add126e2ebf6f4ed6f31022e68037dfe2f50c320fc5705c29927edb2bdf4ee2cd638bc30bf191c84c64
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3d49e1346de8fc10beaca066b0eb5df0
+
+Package: nvidia-fabricmanager-570
+Architecture: amd64
+Version: 570.211.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-570
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37590
+Provides: nvidia-fabricmanager
+Depends: nvidia-kernel-common-570-server-570.211.01
+Conflicts: nvidia-fabricmanager
+Replaces: nvidia-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-570/nvidia-fabricmanager-570_570.211.01-0ubuntu0.24.04.1_amd64.deb
+Size: 8061066
+MD5sum: 68165307ee421f4938269fbfe0cd9e68
+SHA1: 8922d6b7e78c05237019f672ca7afaeae1fa6c93
+SHA256: 1af81936d1431e4ba9e5221e103061569bfb4b71131292a3c6f14a688d6a39a5
+SHA512: d2d6fc0640f41432ea3b9e1a6b9ad8c862ad387bb6c7283c9a2893eceb137706200de1933430d60eeb2ea3638a4663b4223c5544074e368323c9935fa6e47076
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3d49e1346de8fc10beaca066b0eb5df0
+
+Package: nvidia-fabricmanager-575
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-580
+Filename: pool/multiverse/f/fabric-manager-575/nvidia-fabricmanager-575_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 4712
+MD5sum: bfb4d942268308730e08cdd42a31a713
+SHA1: 7ecf1241e5c08d94f56d859a572785f076762a4f
+SHA256: c4e0f814055ed661d2f5a2ae1afe6cfa242113a42d0c130e1327e9b35d8e24fd
+SHA512: a1563ee97c3e52b75571af938c9eb1f072203fb93a7e35afed22e4b70d5eaabbdaeabba9a124f30a72b17a08965a2c32aa875a824692e281b70a7d9c18387f9d
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3710873766d2a2d831d4e85e739d1681
+
+Package: nvidia-fabricmanager-580
+Architecture: amd64
+Version: 580.126.09-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-580
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 38582
+Provides: nvidia-fabricmanager
+Depends: nvidia-kernel-common-580-server-580.126.09
+Conflicts: nvidia-fabricmanager
+Replaces: nvidia-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-580/nvidia-fabricmanager-580_580.126.09-0ubuntu0.24.04.1_amd64.deb
+Size: 8292446
+MD5sum: c0af26f6864d5d8e58aa6d7c5dbeeba9
+SHA1: 654fc757dd87ab69953ad9208698aaed8acbfbc6
+SHA256: abb83d39ddfa5e8b622683cbe9af457c0c02febd2e57c1e3736a1ba964d16621
+SHA512: e8128334bdb3effd023e849590ce7113c626923cce86d763d082f6ad269b311eb8225f1fcf7779fd67076db29fe8390f81976b24dbfdacde305622637297e24b
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3d49e1346de8fc10beaca066b0eb5df0
+
+Package: nvidia-fabricmanager-590
+Architecture: amd64
+Version: 590.48.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-590
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 39648
+Provides: nvidia-fabricmanager
+Depends: nvidia-kernel-common-590-server-590.48.01
+Conflicts: nvidia-fabricmanager
+Replaces: nvidia-fabricmanager
+Filename: pool/multiverse/f/fabric-manager-590/nvidia-fabricmanager-590_590.48.01-0ubuntu0.24.04.1_amd64.deb
+Size: 8554534
+MD5sum: 6c6eda017292812d464fa70acc03bc4c
+SHA1: 3ccf96d8af8f7fa08b3aef435c29c5389ba8637f
+SHA256: b1624b3be9df70132887d60eaa2c9c92040a8c586ad224b4654decb9399c5587
+SHA512: 6cc69425fc71da4401479b6ff89a34de7cfc1130b6cfe6b75f99836c8c58aef03d6db8e9c657272d8addabfdc5c3551738c2139d54b131fbd34dd439370098ba
+Description: Fabric Manager for NVSwitch based systems.
+Description-md5: 3d49e1346de8fc10beaca066b0eb5df0
+
+Package: nvidia-fabricmanager-dev-460
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/devel
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-dev-470
+Filename: pool/multiverse/f/fabric-manager-470/nvidia-fabricmanager-dev-460_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5366
+MD5sum: 1c6b66536faee9a6d5f6b83aa52b9f71
+SHA1: 8dcf9ae6dcdd7e1b3179f34ec3eb2c4f2e4016c1
+SHA256: 6060f29757767fd135734d755272ca0e05dcfa4030867121682c8011ac14e258
+SHA512: aad493d405e42de62ad3d729bf8f87bf921407d2aecff3d2ad3c8ed836026a0aa237e37aa6cfc6a7776a98d39452a65640c0d2b609aa5fea4c6646874323c1c7
+Description: Transitional package for nvidia-fabricmanager-dev-470
+Description-md5: 43b0b28c82f1d336e6909be154e74985
+
+Package: nvidia-fabricmanager-dev-470
+Architecture: amd64
+Version: 470.256.02-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-470
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 17
+Depends: nvidia-fabricmanager-535
+Filename: pool/multiverse/f/fabric-manager-470/nvidia-fabricmanager-dev-470_470.256.02-0ubuntu0.24.04.3_amd64.deb
+Size: 5412
+MD5sum: 3a9b635db1a1804d3171910ca82cc3a5
+SHA1: 46db76ab4cf056cacbdbfb72d898300b4311cb62
+SHA256: b5c68c5ced4049999f43230fee859b039a4e0f7f738c6cd1a8817496c0d9efd5
+SHA512: 695ea6d0245ab78d9eb85e7e44a9c416e198e647e831d27577dbbc760f36440afe792a79bbae181df3010d4465f369a5d1e0fa1cd6eb781112462f92344069d6
+Description: Transitional package nvidia-fabricmanager-dev-470
+Description-md5: 6b81e2cb2c3ee908c57a89d356125607
+
+Package: nvidia-fabricmanager-dev-535
+Architecture: amd64
+Version: 535.288.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-535
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1684
+Provides: nvidia-fabricmanager-dev
+Conflicts: nvidia-fabricmanager-dev
+Replaces: nvidia-fabricmanager-dev
+Filename: pool/multiverse/f/fabric-manager-535/nvidia-fabricmanager-dev-535_535.288.01-0ubuntu0.24.04.1_amd64.deb
+Size: 525380
+MD5sum: 5d0294d698dd436b4a40bcb723736057
+SHA1: 5c2bc9b3ad404e25b8cff6ef23a52d8a5e72a726
+SHA256: e10f2c0eac056405956b7c39d4ec0bf499309b4a0575146cefd48fd5b54d0068
+SHA512: c9302c8e2c33e0844aa6db065e31249c31ee8ff61b05036a0068b72ae265632431d5ed42a15928a994a5bdee1bc5c682491e523c199b34d0e970115fce588eb8
+Description: Fabric Manager API headers and associated library
+Description-md5: 565605cc6a127d423c88c38e5c2f9a26
+
+Package: nvidia-fabricmanager-dev-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-dev-570
+Filename: pool/multiverse/f/fabric-manager-550/nvidia-fabricmanager-dev-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 5016
+MD5sum: 7e66b8a174c1ebca222c725b92c96545
+SHA1: 7143623f055a15f88fe7a94a4a9ba4c2caf42ffd
+SHA256: 90a22c5b071a86a9338a8fa6ed9fa499a7a3ed6c63d5343a204842d5e5a272da
+SHA512: c72b2b7e8d63e283d63e4a1701978d4c7977df1597ea1d9927dd945facc74f08bd1b5079d9f5f7f3a57ad3338c83ec6f554643479c7ab0da9ccf99324737263a
+Description: Fabric Manager API headers and associated library
+Description-md5: eb51daeba23d564740354d45d0bd3639
+
+Package: nvidia-fabricmanager-dev-565
+Architecture: amd64
+Version: 565.57.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-565
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2185
+Provides: nvidia-fabricmanager-dev
+Conflicts: nvidia-fabricmanager-dev
+Replaces: nvidia-fabricmanager-dev
+Filename: pool/multiverse/f/fabric-manager-565/nvidia-fabricmanager-dev-565_565.57.01-0ubuntu0.24.04.1_amd64.deb
+Size: 639332
+MD5sum: 7854a4055fd71a6c1511e75dc673949b
+SHA1: 469ebaa67fe820e59141b737eb54553bfe6518e7
+SHA256: 8e2e834b2ead962e3434ea284d5324b210baab2d6c9054d01eddcc24f52b8374
+SHA512: cc147e2ab495a9c6b388a423da452bf419d1583de9f3582c5ba542101fee978ca60f6ad9ce27d027ffe0c2ecd58a21a476d538c51c1977d0467b6593e3ac94f4
+Description: Fabric Manager API headers and associated library
+Description-md5: 565605cc6a127d423c88c38e5c2f9a26
+
+Package: nvidia-fabricmanager-dev-570
+Architecture: amd64
+Version: 570.211.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-570
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2560
+Provides: nvidia-fabricmanager-dev
+Depends: nvidia-kernel-common-570-server-570.211.01
+Conflicts: nvidia-fabricmanager-dev
+Replaces: nvidia-fabricmanager-dev
+Filename: pool/multiverse/f/fabric-manager-570/nvidia-fabricmanager-dev-570_570.211.01-0ubuntu0.24.04.1_amd64.deb
+Size: 846956
+MD5sum: 4c227d193e2bab3a5e60fe1f992de0f1
+SHA1: 85a5a699137a1e41d8be2eb59b0485590a1de572
+SHA256: 3feb69c3e834c2e404ce9d6ad104f1567958279492d16692e825b6c2913800a9
+SHA512: 73feb817dd9e89fe6466a008aac469fcd0b9635763960b5a704c2e2d2d73437abdbb0113937ed5c66cb877b520953dd33b036f50712fdc7e4e4ba62ff0889fde
+Description: Fabric Manager API headers and associated library
+Description-md5: 565605cc6a127d423c88c38e5c2f9a26
+
+Package: nvidia-fabricmanager-dev-575
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-fabricmanager-dev-580
+Filename: pool/multiverse/f/fabric-manager-575/nvidia-fabricmanager-dev-575_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 4720
+MD5sum: 8054851c8140cfa28eff92b33ede7ad4
+SHA1: 6d634dabeaec3dfd7324653e2653c0bae0681f16
+SHA256: ae027883a245e89499b1ab5559921b385cc66b1f41a59d9e6c1d39e1ff335fde
+SHA512: 6afe567885176b35a8c1dbf4a41ed80e7b6fb6f673e3d272826fcce44d7115dda4bab13737bb0056d86ee2dfe2300007c07f3ffa85540d2236cd98a582490bcd
+Description: Fabric Manager API headers and associated library
+Description-md5: eb51daeba23d564740354d45d0bd3639
+
+Package: nvidia-fabricmanager-dev-580
+Architecture: amd64
+Version: 580.126.09-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-580
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2630
+Provides: nvidia-fabricmanager-dev
+Depends: nvidia-kernel-common-580-server-580.126.09
+Conflicts: nvidia-fabricmanager-dev
+Replaces: nvidia-fabricmanager-dev
+Filename: pool/multiverse/f/fabric-manager-580/nvidia-fabricmanager-dev-580_580.126.09-0ubuntu0.24.04.1_amd64.deb
+Size: 864384
+MD5sum: 4282652654e522437e5968e266383972
+SHA1: 36be78c900ed7a359ee0f9dc83a01a62def104bf
+SHA256: 2d64c31248b130810c1176325b3569f8259be16a111d18528ab88c6d1bdb5476
+SHA512: f99726c30ac6aa0bebf601cee8aa58f5923efd45b1ba69adde818fda38e4205162e0e40678b4325496d227fea5281adaa884277774b7842d87dc04d71be633cf
+Description: Fabric Manager API headers and associated library
+Description-md5: 565605cc6a127d423c88c38e5c2f9a26
+
+Package: nvidia-fabricmanager-dev-590
+Architecture: amd64
+Version: 590.48.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: fabric-manager-590
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2724
+Provides: nvidia-fabricmanager-dev
+Depends: nvidia-kernel-common-590-server-590.48.01
+Conflicts: nvidia-fabricmanager-dev
+Replaces: nvidia-fabricmanager-dev
+Filename: pool/multiverse/f/fabric-manager-590/nvidia-fabricmanager-dev-590_590.48.01-0ubuntu0.24.04.1_amd64.deb
+Size: 894280
+MD5sum: f920f3570beb6426e96838492fe80cad
+SHA1: 8cdb1278cb9bf5d8f853d62cfd77ee741bf67f1b
+SHA256: c90619900ead5b35db27b2c6320c1017e917bf8a5afaecda8b254e83c28407c6
+SHA512: 599a01ef7936575862780c17795c2693f3b46d89c7714e26ff57e94113f1b65579a48c0777de0a2bd5ded30ca6f22d9cc73092758e3fb21ed729df2d219169be
+Description: Fabric Manager API headers and associated library
+Description-md5: 565605cc6a127d423c88c38e5c2f9a26
+
+Package: nvidia-firmware-575-575.64.03
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 101660
+Breaks: nvidia-firmware-575-server-575.64.03
+Replaces: nvidia-firmware-575-server-575.64.03
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-firmware-575-575.64.03_575.64.03-0ubuntu0.24.04.1_amd64.deb
+Size: 76129078
+MD5sum: 63453d920a700d90aaf4c8fb8c43613d
+SHA1: c578c824b51da60e30623d4a51a94a41e0f08a55
+SHA256: 6bcbab7be04d1eea44b48dcaa219d73fd14f5336c069c3b2cbdba161d601717a
+SHA512: 76a08510b6cd9c8f2f6134412f87df8d3ceb5847244f65ff0619ec99006272a1124a22d9b721783042c940c028384161abad14dbdf0824e0c519fb37970cd3a0
+Homepage: http://www.nvidia.com
+Description: Firmware files used by the kernel module
+Description-md5: a9f4cc74ba3faebf0cac0795ed2434bf
+
+Package: nvidia-firmware-575-server-575.57.08
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 101603
+Breaks: nvidia-firmware-575-575.57.08
+Replaces: nvidia-firmware-575-575.57.08
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-firmware-575-server-575.57.08_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 76124680
+MD5sum: 161b003dfca0d2b70c1c204704027db2
+SHA1: 1343f71fe9b2d70fa962d121ce6a8ca8955f7974
+SHA256: ed85870e0eda74bff8d3faf2cbd9e25fb054410fd3ee989ba16eba7f4c899910
+SHA512: 1c5d0c61ce7544c786dcd6b6b88753c14ad6cbb3a16175bcbb7bc7c5b328998abe2f610f07f15196cc751679c70418515d1888daaec38b32324c0dd09ab01e9f
+Homepage: http://www.nvidia.com
+Description: Firmware files used by the kernel module
+Description-md5: a9f4cc74ba3faebf0cac0795ed2434bf
+
+Package: nvidia-headless-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-headless-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11086
+MD5sum: 753abd17f9d1c0e693b2d64539b8c3d9
+SHA1: 53047925b541b4cad345abfc7452c53af9d0d48a
+SHA256: d8a3226fbe2d8709c1a2ae7b4eb8ae344bcc5fc6babe431a0e52c5c2abc33340
+SHA512: e23be18edff0f83a2a3034b81ee84e8eb091965b53ede2a4be789865a749b9bc005c8c76f82cf38f98151fbb954ce5aaf38acdb3c4d9d7aa0e3f2c616bc56af0
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage
+Description-md5: 2940dd9bb34e53168a62696e774395f1
+
+Package: nvidia-headless-550-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-headless-550-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11098
+MD5sum: 9a28617da8300792457e1884b25e671d
+SHA1: 5124c9dab53ecc00b271d66e7dd0b973f65afec0
+SHA256: 2e88c8b09b83e9f469a58474fb2707720e6ab9c684a2a332ed867b29d4e9aa1b
+SHA512: 4632efa3cba6d35b2120687b9974d000b1856df28f584fd42ffb55598f40e6d57f7dfdbbc477c5e5a22a5ba452f2eef590b39f16dbab6b63645264468549c8b4
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage (open kernel module)
+Description-md5: da5e7f97aa978e70576e4fecfe6fe496
+
+Package: nvidia-headless-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-headless-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10978
+MD5sum: 700683a8c63036745c92c5dd878d3aeb
+SHA1: 1208107194fe8858bb2d097e9d0f6dfc1cfbdbd0
+SHA256: 9229d7bdc8c80e2a602b54271dc9c4c08f7bb91101d1e026370bce607761a54e
+SHA512: 8424dc6ea6142db24d79fc5c4e37ba05aa083d3934bf5f2f3b2202e547687997c000e5fcb710822a1c47bb7506d6191063d4a89361a6c0afd24a4e0ffb9c49dc
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage
+Description-md5: 2940dd9bb34e53168a62696e774395f1
+
+Package: nvidia-headless-550-server-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-570-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-headless-550-server-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10996
+MD5sum: df9841091578a7ed5b70b52b66528b1d
+SHA1: 55597a45a9a69d8c44b0a96064c5cd368a3fbc31
+SHA256: ff2a258e99dee22435add83698e721b53e940c82b4f9b6e5e86fb2af809cadf2
+SHA512: 4c058e5c77511a3a7a8a7a28febb97d4c12d1d3ed97535e0a5417c03839d1b4eff448119e661d91cd53d1c4d5d710f6747cbb2a97f3d4e1f8ce8358aa4dca45c
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage (open kernel module)
+Description-md5: da5e7f97aa978e70576e4fecfe6fe496
+
+Package: nvidia-headless-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-headless-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-headless-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11938
+MD5sum: a1e9ce199aef5a2d03f3d6ba4e918776
+SHA1: b92da78d7628ebee17860b686afed01577c07519
+SHA256: c2370ef98b26209abe5aebe8d39ac1a4498c1c8c8d40b9148ce8a78751106c4c
+SHA512: 627a65f4e88ffab33b11c78a8d4feae685d904ef3496440da06ed17703add5d945858dc37c5d83fba073753d95ddf104e5949ac20a3ac8303e8f157359c7d168
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage
+Description-md5: 2940dd9bb34e53168a62696e774395f1
+
+Package: nvidia-headless-575-open
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-headless-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-headless-575-open_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11958
+MD5sum: 21290a3050884a9dbe288dc905ff5f01
+SHA1: dfcbb88feef2066ff42ece5e94234a60ca7055a5
+SHA256: 8c5e34c553002ca3dbec1a28b1d8a785f146393636aa2824865bff749d6aa967
+SHA512: 07b62318275841d8d9af79278cc1eea9cbf58a1e7c58798b4bf4ea28a175dc11ebbfc18db5f752a5dafd844a568d55375440070b56ba952a9ebc021eaf762383
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage (open kernel module)
+Description-md5: da5e7f97aa978e70576e4fecfe6fe496
+
+Package: nvidia-headless-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-headless-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10368
+MD5sum: 8376c4cd3f192a30d07e5487ba4ea83b
+SHA1: f9b6bc65fea00b2cf575046805f0425370bfd378
+SHA256: 2d078a44fc6eeb7a6dc0f358d939af093e5ee93b14076b7ec98f8f07dac26cf9
+SHA512: decdf076748d2014b3bdc5f228b226ccbabfe1295da6247badee3a717f8b3ed13aa4dfcd82c61e651c81aebc4bbf027d5d0bc2df6be6cddf033c0a1ce386405b
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage
+Description-md5: 2940dd9bb34e53168a62696e774395f1
+
+Package: nvidia-headless-575-server-open
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-580-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-headless-575-server-open_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10380
+MD5sum: f91ca56d041bbecc207a99b95aa1ba4b
+SHA1: 8b609d59e142c000883fce55f97f9af81985789a
+SHA256: 2f586d7e0f6201c7b9c9be18054b1da5654497641efb796ba93f5d241ef6dc19
+SHA512: d7d44ccdc5356cd4d13c30fbe99c1dfc79b904ac8728eeaf3ce53d5bfe8cb1d591092d510136fd591b50a734d102a6459c4baf22480983bd7dd9960fda26258a
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage (open kernel module)
+Description-md5: da5e7f97aa978e70576e4fecfe6fe496
+
+Package: nvidia-headless-no-dkms-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-headless-no-dkms-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11106
+MD5sum: ab456a74344aa3576d6c3d4a66733a29
+SHA1: 148c3bb330796462f3ba69a8bf32c55ee213ade5
+SHA256: 2a9bf990f099af53fc6243d962908673140a57fbfbe07f10ff59fdd79c44c863
+SHA512: 8cf9fbbb94a1e669a6a7aace3187977d72f32bf28bdc0ad8b8e6a9fe5c802023c3b261788e3ed9f3f4e1fb63d631cbc9926a27bae503f3620134c54a76466d36
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS
+Description-md5: dae0ba3c5fd80f1c2ddbc2a821e6dd08
+
+Package: nvidia-headless-no-dkms-550-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-headless-no-dkms-550-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11114
+MD5sum: 331a53e765d539243dcef7f07e7157d9
+SHA1: c8ce267df612853d8151461eed88314b1ffc456a
+SHA256: d224b9a00bb21cceba9f2c9cd2c23e812ed3439fb80ed5f806e7e34857fcbdc4
+SHA512: 9266dc88b9721988d6e095b38c487369b8f000a409db2e57e16f94d7b8b5eb9f899951a78d8762b51f25e46fa27e3878cb4804364f7c04926184015021dd1698
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS (open kernel module)
+Description-md5: 3a1e7854fdf5a90f6264c70dce0d2b27
+
+Package: nvidia-headless-no-dkms-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-headless-no-dkms-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10996
+MD5sum: 34021a77abb2e58c07d2c2bdae563dc0
+SHA1: e81c9529a68034c0dd248138fe3f3e0e9ae1d81b
+SHA256: 5aac0a1ea6b0280eab8228c71ac3600aefcb17e288ebf7e0492fa5c22d433090
+SHA512: c3fa2b3a874f1a09e4a447ff7f65e61d0afe491a3753b5517874819d4f9bde46f51c1792f1a0c59a2ca9af429dc997e41c206a40ee88f4830dee061842947f88
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS
+Description-md5: dae0ba3c5fd80f1c2ddbc2a821e6dd08
+
+Package: nvidia-headless-no-dkms-550-server-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-570-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-headless-no-dkms-550-server-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11020
+MD5sum: b46daff1204ed867f288dff810587350
+SHA1: 10b07ee46645dfdacfdf182a01fc6738a45ebe3c
+SHA256: 0bcd9ee89b2a49ea9ab1f7c595eaeba7826e307af78ffa1e396fcb5684b27f0d
+SHA512: d058a7768facffbf48061c26c40c7bdb5a936d23402f6ed3bc5995f13e0f38fc660992e89cdf29629058e3d928ac52c3b8751088685f356d61f96ff464b7406f
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS (open kernel module)
+Description-md5: 3a1e7854fdf5a90f6264c70dce0d2b27
+
+Package: nvidia-headless-no-dkms-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-headless-no-dkms-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-headless-no-dkms-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11960
+MD5sum: 4b3c9638ecf207afc3c50f231ceb65a4
+SHA1: 1d69f1d5f4d4702b315a44c89b1ca02fcada1f69
+SHA256: 946d416be46463f3af0070151e77dd8c4de316365edb761824fbd002179382a0
+SHA512: 29a395657eecf8bba0313d39fe64fea3fe48cafb95111dd29582377c864df7f679d7dd8579fbd4205d24201d4bea53be7b65c65e6e4cd1046c2e4d335aa604f8
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS
+Description-md5: dae0ba3c5fd80f1c2ddbc2a821e6dd08
+
+Package: nvidia-headless-no-dkms-575-open
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-headless-no-dkms-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-headless-no-dkms-575-open_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11972
+MD5sum: dcd6c17fb1271a8a93426e2d2f9e5b47
+SHA1: 3156c29e9aab736262bbdaaa57496042d135688d
+SHA256: 5d13d9a22252415c145546bbdc963fa92bd3fb16e009eb920de526af6bae49bf
+SHA512: b1c71174d3d7434c6a8af39e3ede7816ae882116f43c833b4fc14cd6fb5b7e0ae83b533e7aec22d4194fc95d95d8891403eee10b3e2f53372b96d687b75cc749
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS (open kernel module)
+Description-md5: 3a1e7854fdf5a90f6264c70dce0d2b27
+
+Package: nvidia-headless-no-dkms-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-headless-no-dkms-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10378
+MD5sum: d00e57ff1c6acc237cac0226fa688577
+SHA1: 369905a815b13e5af3c0b60acdfd46a157eae7ef
+SHA256: d5e7ece4d1e7f4ce79bb85a790fd627ac40bf43eefea4a67c8ec87a621f1fb04
+SHA512: 71bc37e78bad6bafefbda2c3c57c51e6c04175a3de99ce117e8b538bf802fb5a1122f422074bdbc09be7bad0672e9ca6eb77c0692d2e2066873037f3650f890b
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS
+Description-md5: dae0ba3c5fd80f1c2ddbc2a821e6dd08
+
+Package: nvidia-headless-no-dkms-575-server-open
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-headless-no-dkms-580-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-headless-no-dkms-575-server-open_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10392
+MD5sum: 17d49ce1d61144ef37c9a5fd7bc498e2
+SHA1: 1cfc8215c667a2465c44a5298e436f10be4b813c
+SHA256: 2b99861a71ecbdcaa457d914513ccdad85218847ea52f4d84a045fb77ef97413
+SHA512: 4b255be5f5f0f94528959b10d25110cb202f2ced6148ed66450824974421c9a20aa3c7d899de728029cc4f96fff281823e80283d66557144ca474c52813478cd
+Homepage: http://www.nvidia.com
+Description: NVIDIA headless metapackage - no DKMS (open kernel module)
+Description-md5: 3a1e7854fdf5a90f6264c70dce0d2b27
+
+Package: nvidia-imex-550
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-imex-570
+Filename: pool/multiverse/n/nvidia-imex-550/nvidia-imex-550_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 4904
+MD5sum: 73a6aaf42d2a63ae092c5ae698378f17
+SHA1: 9d9b1fef069182a118c2ea5696723834dabcb256
+SHA256: 194323da3867aa47ec5479c0343014d1efdf3065177b5e39ae71fe34b91d9587
+SHA512: 5dbc7e214f15aa6effe28ef0aab24459af74f7004c50c9240a740e73a6bf917fbbec51deffbea37e6d2892ce3b1e507612c06897c5fc756deb282d5880f34cda
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: 66a7bfb594ce8e4c27645336f59a3dbc
+
+Package: nvidia-imex-565
+Architecture: amd64
+Version: 565.57.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 31278
+Provides: nvidia-imex
+Conflicts: nvidia-imex
+Replaces: nvidia-imex
+Filename: pool/multiverse/n/nvidia-imex-565/nvidia-imex-565_565.57.01-0ubuntu0.24.04.1_amd64.deb
+Size: 10490218
+MD5sum: ba8ac32b089acc48526070873c01c297
+SHA1: c7cf0a1d384d691cac475b5842708eba628a48ad
+SHA256: 766383b1bcadb816d473b12e26452c3bff7027e5e28ca0d1e0649c08d12c74e3
+SHA512: f5e0ad35f57e39e5a75a56dc9bd50e44fcfa0c466f5e430adc7f4a77b86e91ff1264eaccc71d53d2ac560108f37209d322d7148101c20e00db4f32939450e880
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: f7a765b2a95d4cabcc9695466d5f6cc8
+
+Package: nvidia-imex-570
+Architecture: amd64
+Version: 570.211.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 26508
+Provides: nvidia-imex
+Depends: nvidia-kernel-common-570-server-570.211.01
+Conflicts: nvidia-imex
+Replaces: nvidia-imex
+Filename: pool/multiverse/n/nvidia-imex-570/nvidia-imex-570_570.211.01-0ubuntu0.24.04.1_amd64.deb
+Size: 8804140
+MD5sum: fe489b53d1bac753685e35e52db47844
+SHA1: f18b59941dd1e9d460ea1284565b1c8d26a96bd0
+SHA256: fe5908e7affa0b250b3ef91591f8864931edb98b8a2e90f7b45cdd7c23ac910f
+SHA512: 4895b85bdb76910b8b4a0a74c321bfc796782b0d530d92939aa7becfdf26be5f002c56cbf01faeebb1d04f11fae91eaa54c6b22154a64775e52f63cadf86db38
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: f7a765b2a95d4cabcc9695466d5f6cc8
+
+Package: nvidia-imex-575
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 16
+Depends: nvidia-imex-580
+Filename: pool/multiverse/n/nvidia-imex-575/nvidia-imex-575_575.57.08-0ubuntu0.24.04.2_amd64.deb
+Size: 4658
+MD5sum: bc2cf594f378b8e88f0ee05359881889
+SHA1: d44ba27feffa53e5c4a73fe28772fa8cdc74a7e4
+SHA256: ca6caf76214e74fd242fb70264692bade2e38692c71a018769f56156237824ff
+SHA512: cff6fa16532c902a1f1ef50c82b2b29db7dc409d0f2d59257a5c32fa15eed27908f45d76334e0eb0c3baa927a0d5962dd0f439ac40a6af8104599bd4d73f6e4e
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: 66a7bfb594ce8e4c27645336f59a3dbc
+
+Package: nvidia-imex-580
+Architecture: amd64
+Version: 580.126.09-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 25488
+Provides: nvidia-imex
+Depends: nvidia-kernel-common-580-server-580.126.09
+Conflicts: nvidia-imex
+Replaces: nvidia-imex
+Filename: pool/multiverse/n/nvidia-imex-580/nvidia-imex-580_580.126.09-0ubuntu0.24.04.1_amd64.deb
+Size: 8390614
+MD5sum: c4b77f72b5bd9a39a98526d2bb1f97c6
+SHA1: b4cadda43f053f226f970fa4f8e2f4cba1a54bcb
+SHA256: 6e3ac8ba614ae231184e9d3a5e1ff78a6d5b76f176969d138b37d7f331ad40f0
+SHA512: e4734790d72684a27ba1fabe279adf8b942e7bfdcbd1f3496f78358ab3b530ad5178e4fb0e0246b2aaa869aa6ef29d7768b626fb87304067aec95a9db81426a4
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: f7a765b2a95d4cabcc9695466d5f6cc8
+
+Package: nvidia-imex-590
+Architecture: amd64
+Version: 590.48.01-0ubuntu0.24.04.1
+Priority: optional
+Section: multiverse/libs
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 25459
+Provides: nvidia-imex
+Depends: nvidia-kernel-common-590-server-590.48.01
+Conflicts: nvidia-imex
+Replaces: nvidia-imex
+Filename: pool/multiverse/n/nvidia-imex-590/nvidia-imex-590_590.48.01-0ubuntu0.24.04.1_amd64.deb
+Size: 8383714
+MD5sum: 3da15e4adf02b2bd724b42aa2fc82622
+SHA1: 1a2e9ca183f13e48f1205e7c74d8f257b689d120
+SHA256: 8ca20ca3e0bef705ab93659fb9041a4b1a33576814e346cc18748994d4f1c509
+SHA512: 4483a7e9a5b0c3b517c330f3454f962f73c236d9026a3fc2f7a5538d7edbc297d143f521dfe44f979c48e536f2a1b4c96d313ea28ced6fdaef95e7729c7de9bc
+Description: IMEX Manager for NVIDIA based systems.
+Description-md5: f7a765b2a95d4cabcc9695466d5f6cc8
+
+Package: nvidia-kernel-common-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-kernel-common-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-kernel-common-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11958
+MD5sum: 23d9c8fde34af71ebf511bf48d38ccde
+SHA1: a42d526dea3800cf98858e4e69fd8ea69a0c3db7
+SHA256: 84283554120850a13cb139668cc281ca2a1a1a16ffb9192d1c66d5734fe1e95b
+SHA512: e7eaf2fbc4775fecda3a63564cb6895888697800dfacfa1d50ea09c2a70a00b68cee7ba21c2aebd6bd97535554c674df5108a2927c34f8f9ece75aecb3fc08a8
+Homepage: http://www.nvidia.com
+Description: Shared files used with the kernel module
+Description-md5: f15253bf8783982d5f9b2e93dc069e1b
+
+Package: nvidia-kernel-common-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-common-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-kernel-common-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10372
+MD5sum: 7d2418d5fbd87af189d93c32f03fba70
+SHA1: 5a34dcc217cd5818984d35e013cbd62ceae7455a
+SHA256: 3bb134f4237e4479d15e99fe321bcb022787fab022a8ebb550c74c76d78c64ca
+SHA512: d28a45e950d81b8153f4b8562e89127d8f0d129f034700406317d2799f9c4f4b03ef5ec39f82cb39c4e1f83b6ff3f09b86cdb205384ee77857ca45ef30f09931
+Homepage: http://www.nvidia.com
+Description: Shared files used with the kernel module
+Description-md5: f15253bf8783982d5f9b2e93dc069e1b
+
+Package: nvidia-kernel-source-550-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-source-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550/nvidia-kernel-source-550-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 11106
+MD5sum: b30879737bf1e34f6eeca37177cdb241
+SHA1: 70ac06479132a2055936ae48869ecab825bafe57
+SHA256: 2b5b538dcf9c4fdc71d322848eb3b701c0f56d3502f2344bf9a881b9df6d25a0
+SHA512: 52ab7d62850ee3e948108cb946edd50f0cbc20e97ab35a25e83bf4dae59c9dc48c039e5195f2e82d138daee1ff95d2cd310cc5f28a4925418f48193380ff77cd
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-source-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-kernel-source-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10984
+MD5sum: 3819441d24032c717fcb587eb12760e7
+SHA1: 1f2b323d132fb519364acc180912542a6099369c
+SHA256: 820175157022a18895d856032535bcc5f95e970b706bd12232547c5182944244
+SHA512: 1ae24fdacbe704d4d4ab6e96eb95bcb94c6b4d7295d5f16012a11c7815472fef4c81fe2166bbe869ff45a26ae9a1ed478ef2878c0d701a1253a94e5d7b0d9267
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-550-server-open
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-source-570-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-kernel-source-550-server-open_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10984
+MD5sum: 2a14fce4807b8611a75dd2000818e878
+SHA1: 092a27cf562f9e48b3f197abad6a6dbda5df9b09
+SHA256: fd861e847845cc7ec9d96036782400070ac994e8aec631c9b762bd16722ddefb
+SHA512: 185d7583bace8e44442835ca03f78e3e6bdbbcb6f600ebb86dfa1c66f6a6ffa4bd93aa8119cda0e09f6e69623da19fd0c35593b6c0d593e533a563dfad82302f
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-kernel-source-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-kernel-source-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11954
+MD5sum: 91a3b9859b5c3c6895e0155211354011
+SHA1: f9736a58afb55df7ed2992dde187d68a629e9c89
+SHA256: 92b3c9004f50bedf8f24c011bf09dc2dfe47ba284922c1cfe841793ef00160ab
+SHA512: 24590abff47749a4baaf79a061198232946159161a6a088e64e66a1719ceb94130c5cb6507772e7808ff27401563005c7e886e4cf656c81b71ec34cbcacdf97d
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-575-open
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-kernel-source-580-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-kernel-source-575-open_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11958
+MD5sum: 338b171a5ab2840ea03472d80fc7cffc
+SHA1: 8a89f53fdabaf9d7cafa71957e1692381284081a
+SHA256: 443d3e7189d77566dde77c27d16199b5759e9761080e8321d2413f8d79327810
+SHA512: 7a0adb355aee640f8a553966ddbddbac4cd7326d3f2e22a6ddbda7c3fa61051ad62e6721605feea29bdb9a69b14aa0b47b7fad929c0ceec179a8d72fd77addc7
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-source-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-kernel-source-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10374
+MD5sum: 81615ae55d79a8f283c320231c3b0dc9
+SHA1: e97d0b80d365a65e6d60fbd86f6afe597e479e10
+SHA256: 7adaf4466abdffdde027a3db9c6814adbe2e6b6d4e3bfe98a4b67403b237a35d
+SHA512: d4d14e473ce3a77b3ed06988c6e4c3b4568b04da0238a17bab83cf857ec26a0e91293535a595c88d917f2c432b57fb136f3668697640a29a7b1c245a2cbcb33e
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-kernel-source-575-server-open
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Multi-Arch: foreign
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-kernel-source-580-server-open
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-kernel-source-575-server-open_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10376
+MD5sum: d3e874b7ace7e729735db4ab10cb610f
+SHA1: ffac76b325382e5cf5f1f1dfff12dc82aa1b673b
+SHA256: b0f86b551934dc04834417fc9862e163bbeb0b6f2332e0f36eeff9b5b2541981
+SHA512: edbedeb540d3b2b3f6f572f26bf9010396611b4060d3c47424273a2b8d6c6869e3a33b25dc4429c382d90b88817dbf823704a40aebf3effaf0c924613b5daf83
+Homepage: http://www.nvidia.com
+Description: NVIDIA kernel source package
+Description-md5: 122a0b2a83aad5e05dab7e00c057dde1
+
+Package: nvidia-utils-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-utils-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/nvidia-utils-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10984
+MD5sum: 076d7b9c676624af21348bb6d070e8cd
+SHA1: 800620f94c3ceac8dda2af4f8caf0dd4279025f6
+SHA256: 3157f65ab5f7d932dceee586a098112c71cb9828bf836553aeb298e04caf77c8
+SHA512: 178bc627466c5d567a84254ff0d7e82ec5b35f1079371f1e2328e724c8bdcfece655c4a6819b9940c6b79f1478a5c88b6d8baf47e3b740afd0457911c4049c80
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver support binaries
+Description-md5: a6d4a8cdd6ad1a7e664366dbb02ec140
+
+Package: nvidia-utils-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: nvidia-utils-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/nvidia-utils-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11946
+MD5sum: 07c385058cd3a1837b2a3772b83466f6
+SHA1: 46ad2e5db8ae98bcd9cbb6fc127b94590e06efad
+SHA256: b3ca08b9901f2f549078d6b29a14da2a4f417eba0f3584feb274928e043c60e4
+SHA512: 73309069d08d2b9123463175db07a59c533c2c78b13cc1efed5a821c6dc82435513859b382d40ad9cb66aaa3cb36e53be18ccc30475c792866c0b554f89442c3
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver support binaries
+Description-md5: a6d4a8cdd6ad1a7e664366dbb02ec140
+
+Package: nvidia-utils-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/libs
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: nvidia-utils-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/nvidia-utils-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10364
+MD5sum: e4b6f8b732d6cd1263c88cc3ad859840
+SHA1: a24621e5046a6ac7586ab714a2badd100beec693
+SHA256: dc2accecfdd306cc64f3a7a27c3032cab4bd90e24b6ed80bde257e887a023b7e
+SHA512: e9ce0a596698b3efbdc16a2eeab82121990f3e66422751a0faaf24054126d1e42fbd2c3dc0f204a42c655d22abceff4fbde828b0634fbea7f12e3f759b4fbb98
+Homepage: http://www.nvidia.com
+Description: NVIDIA Server Driver support binaries
+Description-md5: a6d4a8cdd6ad1a7e664366dbb02ec140
+
+Package: r4d
+Architecture: all
+Version: 1.7-4ubuntu0.1
+Priority: optional
+Section: multiverse/net
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Python Team <team+python@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 125
+Depends: python3-pysimplesoap, python3-snimpy, python3-sqlalchemy, python3:any, snmp-mibs-downloader
+Breaks: python3-minimal (<< 3.12.3-0ubuntu2~)
+Filename: pool/multiverse/r/r4d/r4d_1.7-4ubuntu0.1_all.deb
+Size: 18996
+MD5sum: 35b4d0a71af2e5466b0946417141886a
+SHA1: 1702898b9a46c6b3fff7f987591542204cbe6219
+SHA256: e214faeedeebb25c174d88a28776c1780658a8d8ea78a1cc4ea1ede809258518
+SHA512: 29b2068dff7e5ba2e0b0ac19d0b234b2049e43eae28b0942c00a7e63a8a973fc0138d61b23a764042bf57199d60a0e0bcaaeba5bfc5fb63cf8fcd22a3854e0cb
+Homepage: https://github.com/ci-rt/r4d
+Description: Remote For Device-under-test (R4D) Daemon
+Description-md5: 5ba7c89935c297f429a699c3f39d1441
+
+Package: r8125-dkms
+Architecture: all
+Version: 9.011.00-4ubuntu1.1
+Priority: optional
+Section: multiverse/kernel
+Source: r8125
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Hideki Yamane <henrich@debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 842
+Depends: dkms (>= 2.1.0.0)
+Filename: pool/multiverse/r/r8125/r8125-dkms_9.011.00-4ubuntu1.1_all.deb
+Size: 102750
+MD5sum: f4cbc2b5a05d006954d221c4dc7d65f5
+SHA1: a66ed94474bf8bcfb6e21c55a8b9b7e61e750995
+SHA256: 300623be335248486a8eb71877df1ed4ad84785449a2fd1a4302af3a682f7e4b
+SHA512: ce6715da6e00d3698c822127a6d31c620e522f47d4233d89c31aa8c93e6ef337c07d494c63e0de6fd05b533f1f3147a7d683c65cd10952cd5d63585817034002
+Homepage: https://www.realtek.com/en/component/zoo/category/network-interface-controllers-10-100-1000m-gigabit-ethernet-pci-express-software
+Description: dkms source for the r8125 network driver
+Description-md5: 21605b7f80ee7a56a99a0ef7f36c7598
+
+Package: sl-modem-dkms
+Architecture: amd64
+Version: 2.9.11~20110321-19ubuntu0.2
+Priority: optional
+Section: multiverse/kernel
+Source: sl-modem
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: أحمد المحمودي (Ahmed El-Mahmoudy) <aelmahmoudy@users.sourceforge.net>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 810
+Depends: dkms (>= 3.0.3-4~)
+Recommends: linux-headers-686-pae | linux-headers-amd64 | linux-headers-generic
+Breaks: sl-modem-source (<< 2.9.11~20110321-7)
+Replaces: sl-modem-source (<< 2.9.11~20110321-7)
+Filename: pool/multiverse/s/sl-modem/sl-modem-dkms_2.9.11~20110321-19ubuntu0.2_amd64.deb
+Size: 210480
+MD5sum: bccf381720e7435117b2b4c739d69f99
+SHA1: 246e96d6ebd5269f6b7b5a53d04827c1c70283ce
+SHA256: e5d107a21af5b439882fb1caeebf29c844c21a187be17d6df15b28770e64297e
+SHA512: d801615337aab31a38e23a6643462118da2203f0df51e6f475d5b5707f5dff4bf133ff85b79cda176a776364a7deca8ca2cd10b42eece1df019be9a50ff6750d
+Homepage: https://linmodems.technion.ac.il/packages/smartlink/
+Description: SmartLink software modem driver - module building source
+Description-md5: a58074862ac671ccf741dfee54f7b6e0
+
+Package: virtualbox
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/misc
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 133716
+Depends: adduser, iproute2, procps, virtualbox-dkms (>= 7.0.16-dfsg-2ubuntu1.1) | virtualbox-source (>= 7.0.16-dfsg-2ubuntu1.1) | virtualbox-modules, python3 (<< 3.13), python3 (>= 3.12~), python3.12, python3:any, libc6 (>= 2.38), libcurl3t64-gnutls (>= 7.16.2), libdevmapper1.02.1 (>= 2:1.02.97), libgcc-s1 (>= 3.0), libgl1, libgsoap-2.8.132t64 (>= 2.8.132), liblzf1 (>= 1.5), libpng16-16t64 (>= 1.6.2), libsdl2-2.0-0 (>= 2.0.12), libssl3t64 (>= 3.0.0), libstdc++6 (>= 13.1), libtpms0 (>= 0.8.0~dev1), libvncserver1 (>= 0.9.10), libvpx9 (>= 1.12.0), libx11-6, libxml2 (>= 2.7.4), libxt6t64, zlib1g (>= 1:1.1.4)
+Recommends: virtualbox-qt (= 7.0.16-dfsg-2ubuntu1.1), libqt5core5t64 (>= 5.15.1), libqt5gui5t64 (>= 5.0.2) | libqt5gui5-gles (>= 5.0.2), libqt5opengl5t64 (>= 5.0.2), libqt5widgets5t64 (>= 5.0.2), libxcb1, libxcursor1 (>> 1.1.2), libxext6
+Suggests: vde2, virtualbox-guest-additions-iso
+Conflicts: virtualbox-2.0, virtualbox-2.1, virtualbox-2.2, virtualbox-3.0, virtualbox-3.1, virtualbox-3.2, virtualbox-4.0, virtualbox-4.1, virtualbox-4.2, virtualbox-4.3, virtualbox-5.0, virtualbox-5.1, virtualbox-5.2, virtualbox-6.0, virtualbox-6.1, virtualbox-7.0
+Breaks: python3-minimal (<< 3.12.3-0ubuntu2~)
+Filename: pool/multiverse/v/virtualbox/virtualbox_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 31691988
+MD5sum: 1bdbe761b319ea7d5cbcf516905997d9
+SHA1: e7d1516ec5051fbd8b4ed70c5b808e7df0e03e3d
+SHA256: 6a625b483d37eed826d747c3dbf18141b72ace8bb1f57028148e4d21769d83c2
+SHA512: 95ea1f29167ab39505a56fc4411b5af3fc9ab3fcd7ec597dcca897d97786d27e2a028119cf7900310280efc279b571d895c3e0e96016f0413eaa501d987fa47b
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - base binaries
+Description-md5: 30f96d22c1a6ca04db16bdc1e79ad965
+
+Package: virtualbox-dkms
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/kernel
+Source: virtualbox
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 5958
+Provides: virtualbox-modules
+Depends: dkms (>= 2.1.0.0)
+Recommends: virtualbox (>= 7.0.16-dfsg-2ubuntu1.1)
+Filename: pool/multiverse/v/virtualbox/virtualbox-dkms_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 763006
+MD5sum: 3455d62f60cb88a50e3dd547627521c5
+SHA1: 8de568df3f0cb2e59b3ab0696f93398ba427268e
+SHA256: 7d3dbf59be9d82924c3eab567d218a86ce8ac830530c2e2b176ae3b35fce1e68
+SHA512: 75db5e6ae1f2e1973e8e113ab2ab820f85fb2b3406db08bfae45526af4571e51b46a4a7a4e92682428d27178f9772d5849910ee325d66b6099e0d28393118944
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - kernel module sources for dkms
+Description-md5: 4d42f0fe51c4a92f2aed5071f84524ae
+
+Package: virtualbox-guest-utils
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/misc
+Source: virtualbox
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 1871
+Depends: adduser, pciutils, libc6 (>= 2.38), libpam0g (>= 0.99.7.1), zlib1g (>= 1:1.1.4)
+Suggests: virtualbox-guest-x11 (= 7.0.16-dfsg-2ubuntu1.1)
+Filename: pool/multiverse/v/virtualbox/virtualbox-guest-utils_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 436542
+MD5sum: 38d641e769849dbeebf5aa7a1170cf7b
+SHA1: a79ee652a7a345ad94d48e4287c15a8dfc55c2f1
+SHA256: c8324312cfc84c97fc58870d6603975c51437f3b4bf4691f6fee76eec8ca51ff
+SHA512: 60f7edf51e9c6160a72b9bee14c600cb3eafa9d89357ef83cc996b1b94a1fe3396c01120b7b86e859fe943915473918969b27148fddf0a11c04fb8117f9eb836
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - non-X11 guest utilities
+Description-md5: 0c420aa026ad03a572b15c6e38dbebf7
+
+Package: virtualbox-guest-utils-hwe
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.24.04.2
+Priority: optional
+Section: multiverse/misc
+Source: virtualbox-hwe
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 7056
+Provides: virtualbox-guest-utils
+Depends: adduser, pciutils, libc6 (>= 2.38), libpam0g (>= 0.99.7.1), zlib1g (>= 1:1.1.4)
+Suggests: virtualbox-guest-x11-hwe (= 7.0.16-dfsg-2ubuntu1.24.04.2)
+Conflicts: virtualbox-guest-utils
+Replaces: virtualbox-guest-utils
+Filename: pool/multiverse/v/virtualbox-hwe/virtualbox-guest-utils-hwe_7.0.16-dfsg-2ubuntu1.24.04.2_amd64.deb
+Size: 1869806
+MD5sum: 6c2134df9667c181d2c7daeb86bebe41
+SHA1: 2a918f504ea0747d40fe7a2ea6474258260bfa9b
+SHA256: 5cee688c6b8aca5580d2743f7367f660873dd53d9159f4496fa0a8fa9e105df3
+SHA512: c13774271cf918ecdf0812112d76bf80fcd73a9ce8985c359ed09a958a314fdc1647f9be39e2a922645a6ced363757bf58a28f2aa627e5f8307636ee9a9c59c3
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - non-X11 guest utilities
+Description-md5: 0c420aa026ad03a572b15c6e38dbebf7
+
+Package: virtualbox-guest-x11
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/x11
+Source: virtualbox
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 757
+Provides: xorg-driver-video
+Depends: libnotify-bin, x11-xserver-utils, virtualbox-guest-utils (= 7.0.16-dfsg-2ubuntu1.1), libc6 (>= 2.34), libx11-6 (>= 2:1.4.99.1), libxext6, libxmu6 (>= 2:1.1.3), libxt6t64, xorg-video-abi-25, xserver-xorg-core (>= 2:21.1.1)
+Filename: pool/multiverse/v/virtualbox/virtualbox-guest-x11_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 291616
+MD5sum: 9dab09ecea94c3afbf312ea2b11efec9
+SHA1: 4a2ca4b4b0fc6112ca92852dc7bbae10199a2e2d
+SHA256: 91542f205810c3bf6ca918c1599badb736d812550758f07643fa07693fcb7ccd
+SHA512: 3ed420dbdc85fc49c2b160769e7879cc701f1eef47d2ee6aa1404e0405caf27c7aa02a8afe31f804d4b7cc12e8f5b2eab10c21e416dd4d879ef3e658572eb8fe
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - X11 guest utilities
+Modaliases: vboxx11(pci:v000080EEd0000BEEFsv00000000sd00000000bc*sc*i*)
+Description-md5: 3487afde0b114ec7e205b11f1dd3f7a5
+
+Package: virtualbox-guest-x11-hwe
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.24.04.2
+Priority: optional
+Section: multiverse/x11
+Source: virtualbox-hwe
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 3342
+Provides: virtualbox-guest-x11, xorg-driver-video
+Depends: libnotify-bin, x11-xserver-utils, virtualbox-guest-utils-hwe (= 7.0.16-dfsg-2ubuntu1.24.04.2), libc6 (>= 2.34), libx11-6 (>= 2:1.4.99.1), libxext6, libxmu6 (>= 2:1.1.3), libxt6t64, xorg-video-abi-25, xserver-xorg-core (>= 2:21.1.1)
+Conflicts: virtualbox-guest-x11
+Replaces: virtualbox-guest-x11
+Filename: pool/multiverse/v/virtualbox-hwe/virtualbox-guest-x11-hwe_7.0.16-dfsg-2ubuntu1.24.04.2_amd64.deb
+Size: 1265556
+MD5sum: 67fc867f5535f13a0d3309321abbce6c
+SHA1: 73e099578b819d105a57868750ceff11b1528ca5
+SHA256: 408d93c76cf42cfa0a05e57cd200c16ae7314252f2537f382b04f25d37c7dc4a
+SHA512: f2bce8638092ef2cc15c9feefac025d524d04e0681f2d37a15fd11242d0b819accad4f12f834a1583343577889a1b0b426d60cac893df7f5b1ce4f650743e081
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - X11 guest utilities
+Modaliases: vboxx11(pci:v000080EEd0000BEEFsv00000000sd00000000bc*sc*i*)
+Description-md5: 3487afde0b114ec7e205b11f1dd3f7a5
+
+Package: virtualbox-qt
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/misc
+Source: virtualbox
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 51639
+Depends: virtualbox (= 7.0.16-dfsg-2ubuntu1.1), libc6 (>= 2.34), libgcc-s1 (>= 3.0), libqt5core5t64 (>= 5.15.1), libqt5dbus5t64 (>= 5.14.1), libqt5gui5t64 (>= 5.14.1) | libqt5gui5-gles (>= 5.14.1), libqt5help5 (>= 5.15.1), libqt5printsupport5t64 (>= 5.0.2), libqt5widgets5t64 (>= 5.15.1), libqt5x11extras5 (>= 5.6.0), libqt5xml5t64 (>= 5.0.2), libstdc++6 (>= 5.2), libx11-6, libxcb1
+Breaks: virtualbox (<< 4.1.6-dfsg-2~)
+Replaces: virtualbox (<< 4.1.6-dfsg-2~)
+Filename: pool/multiverse/v/virtualbox/virtualbox-qt_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 25127920
+MD5sum: 80a032d5b16c446645286ddcb7666b96
+SHA1: b8ae5b5fa7f5f10b23b4844083187642e0eb029c
+SHA256: 6068b1d718a43638f9405cd5a5783b3d3402034b22dc2cc4bffacade72e7b1da
+SHA512: 2aea471f87e038942c612363fe5f4568aab02979552210fcb96710dcbbbfbb709e5a8bbd55ff0b832cfb83502877f76b2a4d2f4020766800d2aae9921ae6623c
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - Qt based user interface
+Description-md5: 41ed29f36ba23b3ce0155f9a8efcff60
+
+Package: virtualbox-source
+Architecture: amd64
+Version: 7.0.16-dfsg-2ubuntu1.1
+Priority: optional
+Section: multiverse/kernel
+Source: virtualbox
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 897
+Depends: build-essential, bzip2, debhelper-compat (= 12), kbuild, module-assistant
+Recommends: virtualbox (>= 7.0.16-dfsg-2ubuntu1.1)
+Filename: pool/multiverse/v/virtualbox/virtualbox-source_7.0.16-dfsg-2ubuntu1.1_amd64.deb
+Size: 882772
+MD5sum: b0b7e45126a101d811077ab2b476e504
+SHA1: dfb400a5c399d0be1814e99bd8b98491f6bc54d1
+SHA256: 268342830859e9fc7fb56fab6e560dac2dd6a112ecc0f0af9132ae6d7cd9a0d4
+SHA512: a91eca8afd83c8a77d61cc858b3c082f70dfffe62a2853a41476c3c7f7402061f64cff623389eed826b48ac331adc962e97df3a9b698bad8df4845f55ab5da28
+Homepage: https://www.virtualbox.org
+Description: x86 virtualization solution - kernel module source
+Description-md5: 53035ede584988f3413156cb7a5dbe8b
+
+Package: xserver-xorg-video-nvidia-550-server
+Architecture: amd64
+Version: 550.163.01-0ubuntu0.24.04.2
+Priority: optional
+Section: multiverse/x11
+Source: nvidia-graphics-drivers-550-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: xserver-xorg-video-nvidia-570-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-550-server/xserver-xorg-video-nvidia-550-server_550.163.01-0ubuntu0.24.04.2_amd64.deb
+Size: 10990
+MD5sum: 197470b3460c5599c5aec79429b26405
+SHA1: f650d36fdb527e2a3133188ab3078ac392f76730
+SHA256: 3183dd57e5e9b9afce8f69355aff48040e9d131a36d5a58ceabaa6e56c7dc09c
+SHA512: eadba1d6a64633718867747a47ee7ff4f0b7d1bb67548d8c699741c9929d64f2b5cf6791da890fe81b6113226361e8e927b78e56443934de0e133dedf51dfb8b
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary Xorg driver
+Description-md5: b5b83bcc735eb2aca8ee2ea5cbe0b834
+
+Package: xserver-xorg-video-nvidia-575
+Architecture: amd64
+Version: 575.64.03-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/x11
+Source: nvidia-graphics-drivers-575
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 37
+Depends: xserver-xorg-video-nvidia-580
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575/xserver-xorg-video-nvidia-575_575.64.03-0ubuntu0.24.04.3_amd64.deb
+Size: 11966
+MD5sum: c841b2b06f4a6f96c39f4fb4af3ca75e
+SHA1: cab59d2b89a4318554b9c0cd13bad0d2cfc555f7
+SHA256: 887f8a349d46ddc771ef6918c1bb1b91ddc4ce852acb163b4e4efa8eb5ceeb2e
+SHA512: 1b39b835a64b3de774f698bd9a6174c533f58a2e2fbdc998bc7e6e283cdc57ae2c12045144bb2a0f39681f009e8b4ab2e4a48c441dbebd6f855c7d90cf88693f
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary Xorg driver
+Description-md5: b5b83bcc735eb2aca8ee2ea5cbe0b834
+
+Package: xserver-xorg-video-nvidia-575-server
+Architecture: amd64
+Version: 575.57.08-0ubuntu0.24.04.3
+Priority: optional
+Section: multiverse/x11
+Source: nvidia-graphics-drivers-575-server
+Origin: Ubuntu
+Maintainer: Ubuntu Core Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 32
+Depends: xserver-xorg-video-nvidia-580-server
+Filename: pool/multiverse/n/nvidia-graphics-drivers-575-server/xserver-xorg-video-nvidia-575-server_575.57.08-0ubuntu0.24.04.3_amd64.deb
+Size: 10380
+MD5sum: eaeb7558703ca484bddc5419b7d0b26f
+SHA1: 3c963f7c413d4c501b8a3b2352ab1f0590b81409
+SHA256: 2fa5f9215a74841f709e5dcebd3aa07059939480758807e8ecd21e48e9d58ad5
+SHA512: 3f3b7076dff03194356ede823a341b085a8d61c73cda985919106fdc1f505ae2db79c6fdd5b55c175a19cb9bce18bbb0d2dc8a273dae814640f8327217c698ad
+Homepage: http://www.nvidia.com
+Description: NVIDIA binary Xorg driver
+Description-md5: b5b83bcc735eb2aca8ee2ea5cbe0b834
+

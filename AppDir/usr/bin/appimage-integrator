@@ -1,0 +1,129 @@
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+BUNDLED_GTK_VERSION = (4, 14, 0)
+BUNDLED_ADW_VERSION = (1, 5, 0)
+
+
+def debug_enabled() -> bool:
+    return os.environ.get("APPIMAGE_INTEGRATOR_DEBUG_RUNTIME") == "1"
+
+
+def debug(message: str) -> None:
+    if debug_enabled():
+        print(f"[appimage-integrator] {message}", file=sys.stderr, flush=True)
+
+
+def is_gui_launch(argv: list[str]) -> bool:
+    return not argv or argv[0] == "gui"
+
+
+def remove_appdir_paths(value: str, appdir: str) -> str:
+    parts = [
+        part
+        for part in value.split(":")
+        if part and not part.startswith(f"{appdir}/") and part != appdir
+    ]
+    return ":".join(parts)
+
+
+def cleaned_host_env(appdir: str) -> dict[str, str]:
+    env = os.environ.copy()
+    for key in (
+        "PYTHONHOME",
+        "GI_TYPELIB_PATH",
+        "GSETTINGS_SCHEMA_DIR",
+        "GDK_PIXBUF_MODULEDIR",
+        "GDK_PIXBUF_MODULE_FILE",
+        "GTK_EXE_PREFIX",
+        "GTK_DATA_PREFIX",
+        "GTK_PATH",
+        "APPDIR_LIBRARY_PATH",
+        "APPDIR_LIBC_LIBRARY_PATH",
+        "APPDIR_LIBC_LINKER_PATH",
+        "APPDIR_LIBC_VERSION",
+        "APPDIR_PATH_MAPPINGS",
+    ):
+        env.pop(key, None)
+
+    for key in ("LD_LIBRARY_PATH", "PATH", "XDG_DATA_DIRS"):
+        current = env.get(key)
+        if not current:
+            env.pop(key, None)
+            continue
+        cleaned = remove_appdir_paths(current, appdir)
+        if cleaned:
+            env[key] = cleaned
+        else:
+            env.pop(key, None)
+
+    env["PYTHONPATH"] = f"{appdir}/usr/src" + (
+        f":{env['PYTHONPATH']}" if env.get("PYTHONPATH") else ""
+    )
+    return env
+
+
+def probe_system_gui_runtime(appdir: str) -> tuple[bool, str]:
+    env = cleaned_host_env(appdir)
+    if shutil.which("python3", path=env.get("PATH")) is None:
+        return False, "host python3 not found on PATH"
+
+    probe = """
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gtk
+system_gtk = (Gtk.get_major_version(), Gtk.get_minor_version(), Gtk.get_micro_version())
+system_adw = (Adw.get_major_version(), Adw.get_minor_version(), Adw.get_micro_version())
+if system_gtk > {gtk} and system_adw > {adw}:
+    print("host GTK=%s libadwaita=%s is newer than bundled runtime" % (system_gtk, system_adw))
+    raise SystemExit(0)
+print("host GTK=%s libadwaita=%s is not newer than bundled runtime" % (system_gtk, system_adw))
+raise SystemExit(1)
+""".format(gtk=BUNDLED_GTK_VERSION, adw=BUNDLED_ADW_VERSION)
+
+    result = subprocess.run(
+        ["python3", "-c", probe],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    message = (result.stdout or result.stderr or "").strip() or f"probe exited {result.returncode}"
+    return result.returncode == 0, message
+
+
+def exec_with_system_python(appdir: str, argv: list[str]) -> "NoReturn":
+    env = cleaned_host_env(appdir)
+    debug("launching GUI with host python3 and host GTK/libadwaita")
+    os.execvpe("python3", ["python3", "-m", "appimage_integrator", *argv], env)
+
+
+def exec_with_bundled_python(appdir: str, argv: list[str]) -> "NoReturn":
+    bundled_python = os.path.join(appdir, "usr", "bin", "python3")
+    debug("launching with bundled AppImage runtime")
+    os.execv(bundled_python, [bundled_python, "-m", "appimage_integrator", *argv])
+
+
+def main() -> int:
+    appdir = str(Path(__file__).resolve().parents[2])
+    argv = sys.argv[1:]
+    host_runtime_ok, host_runtime_message = probe_system_gui_runtime(appdir)
+    debug(host_runtime_message)
+
+    if (
+        is_gui_launch(argv)
+        and os.environ.get("APPIMAGE_INTEGRATOR_FORCE_BUNDLED_RUNTIME") != "1"
+        and host_runtime_ok
+    ):
+        exec_with_system_python(appdir, argv)
+
+    exec_with_bundled_python(appdir, argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

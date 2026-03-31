@@ -1,0 +1,606 @@
+from __future__ import annotations
+
+import subprocess
+import threading
+from pathlib import Path
+
+import gi
+
+gi.require_version("Adw", "1")
+gi.require_version("Gtk", "4.0")
+from gi.repository import Adw, Gdk, GLib, Gtk
+
+from appimage_integrator.assets import APP_BRAND_LOGO_PATH
+from appimage_integrator.config import APP_NAME
+from appimage_integrator.launcher import build_managed_app_launch_command
+from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.ui.containers import CompatToolbarView
+from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessageDialog
+from appimage_integrator.ui.details_dialog import DetailsDialog
+from appimage_integrator.ui.install_view import InstallView
+from appimage_integrator.ui.library_view import LibraryView
+
+
+class ApplicationWindow(Adw.ApplicationWindow):
+    MIN_WINDOW_WIDTH = 720
+    MIN_WINDOW_HEIGHT = 520
+
+    def __init__(self, application, services) -> None:
+        super().__init__(application=application)
+        self.services = services
+        self._update_progress_dialog: Gtk.Window | None = None
+        self._update_progress_title: Gtk.Label | None = None
+        self._update_progress_detail: Gtk.Label | None = None
+        self._update_progress_bar: Gtk.ProgressBar | None = None
+        self._update_progress_pulse_id: int | None = None
+        self._library_refresh_request_id = 0
+        self.add_css_class("integrator-window")
+        self.set_title(APP_NAME)
+        self.set_resizable(True)
+        self.set_size_request(self.MIN_WINDOW_WIDTH, self.MIN_WINDOW_HEIGHT)
+        self.set_default_size(900, 650)
+
+        self.toast_overlay = Adw.ToastOverlay()
+        self.toast_overlay.set_hexpand(True)
+        self.toast_overlay.set_vexpand(True)
+        self.set_content(self.toast_overlay)
+
+        toolbar = CompatToolbarView(self)
+        toolbar.widget.set_hexpand(True)
+        toolbar.widget.set_vexpand(True)
+        self.toast_overlay.set_child(toolbar.widget)
+
+        header = Adw.HeaderBar()
+        toolbar.add_top_bar(header)
+
+        brand = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        brand.add_css_class("app-brand")
+
+        if APP_BRAND_LOGO_PATH.exists():
+            logo = Gtk.Image.new_from_file(str(APP_BRAND_LOGO_PATH))
+            logo.set_pixel_size(18)
+        else:
+            logo = Gtk.Image.new_from_icon_name("application-x-executable")
+            logo.set_pixel_size(18)
+        logo.add_css_class("app-brand-logo")
+        brand.append(logo)
+
+        brand_label = Gtk.Label(label=APP_NAME, xalign=0)
+        brand_label.add_css_class("app-brand-label")
+        brand.append(brand_label)
+        header.pack_start(brand)
+
+        # Icon-only refresh button
+        refresh_button = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
+        refresh_button.set_tooltip_text("Refresh Library")
+        refresh_button.add_css_class("flat")
+        refresh_button.connect("clicked", lambda _btn: self.refresh_library())
+        header.pack_end(refresh_button)
+
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_hexpand(True)
+        content.set_margin_top(12)
+        content.set_margin_bottom(12)
+        content.set_margin_start(12)
+        content.set_margin_end(12)
+        content.add_css_class("app-content")
+        self.content_root = content
+        scrolled.set_child(content)
+
+        self.library_view = LibraryView(
+            on_launch=self.launch_record,
+            on_update=self.update_record,
+            on_show_details=self.show_details,
+            on_repair=self.repair_record,
+            on_uninstall=self.uninstall_record,
+        )
+        self.install_view = InstallView(
+            install_manager=services.install_manager,
+            on_installed=self.refresh_library,
+            toast=self.show_toast,
+        )
+        self.library_view.set_hexpand(True)
+        self.library_view.set_vexpand(True)
+
+        content.append(self.install_view)
+        content.append(self.library_view)
+        toolbar.set_content(scrolled)
+
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("drop", self._on_drop)
+        drop_target.connect("enter", self._on_drag_enter)
+        drop_target.connect("leave", self._on_drag_leave)
+        self.content_root.add_controller(drop_target)
+
+        self.refresh_library()
+
+    def show_toast(self, message: str) -> None:
+        self.toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def _handle_dropped_path(self, path: Path) -> None:
+        self.install_view.load_path(path)
+
+    def _on_drop(self, _target: Gtk.DropTarget, value: Gdk.FileList, _x: float, _y: float) -> bool:
+        self.content_root.remove_css_class("drop-highlight")
+        files = value.get_files() if value else []
+        if not files:
+            return False
+        path = files[0].get_path()
+        if not path:
+            return False
+        self._handle_dropped_path(Path(path))
+        return True
+
+    def _on_drag_enter(self, *_args) -> Gdk.DragAction:
+        self.content_root.add_css_class("drop-highlight")
+        return Gdk.DragAction.COPY
+
+    def _on_drag_leave(self, *_args) -> None:
+        self.content_root.remove_css_class("drop-highlight")
+
+    def refresh_library(self) -> None:
+        records = self.services.library_manager.list_records()
+        self.library_view.set_records(records)
+
+        self._library_refresh_request_id += 1
+        request_id = self._library_refresh_request_id
+        if not records:
+            return
+
+        def worker(snapshot: list[ManagedAppRecord], refresh_request_id: int) -> None:
+            validated_rows: list[tuple[ManagedAppRecord, str, list[str]]] = []
+            for record in snapshot:
+                validated_rows.append(
+                    self.services.library_manager.validate_record(
+                        record,
+                        allow_reconcile_inspection=False,
+                    )
+                )
+            GLib.idle_add(self._finish_library_refresh, refresh_request_id, validated_rows)
+
+        threading.Thread(target=worker, args=(records, request_id), daemon=True).start()
+
+    def _finish_library_refresh(
+        self,
+        request_id: int,
+        validated_rows: list[tuple[ManagedAppRecord, str, list[str]]],
+    ) -> bool:
+        if request_id != self._library_refresh_request_id:
+            return False
+
+        records: list[ManagedAppRecord] = []
+        for validated_record, status, messages in validated_rows:
+            if (
+                status == validated_record.last_validation_status
+                and messages == validated_record.last_validation_messages
+            ):
+                if validated_record != self.services.store.load(validated_record.internal_id):
+                    self.services.store.save(validated_record)
+                records.append(validated_record)
+                continue
+            records.append(self._update_record_validation(validated_record, status, messages))
+
+        self.library_view.set_records(records)
+        return False
+
+    def launch_record(self, record: ManagedAppRecord) -> None:
+        record = self._sync_record_validation(record)
+        if record.last_validation_status == "error":
+            self.refresh_library()
+            self._prompt_issue_resolution(
+                record,
+                title="This AppImage needs attention",
+                intro="The managed integration is not healthy enough to launch right now.",
+            )
+            return
+        try:
+            subprocess.Popen(build_managed_app_launch_command(record))
+        except OSError as exc:
+            issue = self._format_launch_error(exc)
+            record = self._update_record_validation(record, "error", [issue])
+            self.refresh_library()
+            self._prompt_issue_resolution(
+                record,
+                title="Launching failed",
+                intro="AppImage Integrator could not start this managed AppImage.",
+            )
+
+    def show_details(self, record: ManagedAppRecord) -> None:
+        dialog = DetailsDialog(
+            self,
+            record,
+            self.services.record_editor,
+            self._apply_details_update,
+        )
+        dialog.present()
+
+    def update_record(self, record: ManagedAppRecord) -> None:
+        self._show_update_progress_dialog(record)
+
+        def worker() -> None:
+            try:
+                discovery = self.services.update_discovery.discover_updates(
+                    record,
+                    progress_callback=lambda title, detail: GLib.idle_add(
+                        self._set_update_progress_status,
+                        title,
+                        detail,
+                    ),
+                )
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(self._finish_update_discovery, record, None, str(exc))
+                return
+            GLib.idle_add(self._finish_update_discovery, record, discovery, None)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def repair_record(self, record: ManagedAppRecord) -> None:
+        _, report = self.services.repair_manager.repair(record)
+        source_path = Path(record.source_path_last_seen)
+        if report.success:
+            self._show_repair_result_dialog(
+                title="Repair completed",
+                body="The integration was repaired successfully.",
+            )
+        elif source_path.exists():
+            self._prompt_reinstall_after_failed_repair(record, report)
+        else:
+            issue_text = "\n".join(report.issues) if report.issues else "No additional details were reported."
+            self._show_repair_result_dialog(
+                title="Repair failed",
+                body=(
+                    "The integration could not be repaired automatically.\n\n"
+                    f"{issue_text}\n\n"
+                    "Reinstall is not possible because the original AppImage is not present."
+                ),
+            )
+        self.refresh_library()
+
+    def uninstall_record(self, record: ManagedAppRecord) -> None:
+        self.services.install_manager.uninstall(record)
+        self.show_toast(f"Removed {record.display_name}")
+        self.refresh_library()
+
+    def reinstall_record(self, record: ManagedAppRecord) -> None:
+        path = Path(record.source_path_last_seen)
+        if not path.exists():
+            self.show_toast("Original source file is no longer available. Choose a new AppImage.")
+            return
+        self.install_view.reinstall_record(record)
+
+    def _prompt_reinstall_after_failed_repair(
+        self,
+        record: ManagedAppRecord,
+        report,
+    ) -> None:
+        issue_text = "\n".join(report.issues) if report.issues else "No additional details were reported."
+        dialog = CompatMessageDialog(
+            self,
+            "Repair failed",
+            "Repairing this integration automatically may require replacing files or restoring executable permissions.\n\n"
+            "Only continue if you trust the original AppImage source.\n\n"
+            "The integration could not be repaired automatically.\n\n"
+            f"{issue_text}\n\n"
+            "Do you want to reinstall from the original AppImage?",
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("reinstall", "Reinstall")
+        dialog.set_default_response("reinstall")
+        dialog.set_close_response("cancel")
+        dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
+        dialog.connect("response", self._on_failed_repair_reinstall_response, record)
+        dialog.present()
+
+    def _on_failed_repair_reinstall_response(
+        self,
+        dialog,
+        response: str,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response != "reinstall":
+            return
+        self.reinstall_record(record)
+
+    def _show_repair_result_dialog(self, title: str, body: str) -> None:
+        dialog = CompatMessageDialog(self, title, body)
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.present()
+
+    def _apply_details_update(self, record: ManagedAppRecord) -> None:
+        self.services.store.save(record)
+        self.show_toast(f"Updated {record.display_name}")
+        self.refresh_library()
+
+    def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
+        validated_record, status, messages = self.services.library_manager.validate_record(record)
+        if status == validated_record.last_validation_status and messages == validated_record.last_validation_messages:
+            if validated_record != record:
+                self.services.store.save(validated_record)
+            return validated_record
+        return self._update_record_validation(validated_record, status, messages)
+
+    def _update_record_validation(
+        self,
+        record: ManagedAppRecord,
+        status: str,
+        messages: list[str],
+    ) -> ManagedAppRecord:
+        updated_record = ManagedAppRecord.from_dict(
+            {
+                **record.to_dict(),
+                "last_validation_status": status,
+                "last_validation_messages": messages,
+            }
+        )
+        self.services.store.save(updated_record)
+        return updated_record
+
+    def _prompt_issue_resolution(
+        self,
+        record: ManagedAppRecord,
+        title: str,
+        intro: str,
+    ) -> None:
+        appimage_exists = Path(record.managed_appimage_path).exists()
+        source_exists = Path(record.source_path_last_seen).exists()
+
+        lines = [intro, "", *record.last_validation_messages]
+        if appimage_exists:
+            lines.extend(("", "Choose Repair to restore executable permissions and recreate launcher files."))
+        elif source_exists:
+            lines.extend(("", "Repair needs the managed AppImage. Reinstall from the original source instead."))
+        else:
+            lines.extend(("", "Automatic recovery is not possible because the original source file is unavailable."))
+
+        dialog = CompatMessageDialog(self, title, "\n".join(lines))
+        dialog.add_response("cancel", "Cancel")
+        if appimage_exists:
+            dialog.add_response("repair", "Repair")
+            dialog.set_default_response("repair")
+            dialog.set_response_appearance("repair", Adw.ResponseAppearance.SUGGESTED)
+        if not appimage_exists and source_exists:
+            dialog.add_response("reinstall", "Reinstall")
+            dialog.set_default_response("reinstall")
+            dialog.set_response_appearance("reinstall", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._on_issue_resolution_response, record)
+        dialog.present()
+
+    def _on_issue_resolution_response(
+        self,
+        dialog,
+        response: str,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == "repair":
+            self.repair_record(record)
+            return
+        if response == "reinstall":
+            self.reinstall_record(record)
+
+    def _format_launch_error(self, exc: OSError) -> str:
+        if isinstance(exc, FileNotFoundError):
+            return "Managed AppImage is missing."
+        if isinstance(exc, PermissionError):
+            return "Managed AppImage is not executable."
+        return f"Launching failed: {exc}"
+
+    def _show_update_progress_dialog(self, record: ManagedAppRecord) -> None:
+        self._close_update_progress_dialog()
+
+        dialog = Gtk.Window(
+            title="Searching for updates",
+            transient_for=self,
+            modal=True,
+            resizable=False,
+        )
+        dialog.add_css_class("update-progress-dialog")
+        dialog.set_default_size(420, 180)
+
+        header = Adw.HeaderBar()
+        header.set_title_widget(Gtk.Label(label="Searching for updates"))
+        dialog.set_titlebar(header)
+
+        frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        frame.set_margin_top(24)
+        frame.set_margin_bottom(24)
+        frame.set_margin_start(24)
+        frame.set_margin_end(24)
+        frame.set_hexpand(True)
+        frame.set_vexpand(True)
+        frame.set_valign(Gtk.Align.CENTER)
+
+        spinner = Gtk.Spinner(spinning=True)
+        spinner.set_halign(Gtk.Align.CENTER)
+        spinner.set_size_request(40, 40)
+        frame.append(spinner)
+
+        title = Gtk.Label(label=f"Searching for updates for {record.display_name}")
+        title.add_css_class("title-4")
+        title.set_wrap(True)
+        title.set_max_width_chars(36)
+        title.set_justify(Gtk.Justification.CENTER)
+        title.set_halign(Gtk.Align.CENTER)
+        frame.append(title)
+
+        detail = Gtk.Label(label="Preparing search…")
+        detail.add_css_class("dim-label")
+        detail.set_wrap(True)
+        detail.set_max_width_chars(44)
+        detail.set_justify(Gtk.Justification.CENTER)
+        detail.set_halign(Gtk.Align.CENTER)
+        frame.append(detail)
+
+        progress = Gtk.ProgressBar()
+        progress.set_hexpand(True)
+        progress.pulse()
+        frame.append(progress)
+
+        dialog.set_child(frame)
+        dialog.present()
+
+        self._update_progress_dialog = dialog
+        self._update_progress_title = title
+        self._update_progress_detail = detail
+        self._update_progress_bar = progress
+        self._update_progress_pulse_id = GLib.timeout_add(120, self._pulse_update_progress)
+
+    def _pulse_update_progress(self) -> bool:
+        if self._update_progress_bar is None:
+            return False
+        self._update_progress_bar.pulse()
+        return True
+
+    def _set_update_progress_status(self, title: str, detail: str) -> bool:
+        if self._update_progress_title is not None:
+            self._update_progress_title.set_text(title)
+        if self._update_progress_detail is not None:
+            self._update_progress_detail.set_text(detail)
+        return False
+
+    def _close_update_progress_dialog(self) -> None:
+        if self._update_progress_pulse_id is not None:
+            GLib.source_remove(self._update_progress_pulse_id)
+            self._update_progress_pulse_id = None
+        if self._update_progress_dialog is not None:
+            self._update_progress_dialog.close()
+        self._update_progress_dialog = None
+        self._update_progress_title = None
+        self._update_progress_detail = None
+        self._update_progress_bar = None
+
+    def _finish_update_discovery(
+        self,
+        record: ManagedAppRecord,
+        discovery,
+        error_message: str | None,
+    ) -> bool:
+        self._close_update_progress_dialog()
+        if error_message is not None:
+            self._show_repair_result_dialog(
+                "Update search failed",
+                f"AppImage Integrator could not complete the update search.\n\n{error_message}",
+            )
+            return False
+        assert discovery is not None
+        return self._present_update_discovery(record, discovery)
+
+    def _present_update_discovery(self, record: ManagedAppRecord, discovery) -> bool:
+        if discovery.higher_version_candidates:
+            candidate = discovery.higher_version_candidates[0]
+            lines = [
+                f"Current version: {record.version or 'unknown'}",
+                f"Detected version: {candidate.detected_version or 'unknown'}",
+                f"File: {candidate.path.name}",
+                f"Location: {candidate.path.parent}",
+                f"Match: {'identity-based' if candidate.match_kind == 'identity' else 'filename fallback'}",
+            ]
+            if len(discovery.higher_version_candidates) > 1:
+                lines.extend(("", "Additional matching AppImages were also found."))
+            dialog = CompatMessageDialog(self, "Update available", "\n".join(lines))
+            dialog.add_response("cancel", "Do Nothing")
+            dialog.add_response("choose", "Choose AppImage")
+            dialog.add_response("update", "Update")
+            dialog.set_default_response("update")
+            dialog.set_close_response("cancel")
+            dialog.set_response_appearance("update", Adw.ResponseAppearance.SUGGESTED)
+            dialog.connect(
+                "response",
+                self._on_update_discovery_response,
+                record,
+                candidate.path,
+            )
+            dialog.present()
+            return False
+
+        searched = "\n".join(str(path) for path in discovery.searched_directories) or "No searchable directories were available."
+        dialog = CompatMessageDialog(
+            self,
+            "No newer AppImage found",
+            "AppImage Integrator could not find a higher-version AppImage automatically.\n\n"
+            f"Searched:\n{searched}\n\n"
+            "Choose an AppImage manually if you want to update from a different file.",
+        )
+        dialog.add_response("cancel", "Do Nothing")
+        dialog.add_response("choose", "Choose AppImage")
+        dialog.set_default_response("choose")
+        dialog.set_close_response("cancel")
+        dialog.set_response_appearance("choose", Adw.ResponseAppearance.SUGGESTED)
+        dialog.connect("response", self._on_no_update_found_response, record)
+        dialog.present()
+        return False
+
+    def _on_update_discovery_response(
+        self,
+        dialog,
+        response: str,
+        record: ManagedAppRecord,
+        candidate_path: Path,
+    ) -> None:
+        if response == "update":
+            self._begin_update_install(record, candidate_path)
+            return
+        if response == "choose":
+            self._open_update_file_chooser(record)
+
+    def _on_no_update_found_response(
+        self,
+        dialog,
+        response: str,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == "choose":
+            self._open_update_file_chooser(record)
+
+    def _open_update_file_chooser(self, record: ManagedAppRecord) -> None:
+        dialog = CompatFileChooserDialog(
+            self,
+            title="Choose AppImage Update",
+            accept_label="Update",
+        )
+        dialog.connect("response", self._on_update_file_chosen, record)
+        dialog.present()
+
+    def _on_update_file_chosen(
+        self,
+        dialog: CompatFileChooserDialog,
+        response: int,
+        record: ManagedAppRecord,
+    ) -> None:
+        if response == Gtk.ResponseType.ACCEPT:
+            file = dialog.get_file()
+            if file and file.get_path():
+                self._begin_manual_update_install(record, Path(file.get_path()))
+        dialog.destroy()
+
+    def _begin_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+        self.install_view.install_record_from_source(
+            record,
+            source_path,
+            button_label="Update",
+            require_trust_prompt=True,
+        )
+
+    def _begin_manual_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+        try:
+            matched_candidate = self.services.update_discovery.evaluate_candidate(record, source_path)
+        except OSError as exc:
+            self._show_repair_result_dialog(
+                "Update file could not be inspected",
+                f"AppImage Integrator could not inspect the selected AppImage.\n\n{exc}",
+            )
+            return
+        if matched_candidate is None:
+            self._show_repair_result_dialog(
+                "AppImage does not match",
+                "The selected AppImage does not appear to be the same application as the managed integration.",
+            )
+            return
+        self._begin_update_install(record, source_path)
