@@ -48,11 +48,16 @@ class AppImageInspector:
             )
 
         file_description = self._file_description(source_path)
-        appimage_type = self._detect_type(source_path)
+        appimage_type = self._detect_type(source_path, is_executable)
         is_appimage = "appimage" in file_description.lower() or appimage_type != "unknown"
         if not is_appimage:
             warnings.append("The file does not strongly identify itself as an AppImage.")
-        extracted_dir = self._extract(source_path, appimage_type, warnings)
+        extracted_dir, extraction_failed = self._extract(
+            source_path,
+            appimage_type,
+            is_executable,
+            warnings,
+        )
 
         desktop_entry = None
         desktop_filename = None
@@ -92,7 +97,7 @@ class AppImageInspector:
 
             appstream_id = self._find_appstream_id(extracted_dir, desktop_filename, name)
 
-        if extracted_dir is None:
+        if extraction_failed:
             errors.append("Could not extract AppImage contents.")
         if not is_executable:
             warnings.append("The source AppImage is not executable. The managed copy will be fixed during install.")
@@ -137,7 +142,9 @@ class AppImageInspector:
         result = self.tooling.run([self.tooling.tools.file_cmd, "-b", str(source_path)])
         return result.stdout.strip()
 
-    def _detect_type(self, source_path: Path) -> str:
+    def _detect_type(self, source_path: Path, is_executable: bool) -> str:
+        if not is_executable:
+            return "unknown"
         result = self.tooling.run([str(source_path), "--appimage-version"])
         output = f"{result.stdout} {result.stderr}".lower()
         if "type 1" in output:
@@ -148,30 +155,42 @@ class AppImageInspector:
             return "type2"
         return "unknown"
 
-    def _extract(self, source_path: Path, appimage_type: str, warnings: list[str]) -> Path | None:
+    def _extract(
+        self,
+        source_path: Path,
+        appimage_type: str,
+        is_executable: bool,
+        warnings: list[str],
+    ) -> tuple[Path | None, bool]:
         extract_dir = Path(
             tempfile.mkdtemp(prefix="extract-", dir=self.paths.cache_extract_dir)
         )
-        if appimage_type == "type2" or appimage_type == "unknown":
+        if is_executable and (appimage_type == "type2" or appimage_type == "unknown"):
             result = self.tooling.run(
                 [str(source_path), "--appimage-extract"],
                 cwd=extract_dir,
             )
             squashed = extract_dir / "squashfs-root"
             if result.returncode == 0 and squashed.exists():
-                return squashed
+                return squashed, False
         if self.tooling.tools.unsquashfs:
             result = self.tooling.run(
                 [self.tooling.tools.unsquashfs, "-f", "-d", str(extract_dir / "squashfs-root"), str(source_path)]
             )
             squashed = extract_dir / "squashfs-root"
             if result.returncode == 0 and squashed.exists():
-                return squashed
+                return squashed, False
+        elif not is_executable:
+            warnings.append(
+                "Extraction was skipped because the AppImage is not executable and unsquashfs is unavailable."
+            )
+            shutil.rmtree(extract_dir, ignore_errors=True)
+            return None, False
         if appimage_type == "type1":
             warnings.append("Type 1 AppImage support is best-effort and metadata may be incomplete.")
         warnings.append("Extraction failed; install may continue with a fallback launcher.")
         shutil.rmtree(extract_dir, ignore_errors=True)
-        return None
+        return None, True
 
     def _find_desktop_file(self, extracted_dir: Path) -> Path | None:
         desktop_files = sorted(extracted_dir.rglob("*.desktop"))

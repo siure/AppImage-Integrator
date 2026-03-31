@@ -11,11 +11,26 @@ from pathlib import Path
 from typing import TextIO
 
 from appimage_integrator.config import PRESET_LABELS
+from appimage_integrator.launcher import build_managed_app_launch_command
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
 
 
+class AppImageArgumentParser(argparse.ArgumentParser):
+    def parse_args(self, args=None, namespace=None):
+        parsed, unknown = self.parse_known_args(args, namespace)
+        if unknown:
+            if getattr(parsed, "command", None) == "launch":
+                launch_args = list(getattr(parsed, "launch_args", []))
+                if unknown and unknown[0] == "--":
+                    unknown = unknown[1:]
+                parsed.launch_args = [*launch_args, *unknown]
+                return parsed
+            self.error(f"unrecognized arguments: {' '.join(unknown)}")
+        return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = AppImageArgumentParser(
         prog="appimage-integrator",
         description="Manage AppImage desktop integrations from the command line.",
     )
@@ -46,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     launch_parser = subparsers.add_parser("launch", help="Launch a managed AppImage")
     launch_parser.add_argument("identifier", help="Internal ID, unique ID prefix, or display name")
+    launch_parser.add_argument(
+        "--desktop",
+        action="store_true",
+        help="Show a GUI-visible error dialog when launch is blocked",
+    )
+    launch_parser.set_defaults(launch_args=[])
 
     repair_parser = subparsers.add_parser("repair", help="Repair a managed AppImage integration")
     repair_parser.add_argument("identifier", help="Internal ID, unique ID prefix, or display name")
@@ -238,13 +259,18 @@ def _cmd_launch(args: argparse.Namespace, services, stdout: TextIO, stderr: Text
         stderr.write(f"{exc}\n")
         return 1
     record = _sync_record_validation(record, services)
+    launch_args = _normalize_launch_args(args.launch_args)
     if record.last_validation_status == "error":
-        stderr.write("Launch blocked by integration errors:\n")
-        for message in record.last_validation_messages:
-            stderr.write(f"- {message}\n")
+        _write_launch_blocked(stderr, record.last_validation_messages)
+        if args.desktop:
+            _show_launch_error_dialog(
+                "Launch blocked",
+                "AppImage Integrator could not launch this AppImage.",
+                record.last_validation_messages,
+            )
         return 1
     try:
-        subprocess.Popen([record.managed_appimage_path])
+        subprocess.Popen(build_managed_app_launch_command(record, launch_args))
     except OSError as exc:
         issue = _format_launch_error(exc)
         updated = ManagedAppRecord.from_dict(
@@ -256,6 +282,12 @@ def _cmd_launch(args: argparse.Namespace, services, stdout: TextIO, stderr: Text
         )
         services.store.save(updated)
         stderr.write(f"{issue}\n")
+        if args.desktop:
+            _show_launch_error_dialog(
+                "Launch failed",
+                "AppImage Integrator could not start this AppImage.",
+                [issue],
+            )
         return 1
     stdout.write(f"Launched {record.display_name}\n")
     return 0
@@ -568,6 +600,46 @@ def _sync_record_validation(record: ManagedAppRecord, services) -> ManagedAppRec
     )
     services.store.save(updated)
     return updated
+
+
+def _normalize_launch_args(launch_args: list[str]) -> list[str]:
+    if launch_args and launch_args[0] == "--":
+        return launch_args[1:]
+    return launch_args
+
+
+def _write_launch_blocked(stderr: TextIO, messages: list[str]) -> None:
+    stderr.write("Launch blocked by integration errors:\n")
+    for message in messages:
+        stderr.write(f"- {message}\n")
+
+
+def _show_launch_error_dialog(title: str, intro: str, messages: list[str]) -> None:
+    try:
+        import gi
+
+        gi.require_version("Gtk", "4.0")
+        from gi.repository import GLib
+
+        from appimage_integrator.ui.dialogs import CompatMessageDialog
+    except Exception:
+        return
+
+    loop = GLib.MainLoop()
+    body = intro
+    if messages:
+        message_lines = "\n".join(f"- {message}" for message in messages)
+        body = f"{intro}\n\n{message_lines}"
+    dialog = CompatMessageDialog(None, title, body)
+    dialog.add_response("ok", "OK")
+    dialog.set_default_response("ok")
+    dialog.set_close_response("ok")
+    dialog.connect("response", lambda *_args: loop.quit())
+    try:
+        dialog.present()
+        loop.run()
+    except Exception:
+        loop.quit()
 
 
 def _format_launch_error(exc: OSError) -> str:

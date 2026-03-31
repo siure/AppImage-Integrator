@@ -34,6 +34,7 @@ def make_inspection(
     name: str = "Demo Browser",
     appstream_id: str | None = "org.demo.Browser",
     desktop_filename: str = "demo.desktop",
+    is_executable: bool = True,
 ) -> AppImageInspection:
     icon_candidate = IconResolver._candidate_from_path(
         IconResolver(AppPathsLike(extracted_dir)),
@@ -55,7 +56,7 @@ def make_inspection(
         source_path=source_path,
         is_appimage=True,
         appimage_type="type2",
-        is_executable=True,
+        is_executable=is_executable,
         detected_name=name,
         detected_comment="Demo comment",
         detected_version=version,
@@ -136,25 +137,57 @@ def test_update_discovery_uses_downloads_and_ignores_current_and_managed_payload
     downloads_candidate = test_paths.home / "Downloads" / "demo-v2.AppImage"
     downloads_candidate.parent.mkdir(parents=True)
     downloads_candidate.write_text("appimage", encoding="utf-8")
-    managed_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v3.AppImage"
-    managed_payload.parent.mkdir(parents=True)
-    managed_payload.write_text("appimage", encoding="utf-8")
+    active_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v1.AppImage"
+    active_payload.parent.mkdir(parents=True)
+    active_payload.write_text("appimage", encoding="utf-8")
+    managed_payload_candidate = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v3.AppImage"
+    managed_payload_candidate.write_text("appimage", encoding="utf-8")
     extracted = test_paths.cache_extract_dir / "extract-discovery-downloads"
     extracted.mkdir(parents=True)
     (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
     inspector = MappingInspector(
         {
             downloads_candidate: make_inspection(downloads_candidate, extracted, version="2.0.0"),
+            managed_payload_candidate: make_inspection(managed_payload_candidate, extracted, version="3.0.0"),
         }
     )
     service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
-    record = make_record(test_paths, source)
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": str(active_payload),
+        }
+    )
 
     result = service.discover_updates(record)
 
-    assert [item.path for item in result.higher_version_candidates] == [downloads_candidate]
-    assert managed_payload not in [item.path for item in result.higher_version_candidates]
+    assert [item.path for item in result.higher_version_candidates] == [managed_payload_candidate, downloads_candidate]
+    assert active_payload not in [item.path for item in result.higher_version_candidates]
     assert source not in [item.path for item in result.higher_version_candidates]
+    assert test_paths.managed_payloads_root / "org-demo-browser-b3029f72" in result.searched_directories
+
+
+def test_update_discovery_searches_managed_payload_dir_without_active_payload(test_paths) -> None:
+    source = test_paths.home / "Apps" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    managed_payload_candidate = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v2.AppImage"
+    managed_payload_candidate.parent.mkdir(parents=True)
+    managed_payload_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-managed-dir"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            managed_payload_candidate: make_inspection(managed_payload_candidate, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+
+    result = service.discover_updates(make_record(test_paths, source))
+
+    assert [item.path for item in result.higher_version_candidates] == [managed_payload_candidate]
+    assert test_paths.managed_payloads_root / "org-demo-browser-b3029f72" in result.searched_directories
 
 
 def test_update_discovery_uses_filename_fallback_and_same_version_bucket(test_paths) -> None:
@@ -306,3 +339,57 @@ def test_update_discovery_does_not_promote_known_version_when_current_version_is
 
     assert result.higher_version_candidates == []
     assert [item.path for item in result.same_or_unknown_candidates] == [candidate]
+
+
+def test_update_discovery_keeps_non_executable_candidates(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-nonexec"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="2.0.0", is_executable=False),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+
+    result = service.discover_updates(make_record(test_paths, source))
+
+    assert [item.path for item in result.higher_version_candidates] == [candidate]
+    assert result.higher_version_candidates[0].is_executable is False
+
+
+def test_update_discovery_skips_active_payload_but_discovers_renamed_payload_sibling(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    active_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v1.AppImage"
+    active_payload.parent.mkdir(parents=True)
+    active_payload.write_text("appimage", encoding="utf-8")
+    renamed_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v2.AppImage"
+    renamed_payload.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-managed-payload"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    inspector = MappingInspector(
+        {
+            renamed_payload: make_inspection(renamed_payload, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": str(active_payload),
+        }
+    )
+
+    result = service.discover_updates(record)
+
+    assert [item.path for item in result.higher_version_candidates] == [renamed_payload]
+    assert active_payload not in [item.path for item in result.higher_version_candidates]

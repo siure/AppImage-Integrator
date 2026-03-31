@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Callable
 
 import pytest
 
@@ -76,11 +77,21 @@ class AppPathsLike:
         self.icons_dir = extracted_dir.parent / "icons"
 
 
-def build_manager(test_paths, tooling, inspections: list[AppImageInspection]):
+def _default_launcher_command(test_paths) -> list[str]:
+    return [str(test_paths.self_command_path)]
+
+
+def build_manager(
+    test_paths,
+    tooling,
+    inspections: list[AppImageInspection],
+    launcher_command_resolver: Callable[[], list[str] | None] | None = None,
+):
     store = MetadataStore(test_paths)
     icon_resolver = IconResolver(test_paths)
     inspector = FakeInspector(inspections)
-    desktop_service = DesktopEntryService(tooling)
+    launcher_command_resolver = launcher_command_resolver or (lambda: _default_launcher_command(test_paths))
+    desktop_service = DesktopEntryService(tooling, launcher_command_resolver=launcher_command_resolver)
     runtime_service = ManagedAppRuntimeService(
         test_paths,
         inspector,
@@ -132,7 +143,12 @@ def test_install_update_and_uninstall_flow(test_paths, tooling) -> None:
     assert Path(first.record.managed_payload_path).exists()
     assert Path(first.record.managed_payload_dir).is_dir()
     assert Path(first.record.managed_desktop_path).exists()
-    assert first.record.managed_appimage_path in Path(first.record.managed_desktop_path).read_text(encoding="utf-8")
+    desktop_text = Path(first.record.managed_desktop_path).read_text(encoding="utf-8")
+    assert (
+        f"Exec={test_paths.self_command_path} launch {first.record.internal_id} --desktop -- --existing --disable-gpu --user-flag %U"
+        in desktop_text
+    )
+    assert f"TryExec={test_paths.self_command_path}" in desktop_text
     assert inspector.cleanup_calls == 1
 
     updated = manager.install(
@@ -153,6 +169,46 @@ def test_install_update_and_uninstall_flow(test_paths, tooling) -> None:
     assert store.load(updated.record.internal_id) is None
     assert not Path(updated.record.managed_appimage_path).exists()
     assert not Path(updated.record.managed_payload_dir).exists()
+
+
+def test_install_downgrade_is_reported_as_reinstall(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-downgrade"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, _, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "2.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+
+    manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    downgraded = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+
+    assert downgraded.mode == "reinstall"
 
 
 def test_ensure_source_executable_adds_execute_bit(test_paths, tooling) -> None:
@@ -374,8 +430,11 @@ def test_repair_regenerates_invalid_desktop(test_paths, tooling) -> None:
     repaired, report = repair.repair(result.record)
 
     assert report.success
-    assert "Regenerated desktop launcher." in report.actions_taken
     assert Path(repaired.managed_desktop_path).read_text(encoding="utf-8").startswith("[Desktop Entry]\n")
+    assert (
+        f"Exec={test_paths.self_command_path} launch {repaired.internal_id} --desktop -- --existing %U"
+        in Path(repaired.managed_desktop_path).read_text(encoding="utf-8")
+    )
 
 
 def test_library_validation_adopts_managed_replacement(test_paths, tooling) -> None:
@@ -417,6 +476,10 @@ def test_library_validation_adopts_managed_replacement(test_paths, tooling) -> N
     assert updated_record.version == "2.0.0"
     assert Path(updated_record.managed_appimage_path).is_symlink()
     assert Path(updated_record.managed_appimage_path).resolve() == replacement.resolve()
+    assert (
+        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing %U"
+        in Path(updated_record.managed_desktop_path).read_text(encoding="utf-8")
+    )
     assert inspector.cleanup_calls == 2
 
 
@@ -462,6 +525,9 @@ def test_library_validation_migrates_legacy_record_to_symlink_layout(test_paths,
     legacy_path.parent.mkdir(parents=True, exist_ok=True)
     legacy_path.write_text("appimage", encoding="utf-8")
     legacy_path.chmod(0o755)
+    extracted = test_paths.cache_extract_dir / "extract-legacy-migration"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
     desktop_path = test_paths.desktop_entries_dir / "legacy-demo-1234.desktop"
     desktop_path.parent.mkdir(parents=True, exist_ok=True)
     desktop_path.write_text("[Desktop Entry]\nType=Application\nName=Legacy\nExec=/tmp/legacy\n", encoding="utf-8")
@@ -495,9 +561,13 @@ def test_library_validation_migrates_legacy_record_to_symlink_layout(test_paths,
 
     store = MetadataStore(test_paths)
     store.save(record)
-    inspector = FakeInspector([])
+    migrated_payload = test_paths.managed_payloads_root / "legacy-demo-1234" / "legacy-demo-1234.AppImage"
+    inspector = FakeInspector([make_inspection(migrated_payload, extracted, "1.0.0")])
     icon_resolver = IconResolver(test_paths)
-    desktop_service = DesktopEntryService(tooling)
+    desktop_service = DesktopEntryService(
+        tooling,
+        launcher_command_resolver=lambda: _default_launcher_command(test_paths),
+    )
     runtime_service = ManagedAppRuntimeService(
         test_paths,
         inspector,
@@ -514,3 +584,199 @@ def test_library_validation_migrates_legacy_record_to_symlink_layout(test_paths,
     assert Path(updated_record.managed_appimage_path).is_symlink()
     assert updated_record.managed_payload_path is not None
     assert Path(updated_record.managed_payload_path).exists()
+    assert (
+        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop --"
+        in Path(updated_record.managed_desktop_path).read_text(encoding="utf-8")
+    )
+
+
+def test_library_validation_migrates_path_based_launcher_to_absolute_path(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-migrate.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-launcher-migration"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, desktop_service, runtime_service = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+    result = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    legacy_exec = (
+        f"Exec=appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U\n"
+    )
+    legacy_tryexec = "TryExec=appimage-integrator\n"
+    desktop_path = Path(result.record.managed_desktop_path)
+    desktop_path.write_text(
+        desktop_path.read_text(encoding="utf-8")
+        .replace(f"Exec={test_paths.self_command_path} launch {result.record.internal_id} --desktop -- --existing %U\n", legacy_exec)
+        .replace(f"TryExec={test_paths.self_command_path}\n", legacy_tryexec),
+        encoding="utf-8",
+    )
+
+    library = LibraryManager(store, runtime_service, desktop_service)
+    updated_record, status, messages = library.validate_record(result.record)
+
+    assert status == "ok"
+    assert messages == []
+    assert (
+        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing %U"
+        in desktop_path.read_text(encoding="utf-8")
+    )
+    assert f"TryExec={test_paths.self_command_path}" in desktop_path.read_text(encoding="utf-8")
+
+
+def test_library_validation_can_skip_payload_inspection_for_tab_refresh(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-no-inspect.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-no-inspect"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, desktop_service, runtime_service = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    result = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    desktop_path = Path(result.record.managed_desktop_path)
+    legacy_exec = (
+        f"Exec=appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U\n"
+    )
+    legacy_tryexec = "TryExec=appimage-integrator\n"
+    desktop_path.write_text(
+        desktop_path.read_text(encoding="utf-8")
+        .replace(
+            f"Exec={test_paths.self_command_path} launch {result.record.internal_id} --desktop -- --existing %U\n",
+            legacy_exec,
+        )
+        .replace(f"TryExec={test_paths.self_command_path}\n", legacy_tryexec),
+        encoding="utf-8",
+    )
+
+    library = LibraryManager(store, runtime_service, desktop_service)
+    updated_record, status, messages = library.validate_record(
+        result.record,
+        allow_reconcile_inspection=False,
+    )
+
+    assert status == "ok"
+    assert messages == []
+    assert updated_record.internal_id == result.record.internal_id
+    assert legacy_exec in desktop_path.read_text(encoding="utf-8")
+    assert legacy_tryexec in desktop_path.read_text(encoding="utf-8")
+
+
+def test_install_fails_when_launcher_path_is_unresolved(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-unresolved.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-unresolved"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, _, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+        launcher_command_resolver=lambda: None,
+    )
+
+    with pytest.raises(ValueError, match="Could not resolve a concrete launcher path"):
+        manager.install(
+            InstallRequest(
+                source_path=source,
+                display_name_override=None,
+                comment_override=None,
+                extra_args=[],
+                arg_preset_id="none",
+                allow_update=True,
+                allow_reinstall=True,
+            )
+        )
+
+
+def test_repair_fails_when_launcher_path_is_unresolved(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-repair-unresolved.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-repair-unresolved"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, icon_resolver, _, runtime_service = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    result = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    desktop_path = Path(result.record.managed_desktop_path)
+    original_text = desktop_path.read_text(encoding="utf-8")
+    desktop_path.write_text("BROKEN\n", encoding="utf-8")
+
+    unresolved_desktop_service = DesktopEntryService(tooling, launcher_command_resolver=lambda: None)
+    unresolved_desktop_service.validate_text = (
+        lambda text: ["desktop is broken"] if text == "BROKEN\n" else []
+    )
+    repair_inspector = FakeInspector(
+        [
+            make_inspection(Path(result.record.managed_appimage_path), extracted, "1.0.0"),
+            make_inspection(Path(result.record.managed_appimage_path), extracted, "1.0.0"),
+        ]
+    )
+    unresolved_runtime_service = ManagedAppRuntimeService(
+        test_paths,
+        repair_inspector,
+        unresolved_desktop_service,
+        icon_resolver,
+        IdResolver(),
+    )
+    repair = RepairManager(
+        repair_inspector,
+        unresolved_desktop_service,
+        icon_resolver,
+        unresolved_runtime_service,
+        store,
+    )
+
+    repaired, report = repair.repair(result.record)
+
+    assert not report.success
+    assert report.issues == ["Could not resolve a concrete launcher path for desktop integration."]
+    assert desktop_path.read_text(encoding="utf-8") == "BROKEN\n"
+    assert repaired.last_validation_status == "error"
+    assert repaired.last_validation_messages == report.issues
+    assert original_text != "BROKEN\n"

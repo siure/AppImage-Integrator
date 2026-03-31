@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection, EmbeddedDesktopEntry
-from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services.id_resolver import IdResolver, resolve_internal_id_from_appstream_id
 
 
 def make_inspection(**overrides):
@@ -62,3 +62,10 @@ def test_id_resolver_falls_back_to_metadata_tuple_stably() -> None:
     second = IdResolver().resolve(inspection)
     assert first.internal_id == second.internal_id
     assert first.identity_fingerprint == second.identity_fingerprint
+
+
+def test_resolve_internal_id_from_appstream_id_matches_id_resolver_logic() -> None:
+    appstream_id = "io.github.appimageintegrator"
+    inspection = make_inspection(appstream_id=appstream_id)
+
+    assert resolve_internal_id_from_appstream_id(appstream_id) == IdResolver().resolve(inspection).internal_id

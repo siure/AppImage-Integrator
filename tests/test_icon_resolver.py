@@ -70,3 +70,15 @@ def test_icon_resolver_installs_icon(test_paths) -> None:
     assert managed
     assert managed_path is not None
     assert Path(icon_value).exists()
+
+
+def test_icon_resolver_ignores_external_diricon_target(test_paths) -> None:
+    extracted = test_paths.cache_extract_dir / "fixture-diricon"
+    extracted.mkdir(parents=True)
+    external = test_paths.cache_extract_dir / "external.svg"
+    external.write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    (extracted / ".DirIcon").symlink_to(external)
+
+    resolver = IconResolver(test_paths)
+
+    assert resolver.collect_candidates(extracted, None) == []

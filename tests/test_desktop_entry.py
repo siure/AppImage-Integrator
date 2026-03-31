@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from appimage_integrator.models import AppImageInspection
 from appimage_integrator.services.desktop_entry import (
     DesktopEntryService,
@@ -21,7 +23,8 @@ def test_parse_desktop_entry_extracts_exec_tokens() -> None:
 
 
 def test_build_desktop_text_preserves_args_and_placeholders(tooling) -> None:
-    service = DesktopEntryService(tooling)
+    launcher_command = ["/home/test/.local/bin/appimage-integrator"]
+    service = DesktopEntryService(tooling, launcher_command_resolver=lambda: launcher_command)
     entry = parse_desktop_entry(
         "[Desktop Entry]\n"
         "Type=Application\n"
@@ -56,6 +59,7 @@ def test_build_desktop_text_preserves_args_and_placeholders(tooling) -> None:
     )
 
     text, _, exec_template = service.build_desktop_text(
+        internal_id="demo-browser-1234abcd",
         inspection=inspection,
         appimage_path=Path("/home/test/Applications/demo.AppImage"),
         icon_value="/home/test/icon.svg",
@@ -65,13 +69,19 @@ def test_build_desktop_text_preserves_args_and_placeholders(tooling) -> None:
         arg_preset_id="disable_gpu",
     )
 
-    assert "Exec=/home/test/Applications/demo.AppImage --existing --disable-gpu --user-flag %U" in text
-    assert "TryExec=/home/test/Applications/demo.AppImage" in text
-    assert exec_template == "/home/test/Applications/demo.AppImage --existing --disable-gpu --user-flag %U"
+    assert (
+        "Exec=/home/test/.local/bin/appimage-integrator launch demo-browser-1234abcd --desktop -- --existing --disable-gpu --user-flag %U"
+        in text
+    )
+    assert "TryExec=/home/test/.local/bin/appimage-integrator" in text
+    assert exec_template == (
+        "/home/test/.local/bin/appimage-integrator launch demo-browser-1234abcd --desktop -- --existing --disable-gpu --user-flag %U"
+    )
 
 
 def test_build_desktop_text_generates_fallback(tooling) -> None:
-    service = DesktopEntryService(tooling)
+    launcher_command = ["/home/test/.local/bin/appimage-integrator"]
+    service = DesktopEntryService(tooling, launcher_command_resolver=lambda: launcher_command)
     inspection = AppImageInspection(
         source_path=Path("/tmp/source.AppImage"),
         is_appimage=True,
@@ -95,6 +105,7 @@ def test_build_desktop_text_generates_fallback(tooling) -> None:
         extracted_dir=None,
     )
     text, _, _ = service.build_desktop_text(
+        internal_id="fallback-app-1234abcd",
         inspection=inspection,
         appimage_path=Path("/home/test/Applications/fallback.AppImage"),
         icon_value="application-x-executable",
@@ -109,7 +120,8 @@ def test_build_desktop_text_generates_fallback(tooling) -> None:
 
 
 def test_build_desktop_text_omits_duplicate_comment(tooling) -> None:
-    service = DesktopEntryService(tooling)
+    launcher_command = ["/home/test/.local/bin/appimage-integrator"]
+    service = DesktopEntryService(tooling, launcher_command_resolver=lambda: launcher_command)
     entry = parse_desktop_entry(
         "[Desktop Entry]\n"
         "Type=Application\n"
@@ -143,6 +155,7 @@ def test_build_desktop_text_omits_duplicate_comment(tooling) -> None:
     )
 
     text, _, _ = service.build_desktop_text(
+        internal_id="obsidian-1234abcd",
         inspection=inspection,
         appimage_path=Path("/home/test/Applications/obsidian.AppImage"),
         icon_value="obsidian",
@@ -180,7 +193,8 @@ def test_extract_localized_lines_ignores_desktop_actions() -> None:
 
 
 def test_build_desktop_text_does_not_flatten_action_localizations(tooling) -> None:
-    service = DesktopEntryService(tooling)
+    launcher_command = ["/home/test/.local/bin/appimage-integrator"]
+    service = DesktopEntryService(tooling, launcher_command_resolver=lambda: launcher_command)
     entry = parse_desktop_entry(
         "[Desktop Entry]\n"
         "Type=Application\n"
@@ -218,6 +232,7 @@ def test_build_desktop_text_does_not_flatten_action_localizations(tooling) -> No
     )
 
     text, _, _ = service.build_desktop_text(
+        internal_id="demo-browser-1234abcd",
         inspection=inspection,
         appimage_path=Path("/home/test/Applications/demo.AppImage"),
         icon_value="demo",
@@ -230,3 +245,41 @@ def test_build_desktop_text_does_not_flatten_action_localizations(tooling) -> No
     assert text.count("Name[fr]=") == 1
     assert "Name[fr]=Demo principal" in text
     assert "Name[fr]=Nouvelle fenetre" not in text
+
+
+def test_build_desktop_text_requires_concrete_launcher_path(tooling) -> None:
+    service = DesktopEntryService(tooling, launcher_command_resolver=lambda: None)
+    inspection = AppImageInspection(
+        source_path=Path("/tmp/source.AppImage"),
+        is_appimage=True,
+        appimage_type="type2",
+        is_executable=True,
+        detected_name="Fallback App",
+        detected_comment=None,
+        detected_version=None,
+        appstream_id=None,
+        embedded_desktop_filename=None,
+        desktop_entry=None,
+        chosen_icon_candidate=None,
+        startup_wm_class=None,
+        mime_types=[],
+        categories=[],
+        terminal=False,
+        startup_notify=None,
+        exec_placeholders=[],
+        warnings=[],
+        errors=[],
+        extracted_dir=None,
+    )
+
+    with pytest.raises(ValueError, match="Could not resolve a concrete launcher path"):
+        service.build_desktop_text(
+            internal_id="fallback-app-1234abcd",
+            inspection=inspection,
+            appimage_path=Path("/home/test/Applications/fallback.AppImage"),
+            icon_value="application-x-executable",
+            display_name="Fallback App",
+            comment=None,
+            extra_args=[],
+            arg_preset_id="none",
+        )

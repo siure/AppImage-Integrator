@@ -10,7 +10,7 @@ from appimage_integrator.config import SCHEMA_VERSION
 ValidationStatus = Literal["ok", "warning", "error"]
 AppImageType = Literal["type1", "type2", "unknown"]
 UpdateMatchKind = Literal["identity", "filename"]
-UpdateSourceDirKind = Literal["source_dir", "downloads"]
+UpdateSourceDirKind = Literal["source_dir", "downloads", "managed_payload_dir"]
 
 
 @dataclass(frozen=True)
@@ -88,6 +88,15 @@ class InstallRequest:
 
 
 @dataclass(frozen=True)
+class ManagedRecordUpdateRequest:
+    internal_id: str
+    display_name: str
+    comment: str | None
+    arg_preset_id: str | None
+    extra_args: list[str]
+
+
+@dataclass(frozen=True)
 class ManagedAppRecord:
     internal_id: str
     display_name: str
@@ -155,6 +164,7 @@ class IdentityResolution:
 class UpdateCandidate:
     path: Path
     detected_version: str | None
+    is_executable: bool
     match_kind: UpdateMatchKind
     match_score: int
     identity_internal_id: str | None

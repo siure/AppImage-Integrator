@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import threading
 from pathlib import Path
@@ -8,16 +9,22 @@ import gi
 
 gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk
 
 from appimage_integrator.assets import APP_BRAND_LOGO_PATH
 from appimage_integrator.config import APP_NAME
-from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.launcher import build_managed_app_launch_command
+from appimage_integrator.models import ManagedAppRecord, UpdateCandidate, UpdateDiscoveryResult
 from appimage_integrator.ui.containers import CompatToolbarView
-from appimage_integrator.ui.dialogs import CompatFileChooserDialog, CompatMessageDialog
+from appimage_integrator.ui.dialogs import (
+    CompatFileChooserDialog,
+    CompatMessageDialog,
+    prompt_for_appimage_trust,
+)
 from appimage_integrator.ui.details_dialog import DetailsDialog
 from appimage_integrator.ui.install_view import InstallView
 from appimage_integrator.ui.library_view import LibraryView
+from appimage_integrator.ui.update_source_dialog import UpdateSourceDialog
 
 
 class ApplicationWindow(Adw.ApplicationWindow):
@@ -32,6 +39,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_detail: Gtk.Label | None = None
         self._update_progress_bar: Gtk.ProgressBar | None = None
         self._update_progress_pulse_id: int | None = None
+        self._library_refresh_request_id = 0
         self.add_css_class("integrator-window")
         self.set_title(APP_NAME)
         self.set_resizable(True)
@@ -75,13 +83,20 @@ class ApplicationWindow(Adw.ApplicationWindow):
         refresh_button.connect("clicked", lambda _btn: self.refresh_library())
         header.pack_end(refresh_button)
 
-        # ViewSwitcher in center
-        self.stack = Adw.ViewStack()
-        self.stack.set_hexpand(True)
-        self.stack.set_vexpand(True)
-        self.view_switcher = Adw.ViewSwitcher()
-        self.view_switcher.set_stack(self.stack)
-        header.set_title_widget(self.view_switcher)
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_hexpand(True)
+        scrolled.set_vexpand(True)
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_hexpand(True)
+        content.set_margin_top(12)
+        content.set_margin_bottom(12)
+        content.set_margin_start(12)
+        content.set_margin_end(12)
+        content.add_css_class("app-content")
+        self.content_root = content
+        scrolled.set_child(content)
 
         self.library_view = LibraryView(
             on_launch=self.launch_record,
@@ -95,37 +110,89 @@ class ApplicationWindow(Adw.ApplicationWindow):
             on_installed=self.refresh_library,
             toast=self.show_toast,
         )
+        self.library_view.set_hexpand(True)
+        self.library_view.set_vexpand(True)
 
-        self._add_stack_page(self.install_view, "install", "Install", "list-add-symbolic")
-        self._add_stack_page(self.library_view, "library", "Library", "folder-symbolic")
-        toolbar.set_content(self.stack)
+        content.append(self.install_view)
+        content.append(self.library_view)
+        toolbar.set_content(scrolled)
 
-        # Auto-refresh library when switching tabs
-        self.stack.connect("notify::visible-child", self._on_tab_switched)
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("drop", self._on_drop)
+        drop_target.connect("enter", self._on_drag_enter)
+        drop_target.connect("leave", self._on_drag_leave)
+        self.content_root.add_controller(drop_target)
 
         self.refresh_library()
-
-    def _add_stack_page(self, child: Gtk.Widget, name: str, title: str, icon_name: str) -> None:
-        if hasattr(self.stack, "add_titled_with_icon"):
-            self.stack.add_titled_with_icon(child, name, title, icon_name)
-            return
-        page = self.stack.add_titled(child, name, title)
-        if hasattr(page, "set_icon_name"):
-            page.set_icon_name(icon_name)
-
-    def _on_tab_switched(self, stack: Adw.ViewStack, _pspec) -> None:
-        if stack.get_visible_child() is self.library_view:
-            self.refresh_library()
 
     def show_toast(self, message: str) -> None:
         self.toast_overlay.add_toast(Adw.Toast.new(message))
 
+    def _handle_dropped_path(self, path: Path) -> None:
+        self.install_view.load_path(path)
+
+    def _on_drop(self, _target: Gtk.DropTarget, value: Gdk.FileList, _x: float, _y: float) -> bool:
+        self.content_root.remove_css_class("drop-highlight")
+        files = value.get_files() if value else []
+        if not files:
+            return False
+        path = files[0].get_path()
+        if not path:
+            return False
+        self._handle_dropped_path(Path(path))
+        return True
+
+    def _on_drag_enter(self, *_args) -> Gdk.DragAction:
+        self.content_root.add_css_class("drop-highlight")
+        return Gdk.DragAction.COPY
+
+    def _on_drag_leave(self, *_args) -> None:
+        self.content_root.remove_css_class("drop-highlight")
+
     def refresh_library(self) -> None:
-        records = []
-        for record in self.services.library_manager.list_records():
-            record = self._sync_record_validation(record)
-            records.append(record)
+        records = self.services.library_manager.list_records()
         self.library_view.set_records(records)
+
+        self._library_refresh_request_id += 1
+        request_id = self._library_refresh_request_id
+        if not records:
+            return
+
+        def worker(snapshot: list[ManagedAppRecord], refresh_request_id: int) -> None:
+            validated_rows: list[tuple[ManagedAppRecord, str, list[str]]] = []
+            for record in snapshot:
+                validated_rows.append(
+                    self.services.library_manager.validate_record(
+                        record,
+                        allow_reconcile_inspection=False,
+                    )
+                )
+            GLib.idle_add(self._finish_library_refresh, refresh_request_id, validated_rows)
+
+        threading.Thread(target=worker, args=(records, request_id), daemon=True).start()
+
+    def _finish_library_refresh(
+        self,
+        request_id: int,
+        validated_rows: list[tuple[ManagedAppRecord, str, list[str]]],
+    ) -> bool:
+        if request_id != self._library_refresh_request_id:
+            return False
+
+        records: list[ManagedAppRecord] = []
+        for validated_record, status, messages in validated_rows:
+            if (
+                status == validated_record.last_validation_status
+                and messages == validated_record.last_validation_messages
+            ):
+                if validated_record != self.services.store.load(validated_record.internal_id):
+                    self.services.store.save(validated_record)
+                records.append(validated_record)
+                continue
+            records.append(self._update_record_validation(validated_record, status, messages))
+
+        self.library_view.set_records(records)
+        return False
 
     def launch_record(self, record: ManagedAppRecord) -> None:
         record = self._sync_record_validation(record)
@@ -138,7 +205,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
             )
             return
         try:
-            subprocess.Popen([record.managed_appimage_path])
+            subprocess.Popen(build_managed_app_launch_command(record))
         except OSError as exc:
             issue = self._format_launch_error(exc)
             record = self._update_record_validation(record, "error", [issue])
@@ -150,7 +217,12 @@ class ApplicationWindow(Adw.ApplicationWindow):
             )
 
     def show_details(self, record: ManagedAppRecord) -> None:
-        dialog = DetailsDialog(self, record)
+        dialog = DetailsDialog(
+            self,
+            record,
+            self.services.record_editor,
+            self._apply_details_update,
+        )
         dialog.present()
 
     def update_record(self, record: ManagedAppRecord) -> None:
@@ -205,7 +277,6 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if not path.exists():
             self.show_toast("Original source file is no longer available. Choose a new AppImage.")
             return
-        self.stack.set_visible_child(self.install_view)
         self.install_view.reinstall_record(record)
 
     def _prompt_reinstall_after_failed_repair(
@@ -247,6 +318,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
         dialog.present()
+
+    def _apply_details_update(self, record: ManagedAppRecord) -> None:
+        self.services.store.save(record)
+        self.show_toast(f"Updated {record.display_name}")
+        self.refresh_library()
 
     def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
         validated_record, status, messages = self.services.library_manager.validate_record(record)
@@ -422,31 +498,14 @@ class ApplicationWindow(Adw.ApplicationWindow):
         assert discovery is not None
         return self._present_update_discovery(record, discovery)
 
-    def _present_update_discovery(self, record: ManagedAppRecord, discovery) -> bool:
-        if discovery.higher_version_candidates:
-            candidate = discovery.higher_version_candidates[0]
-            lines = [
-                f"Current version: {record.version or 'unknown'}",
-                f"Detected version: {candidate.detected_version or 'unknown'}",
-                f"File: {candidate.path.name}",
-                f"Location: {candidate.path.parent}",
-                f"Match: {'identity-based' if candidate.match_kind == 'identity' else 'filename fallback'}",
-            ]
-            if len(discovery.higher_version_candidates) > 1:
-                lines.extend(("", "Additional matching AppImages were also found."))
-            dialog = CompatMessageDialog(self, "Update available", "\n".join(lines))
-            dialog.add_response("cancel", "Do Nothing")
-            dialog.add_response("choose", "Choose AppImage")
-            dialog.add_response("update", "Update")
-            dialog.set_default_response("update")
-            dialog.set_close_response("cancel")
-            dialog.set_response_appearance("update", Adw.ResponseAppearance.SUGGESTED)
-            dialog.connect(
-                "response",
-                self._on_update_discovery_response,
-                record,
-                candidate.path,
-            )
+    def _present_update_discovery(self, record: ManagedAppRecord, discovery: UpdateDiscoveryResult) -> bool:
+        automatic_candidates = [
+            *discovery.higher_version_candidates,
+            *discovery.same_or_unknown_candidates,
+        ]
+        if automatic_candidates:
+            dialog = UpdateSourceDialog(self, record, automatic_candidates)
+            dialog.connect("response", self._on_update_source_dialog_response, record)
             dialog.present()
             return False
 
@@ -467,17 +526,21 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.present()
         return False
 
-    def _on_update_discovery_response(
+    def _on_update_source_dialog_response(
         self,
         dialog,
         response: str,
+        candidate: UpdateCandidate | None,
         record: ManagedAppRecord,
-        candidate_path: Path,
     ) -> None:
-        if response == "update":
-            self._begin_update_install(record, candidate_path)
+        if response == "use" and candidate is not None:
+            self._prepare_update_source(
+                record,
+                candidate.path,
+                validate_selection=False,
+            )
             return
-        if response == "choose":
+        if response == "browse":
             self._open_update_file_chooser(record)
 
     def _on_no_update_found_response(
@@ -507,19 +570,78 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if response == Gtk.ResponseType.ACCEPT:
             file = dialog.get_file()
             if file and file.get_path():
-                self._begin_manual_update_install(record, Path(file.get_path()))
+                self._prepare_update_source(
+                    record,
+                    Path(file.get_path()),
+                    validate_selection=True,
+                )
         dialog.destroy()
 
     def _begin_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
-        self.stack.set_visible_child(self.install_view)
         self.install_view.install_record_from_source(
             record,
             source_path,
             button_label="Update",
-            require_trust_prompt=True,
+            require_trust_prompt=False,
         )
 
-    def _begin_manual_update_install(self, record: ManagedAppRecord, source_path: Path) -> None:
+    def _prepare_update_source(
+        self,
+        record: ManagedAppRecord,
+        source_path: Path,
+        *,
+        validate_selection: bool,
+    ) -> None:
+        if not source_path.exists():
+            self._show_repair_result_dialog(
+                "Update file not found",
+                "The selected AppImage does not exist.",
+            )
+            return
+        if source_path.exists() and not source_path.is_file():
+            self._show_repair_result_dialog(
+                "Update file not found",
+                "The selected path is not a file.",
+            )
+            return
+        if not os.access(source_path, os.X_OK):
+            prompt_for_appimage_trust(
+                self,
+                source_path,
+                self.services.install_manager.ensure_source_executable,
+                title="Trust this AppImage before updating it?",
+                body=(
+                    "The selected AppImage is not executable yet. AppImage Integrator needs to mark it as executable "
+                    "before updating this integration.\n\n"
+                    "Only continue if you trust the source of this AppImage. Running untrusted AppImages can be dangerous."
+                ),
+                on_trusted=lambda: self._finish_prepared_update_source(
+                    record,
+                    source_path,
+                    validate_selection=validate_selection,
+                ),
+                on_error=lambda exc: self._show_repair_result_dialog(
+                    "Update failed",
+                    f"Could not mark the AppImage as executable.\n\n{exc}",
+                ),
+            )
+            return
+        self._finish_prepared_update_source(
+            record,
+            source_path,
+            validate_selection=validate_selection,
+        )
+
+    def _finish_prepared_update_source(
+        self,
+        record: ManagedAppRecord,
+        source_path: Path,
+        *,
+        validate_selection: bool,
+    ) -> None:
+        if not validate_selection:
+            self._begin_update_install(record, source_path)
+            return
         try:
             matched_candidate = self.services.update_discovery.evaluate_candidate(record, source_path)
         except OSError as exc:

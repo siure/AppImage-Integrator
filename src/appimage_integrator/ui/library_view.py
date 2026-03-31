@@ -36,7 +36,7 @@ class LibraryView(Gtk.Box):
             self._build_centered_status_page(
                 icon_name="folder-symbolic",
                 title="No AppImages Yet",
-                description="Installed AppImages will appear here",
+                description="Managed AppImages you add will appear here",
             ),
             "empty",
         )
