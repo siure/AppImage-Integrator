@@ -28,6 +28,11 @@ _ARCH_TOKENS = {
     "appimage",
 }
 _VERSION_RE = re.compile(r"\b\d+(?:[._-]\d+)*(?:[._-]?(?:alpha|beta|rc)\d*)?\b", re.IGNORECASE)
+_FILENAME_VERSION_RE = re.compile(
+    r"(?:^|[-_.()\[\]\s])v?(\d+(?:[._-]\d+)+(?:[._-]?(?:alpha|beta|rc)\d*)?|\d+[._-]?(?:alpha|beta|rc)\d*)"
+    r"(?=$|[-_.()\[\]\s])",
+    re.IGNORECASE,
+)
 _SEPARATOR_RE = re.compile(r"[-_.()\[\]]+")
 _WHITESPACE_RE = re.compile(r"\s+")
 UpdateProgressCallback = Callable[[str, str], None]
@@ -268,7 +273,7 @@ class UpdateDiscoveryService:
             version_cmp = compare_versions(match.detected_version, record.version)
             if match.detected_version and record.version and version_cmp > 0:
                 higher_version_candidates.append(match)
-            else:
+            elif not match.detected_version or not record.version or version_cmp == 0:
                 same_or_unknown_candidates.append(match)
 
     def _partition_candidates(
@@ -279,11 +284,52 @@ class UpdateDiscoveryService:
         likely_candidates: list[tuple[Path, str]] = []
         fallback_candidates: list[tuple[Path, str]] = []
         for candidate_path, source_dir_kind in candidate_entries:
+            if self._filename_version_is_known_older(record, candidate_path):
+                continue
             if self._candidate_name_might_match(record, candidate_path):
                 likely_candidates.append((candidate_path, source_dir_kind))
             else:
                 fallback_candidates.append((candidate_path, source_dir_kind))
-        return likely_candidates, fallback_candidates
+        return self._sort_likely_candidate_entries(record, likely_candidates), fallback_candidates
+
+    def _candidate_filename_version(self, candidate_path: Path) -> str | None:
+        matches = list(_FILENAME_VERSION_RE.finditer(candidate_path.stem))
+        if not matches:
+            return None
+        return matches[-1].group(1).replace("_", ".").replace("-", ".")
+
+    def _filename_version_is_known_older(self, record: ManagedAppRecord, candidate_path: Path) -> bool:
+        if not record.version:
+            return False
+        filename_version = self._candidate_filename_version(candidate_path)
+        if not filename_version:
+            return False
+        return compare_versions(filename_version, record.version) < 0
+
+    def _sort_likely_candidate_entries(
+        self,
+        record: ManagedAppRecord,
+        candidate_entries: list[tuple[Path, str]],
+    ) -> list[tuple[Path, str]]:
+        return sorted(
+            candidate_entries,
+            key=lambda entry: (
+                self._filename_version_sort_group(record, entry[0]),
+                -entry[0].stat().st_mtime,
+                entry[0].name.lower(),
+            ),
+        )
+
+    def _filename_version_sort_group(self, record: ManagedAppRecord, candidate_path: Path) -> int:
+        filename_version = self._candidate_filename_version(candidate_path)
+        if not filename_version or not record.version:
+            return 1
+        version_cmp = compare_versions(filename_version, record.version)
+        if version_cmp > 0:
+            return 0
+        if version_cmp == 0:
+            return 2
+        return 3
 
     def _candidate_name_might_match(self, record: ManagedAppRecord, candidate_path: Path) -> bool:
         candidate_name = self._normalize_name(candidate_path.stem)

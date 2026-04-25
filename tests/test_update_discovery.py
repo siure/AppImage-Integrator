@@ -260,6 +260,92 @@ def test_update_discovery_uses_filename_fallback_and_same_version_bucket(test_pa
     assert result.higher_version_candidates[0].match_kind == "filename"
 
 
+def test_update_discovery_excludes_known_lower_version_candidate(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v2.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-legacy.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-lower-version"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="1.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict({**make_record(test_paths, source).to_dict(), "version": "2.0.0"})
+
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates == []
+    assert result.same_or_unknown_candidates == []
+
+
+def test_update_discovery_keeps_same_version_as_fallback(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v2.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-same.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-same-version"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict({**make_record(test_paths, source).to_dict(), "version": "2.0.0"})
+
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates == []
+    assert [item.path for item in result.same_or_unknown_candidates] == [candidate]
+
+
+def test_update_discovery_prefilters_obvious_older_filename_without_inspection(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "Demo-Browser-2.0.0.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    older_candidate = source.parent / "Demo-Browser-1.0.0.AppImage"
+    older_candidate.write_text("appimage", encoding="utf-8")
+    inspector = MappingInspector({})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict({**make_record(test_paths, source).to_dict(), "version": "2.0.0"})
+
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates == []
+    assert result.same_or_unknown_candidates == []
+    assert inspector.cleanup_calls == 0
+
+
+def test_update_discovery_does_not_prefilter_unknown_filename_version(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "Demo-Browser-2.0.0.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "Demo-Browser-latest.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-latest-version"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate: make_inspection(candidate, extracted, version="3.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict({**make_record(test_paths, source).to_dict(), "version": "2.0.0"})
+
+    result = service.discover_updates(record)
+
+    assert [item.path for item in result.higher_version_candidates] == [candidate]
+    assert result.same_or_unknown_candidates == []
+
+
 def test_update_discovery_sorts_identity_before_filename(test_paths) -> None:
     source = test_paths.home / "Downloads" / "demo-v1.AppImage"
     source.parent.mkdir(parents=True)

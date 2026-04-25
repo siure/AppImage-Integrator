@@ -22,7 +22,7 @@ class UpdateSourceDialog:
             title="Choose AppImage Update",
             transient_for=self._parent,
             modal=True,
-            resizable=False,
+            resizable=True,
         )
         self._window.add_css_class("integrator-dialog")
         self._window.add_css_class("update-source-dialog")

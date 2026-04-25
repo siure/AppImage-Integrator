@@ -151,6 +151,7 @@ def test_update_source_dialog_lists_candidates_and_defaults_to_first_higher(tmp_
         row = row.get_next_sibling()
 
     assert len(rows) == 2
+    assert dialog._window.get_resizable() is True
     assert dialog.get_selected_candidate() == candidate_one
     assert dialog.use_button.get_sensitive() is True
     assert rows[0].has_css_class("selected") is True
