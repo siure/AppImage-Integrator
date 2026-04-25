@@ -17,7 +17,7 @@ AppDir:
     id: io.github.appimageintegrator
     name: AppImage Integrator
     icon: io.github.appimageintegrator
-    version: __APPIMAGE_VERSION__
+    version: "__APPIMAGE_VERSION__"
     exec: usr/bin/python3
     exec_args: "\"${APPDIR}/usr/bin/appimage-integrator\" $@"
 
