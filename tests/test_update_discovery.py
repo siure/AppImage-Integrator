@@ -6,6 +6,7 @@ from appimage_integrator.models import AppImageInspection, ManagedAppRecord
 from appimage_integrator.services.desktop_entry import parse_desktop_entry
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services import update_discovery as update_discovery_module
 from appimage_integrator.services.update_discovery import UpdateDiscoveryService
 
 
@@ -188,6 +189,34 @@ def test_update_discovery_searches_managed_payload_dir_without_active_payload(te
 
     assert [item.path for item in result.higher_version_candidates] == [managed_payload_candidate]
     assert test_paths.managed_payloads_root / "org-demo-browser-b3029f72" in result.searched_directories
+
+
+def test_update_discovery_limits_candidates_per_directory(test_paths, monkeypatch) -> None:
+    monkeypatch.setattr(update_discovery_module, "MAX_APPIMAGE_CANDIDATES_PER_DIRECTORY", 3)
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate_a = source.parent / "demo-v2-a.AppImage"
+    candidate_b = source.parent / "demo-v2-b.AppImage"
+    candidate_c = source.parent / "demo-v2-c.AppImage"
+    for candidate in (candidate_a, candidate_b, candidate_c):
+        candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-limit"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            candidate_a: make_inspection(candidate_a, extracted, version="2.0.0"),
+            candidate_b: make_inspection(candidate_b, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+
+    result = service.discover_updates(make_record(test_paths, source))
+
+    discovered_paths = [item.path for item in result.higher_version_candidates]
+    assert discovered_paths == [candidate_b, candidate_a]
+    assert candidate_c not in discovered_paths
 
 
 def test_update_discovery_uses_filename_fallback_and_same_version_bucket(test_paths) -> None:

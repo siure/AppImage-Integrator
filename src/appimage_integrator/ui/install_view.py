@@ -421,6 +421,8 @@ class InstallView(Gtk.Box):
         existing: ManagedAppRecord | None,
         mode: str,
     ) -> bool:
+        if self.current_inspection is not None and self.current_inspection is not inspection:
+            self.install_manager.inspector.cleanup(self.current_inspection)
         self.current_inspection = inspection
         self.current_existing = existing
         self.current_mode = mode
@@ -575,6 +577,11 @@ class InstallView(Gtk.Box):
         return False
 
     def reset(self, clear_selection: bool = True) -> None:
+        if self.current_inspection is not None:
+            try:
+                self.install_manager.inspector.cleanup(self.current_inspection)
+            finally:
+                self.current_inspection = None
         self.name_label.set_text("")
         self.comment_label.set_text("")
         self.name_entry.set_text("")
@@ -583,7 +590,6 @@ class InstallView(Gtk.Box):
         self.preset_combo.set_selected(0)
         self.install_button.set_label("Install")
         self.tech_expander.set_expanded(False)
-        self.current_inspection = None
         self.current_existing = None
         self.current_mode = "install"
         self._clear_tech_rows()

@@ -25,6 +25,19 @@ class DummyInstallManager:
         return None
 
 
+class CleanupTrackingInspector:
+    def __init__(self) -> None:
+        self.cleaned: list[AppImageInspection] = []
+
+    def cleanup(self, inspection: AppImageInspection) -> None:
+        self.cleaned.append(inspection)
+
+
+class CleanupTrackingInstallManager(DummyInstallManager):
+    def __init__(self) -> None:
+        self.inspector = CleanupTrackingInspector()
+
+
 class FakeMessageDialog:
     instances: list["FakeMessageDialog"] = []
 
@@ -162,6 +175,19 @@ def test_load_path_enters_busy_state_and_apply_inspection_reveals_editor(
     assert view.comment_entry.get_text() == "A demo app"
     assert view.install_button.get_label() == "Update"
     assert view.install_button.get_sensitive() is True
+
+
+def test_reset_cleans_current_inspection(tmp_path: Path) -> None:
+    Gtk.init()
+    manager = CleanupTrackingInstallManager()
+    view = InstallView(manager, lambda: None, lambda _message: None)
+    inspection = _make_inspection(tmp_path / "demo.AppImage")
+
+    view._apply_inspection(inspection, _make_record(tmp_path), "install")
+    view.reset()
+
+    assert manager.inspector.cleaned == [inspection]
+    assert view.current_inspection is None
 
 
 def test_apply_install_result_hides_editor_and_resets_selection(

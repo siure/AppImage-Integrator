@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import os
 import re
 from pathlib import Path
 
@@ -30,6 +31,7 @@ _VERSION_RE = re.compile(r"\b\d+(?:[._-]\d+)*(?:[._-]?(?:alpha|beta|rc)\d*)?\b",
 _SEPARATOR_RE = re.compile(r"[-_.()\[\]]+")
 _WHITESPACE_RE = re.compile(r"\s+")
 UpdateProgressCallback = Callable[[str, str], None]
+MAX_APPIMAGE_CANDIDATES_PER_DIRECTORY = 200
 
 
 class UpdateDiscoveryService:
@@ -53,6 +55,7 @@ class UpdateDiscoveryService:
         same_or_unknown_candidates: list[UpdateCandidate] = []
         skipped_paths: list[str] = []
         candidate_entries: list[tuple[Path, str]] = []
+        seen_candidate_paths: set[Path] = set()
 
         for directory, source_dir_kind in searched_directories:
             self._emit_progress(
@@ -61,6 +64,10 @@ class UpdateDiscoveryService:
                 f"Looking for AppImages in {directory}.",
             )
             for candidate_path in self._iter_appimages(directory):
+                resolved_candidate = candidate_path.resolve(strict=False)
+                if resolved_candidate in seen_candidate_paths:
+                    continue
+                seen_candidate_paths.add(resolved_candidate)
                 if self._should_skip_candidate(record, candidate_path):
                     continue
                 candidate_entries.append((candidate_path, source_dir_kind))
@@ -137,14 +144,27 @@ class UpdateDiscoveryService:
         return directories
 
     def _iter_appimages(self, directory: Path) -> list[Path]:
-        return sorted(
-            (
-                path
-                for path in directory.rglob("*")
-                if path.is_file() and path.suffix.lower() == ".appimage"
-            ),
-            key=lambda path: str(path).lower(),
-        )
+        candidates: list[Path] = []
+        stack = [directory]
+        while stack and len(candidates) < MAX_APPIMAGE_CANDIDATES_PER_DIRECTORY:
+            current = stack.pop()
+            try:
+                entries = sorted(os.scandir(current), key=lambda entry: entry.name.lower())
+            except OSError:
+                continue
+            for entry in entries:
+                path = Path(entry.path)
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        stack.append(path)
+                        continue
+                    if entry.is_file(follow_symlinks=False) and path.suffix.lower() == ".appimage":
+                        candidates.append(path)
+                        if len(candidates) >= MAX_APPIMAGE_CANDIDATES_PER_DIRECTORY:
+                            break
+                except OSError:
+                    continue
+        return sorted(candidates, key=lambda path: str(path).lower())
 
     def _should_skip_candidate(self, record: ManagedAppRecord, candidate_path: Path) -> bool:
         resolved_candidate = candidate_path.resolve(strict=False)

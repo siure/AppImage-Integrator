@@ -200,6 +200,17 @@ def test_cli_install_list_details_reinstall_and_uninstall(test_paths, tooling) -
     assert len(listed) == 1
     assert listed[0]["internal_id"] == internal_id
 
+    original_validate_record = services.library_manager.validate_record
+
+    def fail_validation(*_args, **_kwargs):
+        raise AssertionError("list should not validate records unless requested")
+
+    services.library_manager.validate_record = fail_validation
+    code, stdout, stderr = run_args(parser, services, "list", "--json")
+    assert code == 0, stderr
+    assert json.loads(stdout)[0]["internal_id"] == internal_id
+    services.library_manager.validate_record = original_validate_record
+
     code, stdout, stderr = run_args(parser, services, "details", internal_id, "--json")
     assert code == 0, stderr
     details = json.loads(stdout)
@@ -522,6 +533,7 @@ def test_cli_update_uses_detected_higher_version(test_paths, tooling) -> None:
     payload = json.loads(stdout)
     assert payload["mode"] == "update"
     assert payload["record"]["source_path_last_seen"] == str(update_source)
+    assert len(services.install_manager.inspector.inspections) == 1
 
 
 def test_cli_update_falls_back_to_manual_path_when_no_higher_version_exists(test_paths, tooling) -> None:

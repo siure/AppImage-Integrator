@@ -54,6 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     list_parser = subparsers.add_parser("list", help="List managed AppImages")
     list_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    list_parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Refresh validation status for every record before listing",
+    )
 
     details_parser = subparsers.add_parser("details", help="Show stored details for a managed AppImage")
     details_parser.add_argument("identifier", help="Internal ID, unique ID prefix, or display name")
@@ -224,7 +229,9 @@ def _cmd_install(args: argparse.Namespace, services, stdout: TextIO, stderr: Tex
 
 
 def _cmd_list(args: argparse.Namespace, services, stdout: TextIO) -> int:
-    records = [_sync_record_validation(record, services) for record in services.library_manager.list_records()]
+    records = services.library_manager.list_records()
+    if args.validate:
+        records = [_sync_record_validation(record, services) for record in records]
     if args.json:
         _write_json(stdout, [record.to_dict() for record in records])
         return 0
@@ -364,11 +371,13 @@ def _cmd_update(
     chosen_path = _choose_update_source(record, discovery, interaction_output, stderr, stdin)
     if chosen_path is None:
         return 0
-    try:
-        matched_candidate = services.update_discovery.evaluate_candidate(record, chosen_path)
-    except OSError as exc:
-        stderr.write(f"Could not inspect selected AppImage: {exc}\n")
-        return 1
+    matched_candidate = _candidate_from_discovery(discovery, chosen_path)
+    if matched_candidate is None:
+        try:
+            matched_candidate = services.update_discovery.evaluate_candidate(record, chosen_path)
+        except OSError as exc:
+            stderr.write(f"Could not inspect selected AppImage: {exc}\n")
+            return 1
     if matched_candidate is None:
         stderr.write("Selected AppImage does not appear to be the same application.\n")
         return 1
@@ -499,6 +508,14 @@ def _choose_update_source(record, discovery, stdout: TextIO, stderr: TextIO, std
         for directory in discovery.searched_directories:
             stdout.write(f"- {directory}\n")
     return _prompt_for_update_path(stdin, stdout, stderr)
+
+
+def _candidate_from_discovery(discovery, path: Path):
+    resolved_path = path.resolve(strict=False)
+    for candidate in [*discovery.higher_version_candidates, *discovery.same_or_unknown_candidates]:
+        if candidate.path.resolve(strict=False) == resolved_path:
+            return candidate
+    return None
 
 
 def _prompt_for_update_path(stdin: TextIO, stdout: TextIO, stderr: TextIO) -> Path | None:
