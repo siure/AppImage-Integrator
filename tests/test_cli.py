@@ -323,7 +323,7 @@ def test_cli_install_rejects_non_appimage(test_paths, tooling) -> None:
     assert "not a valid AppImage" in stderr
 
 
-def test_cli_launch_allows_desktop_warnings(monkeypatch, test_paths, tooling) -> None:
+def test_cli_launch_skips_validation_and_desktop_warnings(monkeypatch, test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "warning-launch.AppImage"
     source.parent.mkdir(parents=True)
     source.write_text("appimage", encoding="utf-8")
@@ -341,9 +341,14 @@ def test_cli_launch_allows_desktop_warnings(monkeypatch, test_paths, tooling) ->
     assert code == 0, stderr
     internal_id = json.loads(stdout)["record"]["internal_id"]
 
-    services.library_manager.desktop_service.validate_text = (
-        lambda _text: ["demo.desktop: warning: comment matches name"]
-    )
+    def fail_validation(*_args, **_kwargs):
+        raise AssertionError("launch should not validate records")
+
+    def fail_desktop_validation(*_args, **_kwargs):
+        raise AssertionError("launch should not validate desktop files")
+
+    services.library_manager.validate_record = fail_validation
+    services.library_manager.desktop_service.validate_text = fail_desktop_validation
 
     launched: list[list[str]] = []
 
@@ -362,6 +367,7 @@ def test_cli_launch_allows_desktop_warnings(monkeypatch, test_paths, tooling) ->
     assert stderr == ""
     assert "Launched Demo Browser" in stdout
     assert launched == [[services.store.load(internal_id).managed_appimage_path, "--existing"]]
+    assert services.install_manager.inspector.inspections == []
 
 
 def test_cli_launch_forwards_passthrough_args(monkeypatch, test_paths, tooling) -> None:
@@ -381,6 +387,7 @@ def test_cli_launch_forwards_passthrough_args(monkeypatch, test_paths, tooling) 
     code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
     assert code == 0, stderr
     internal_id = json.loads(stdout)["record"]["internal_id"]
+    assert services.install_manager.inspector.inspections == []
 
     launched: list[list[str]] = []
 
@@ -407,6 +414,7 @@ def test_cli_launch_forwards_passthrough_args(monkeypatch, test_paths, tooling) 
     assert code == 0
     assert stderr == ""
     assert launched == [[services.store.load(internal_id).managed_appimage_path, "--existing", "--sample", "value", "%U"]]
+    assert services.install_manager.inspector.inspections == []
 
 
 def test_cli_launch_desktop_auto_heals_renamed_payload(monkeypatch, test_paths, tooling) -> None:
@@ -460,6 +468,7 @@ def test_cli_launch_desktop_auto_heals_renamed_payload(monkeypatch, test_paths, 
     assert updated_record.version == "2.0.0"
     assert Path(updated_record.managed_appimage_path).resolve() == replacement.resolve()
     assert launched == [[updated_record.managed_appimage_path, "--existing"]]
+    assert services.install_manager.inspector.inspections == []
 
 
 def test_cli_launch_desktop_shows_visible_failure_when_recovery_fails(monkeypatch, test_paths, tooling) -> None:

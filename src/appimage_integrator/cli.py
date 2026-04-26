@@ -265,15 +265,16 @@ def _cmd_launch(args: argparse.Namespace, services, stdout: TextIO, stderr: Text
     except ValueError as exc:
         stderr.write(f"{exc}\n")
         return 1
-    record = _sync_record_validation(record, services)
     launch_args = _normalize_launch_args(args.launch_args)
-    if record.last_validation_status == "error":
-        _write_launch_blocked(stderr, record.last_validation_messages)
+    record = _prepare_record_for_launch(record, services)
+    launch_blocking_issues = _launch_blocking_issues(record)
+    if launch_blocking_issues:
+        _write_launch_blocked(stderr, launch_blocking_issues)
         if args.desktop:
             _show_launch_error_dialog(
                 "Launch blocked",
                 "AppImage Integrator could not launch this AppImage.",
-                record.last_validation_messages,
+                launch_blocking_issues,
             )
         return 1
     try:
@@ -298,6 +299,16 @@ def _cmd_launch(args: argparse.Namespace, services, stdout: TextIO, stderr: Text
         return 1
     stdout.write(f"Launched {record.display_name}\n")
     return 0
+
+
+def _prepare_record_for_launch(record: ManagedAppRecord, services) -> ManagedAppRecord:
+    if not _launch_blocking_issues(record):
+        return record
+
+    recovered = services.runtime_service.recover_record_for_launch(record)
+    if recovered != record:
+        services.store.save(recovered)
+    return recovered
 
 
 def _cmd_repair(args: argparse.Namespace, services, stdout: TextIO, stderr: TextIO) -> int:
@@ -629,6 +640,15 @@ def _write_launch_blocked(stderr: TextIO, messages: list[str]) -> None:
     stderr.write("Launch blocked by integration errors:\n")
     for message in messages:
         stderr.write(f"- {message}\n")
+
+
+def _launch_blocking_issues(record: ManagedAppRecord) -> list[str]:
+    appimage_path = Path(record.managed_appimage_path)
+    if not appimage_path.exists():
+        return ["Managed AppImage is missing."]
+    if not os.access(appimage_path, os.X_OK):
+        return ["Managed AppImage is not executable."]
+    return []
 
 
 def _show_launch_error_dialog(title: str, intro: str, messages: list[str]) -> None:

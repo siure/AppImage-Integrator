@@ -111,6 +111,9 @@ class ManagedAppRuntimeService:
         finally:
             self.inspector.cleanup(replacement.inspection)
 
+    def recover_record_for_launch(self, record: ManagedAppRecord) -> ManagedAppRecord:
+        return self.reconcile_record(record, allow_payload_inspection=True)
+
     def remove_managed_artifacts(self, record: ManagedAppRecord) -> None:
         if is_self_record(record):
             self.paths.self_command_path.unlink(missing_ok=True)
