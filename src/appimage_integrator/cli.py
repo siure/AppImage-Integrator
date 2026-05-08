@@ -127,6 +127,11 @@ def _add_install_options(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Mark the AppImage executable before inspection and installation if needed",
     )
+    parser.add_argument(
+        "--copy",
+        action="store_true",
+        help="Install as a separate copy even if this AppImage matches an existing integration",
+    )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
 
 
@@ -200,6 +205,7 @@ def _cmd_install(args: argparse.Namespace, services, stdout: TextIO, stderr: Tex
                 arg_preset_id=args.preset,
                 allow_update=True,
                 allow_reinstall=True,
+                install_action="copy" if args.copy else "auto",
             )
         )
     except ValueError as exc:
@@ -422,6 +428,7 @@ def _install_from_record_source(
                 arg_preset_id=record.arg_preset_id,
                 allow_update=True,
                 allow_reinstall=True,
+                install_action="auto",
             )
         )
     except ValueError as exc:

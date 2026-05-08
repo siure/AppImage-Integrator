@@ -40,3 +40,12 @@ class IdResolver:
             basis = "|".join((name.strip(), startup.strip(), icon.strip()))
             slug_source = name
         return _resolve_identity(basis, slug_source)
+
+    def resolve_copy(
+        self,
+        base_identity: IdentityResolution,
+        display_name: str,
+        copy_index: int,
+    ) -> IdentityResolution:
+        basis = f"{base_identity.basis}|copy|{copy_index}|{display_name}"
+        return _resolve_identity(basis, display_name)

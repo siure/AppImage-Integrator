@@ -232,6 +232,11 @@ class UpdateDiscoveryService:
             return 100
         if identity.identity_fingerprint == record.identity_fingerprint:
             return 95
+        if (
+            record.base_identity_fingerprint
+            and identity.identity_fingerprint == record.base_identity_fingerprint
+        ):
+            return 92
         if inspection.appstream_id and record.appstream_id and inspection.appstream_id == record.appstream_id:
             return 90
         if (

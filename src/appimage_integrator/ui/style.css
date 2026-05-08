@@ -79,6 +79,34 @@ viewport,
     font-size: 0.92rem;
 }
 
+.install-footer-button,
+.install-split-button button {
+    min-height: 36px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.install-footer-button {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.install-split-button .install-primary-action {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-left: 16px;
+    padding-right: 14px;
+}
+
+.install-split-button .install-secondary-action {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid alpha(white, 0.18);
+    min-width: 34px;
+    padding-left: 0;
+    padding-right: 0;
+}
+
 .install-source-label {
     min-width: 160px;
 }

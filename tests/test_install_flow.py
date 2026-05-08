@@ -211,6 +211,195 @@ def test_install_downgrade_is_reported_as_reinstall(test_paths, tooling) -> None
     assert downgraded.mode == "reinstall"
 
 
+def test_install_copy_creates_second_record_for_same_identity(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    original_payload = original.record.managed_payload_path
+    copied = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+
+    records = store.load_all()
+    assert copied.mode == "copy"
+    assert len(records) == 2
+    assert copied.record.internal_id != original.record.internal_id
+    assert copied.record.managed_appimage_path != original.record.managed_appimage_path
+    assert copied.record.managed_payload_dir != original.record.managed_payload_dir
+    assert store.load(original.record.internal_id).managed_payload_path == original_payload
+
+
+def test_install_copy_uses_custom_display_name(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-custom"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, _, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+    manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    copied = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override="Demo Nightly",
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+
+    assert copied.record.display_name == "Demo Nightly"
+
+
+def test_install_copy_generates_unique_default_names(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-names"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, _, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "1.0.0"),
+        ],
+    )
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    first_copy = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+    second_copy = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+
+    assert [original.record.display_name, first_copy.record.display_name, second_copy.record.display_name] == [
+        "Demo Browser",
+        "Demo Browser Copy",
+        "Demo Browser Copy 2",
+    ]
+
+
+def test_copy_install_does_not_update_existing_version(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-version"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "2.0.0")],
+    )
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    copied = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+
+    assert store.load(original.record.internal_id).version == "1.0.0"
+    assert copied.record.version == "2.0.0"
+
+
 def test_ensure_source_executable_adds_execute_bit(test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "needs-trust.AppImage"
     source.parent.mkdir(parents=True)
@@ -481,6 +670,62 @@ def test_library_validation_adopts_managed_replacement(test_paths, tooling) -> N
         in Path(updated_record.managed_desktop_path).read_text(encoding="utf-8")
     )
     assert inspector.cleanup_calls == 2
+
+
+def test_copy_record_can_adopt_replacement_with_base_identity(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-adopt"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, desktop_service, runtime_service = build_manager(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "3.0.0"),
+        ],
+    )
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    copied = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+    copy_payload = Path(copied.record.managed_payload_path)
+    copy_payload.unlink()
+    replacement = Path(copied.record.managed_payload_dir) / "demo-v3.AppImage"
+    replacement.write_text("appimage", encoding="utf-8")
+    replacement.chmod(0o755)
+
+    library = LibraryManager(store, runtime_service, desktop_service)
+    updated_copy, status, messages = library.validate_record(copied.record)
+
+    assert status == "ok"
+    assert messages == []
+    assert updated_copy.version == "3.0.0"
+    assert Path(updated_copy.managed_appimage_path).resolve() == replacement.resolve()
+    assert store.load(original.record.internal_id).version == "1.0.0"
 
 
 def test_library_validation_does_not_scan_source_directory_for_replacement(test_paths, tooling) -> None:

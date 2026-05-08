@@ -5,7 +5,13 @@ import stat
 from datetime import datetime, timezone
 from pathlib import Path
 
-from appimage_integrator.models import AppImageInspection, InstallRequest, InstallResult, ManagedAppRecord
+from appimage_integrator.models import (
+    AppImageInspection,
+    IdentityResolution,
+    InstallRequest,
+    InstallResult,
+    ManagedAppRecord,
+)
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
@@ -72,11 +78,10 @@ class InstallManager:
             self.inspector.cleanup(inspection)
             raise ValueError(f"Could not install AppImage: {message}")
 
-        identity = self.id_resolver.resolve(inspection)
-        existing = self.store.load(identity.internal_id)
-        if existing:
-            existing = self.runtime_service.reconcile_record(existing)
-        mode = self._install_mode(existing, inspection.detected_version)
+        identity, base_identity, existing, mode, display_name, copy_index = self._resolve_install_target(
+            inspection,
+            request,
+        )
 
         placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
         if is_self_internal_id(identity.internal_id):
@@ -91,7 +96,7 @@ class InstallManager:
             inspection=inspection,
             appimage_path=placement.stable_path,
             icon_value=icon_value,
-            display_name=request.display_name_override or inspection.detected_name or request.source_path.stem,
+            display_name=display_name,
             comment=request.comment_override if request.comment_override is not None else inspection.detected_comment,
             extra_args=request.extra_args,
             arg_preset_id=request.arg_preset_id,
@@ -107,7 +112,7 @@ class InstallManager:
         validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         record = ManagedAppRecord(
             internal_id=identity.internal_id,
-            display_name=request.display_name_override or inspection.detected_name or request.source_path.stem,
+            display_name=display_name,
             comment=request.comment_override if request.comment_override is not None else inspection.detected_comment,
             version=inspection.detected_version,
             appstream_id=inspection.appstream_id,
@@ -127,6 +132,10 @@ class InstallManager:
             icon_managed_by_app=icon_managed,
             managed_payload_path=str(placement.payload_path),
             managed_payload_dir=str(placement.payload_dir),
+            base_identity_fingerprint=(
+                base_identity.identity_fingerprint if request.install_action == "copy" else None
+            ),
+            copy_index=copy_index if request.install_action == "copy" else None,
             managed_files=[
                 str(placement.stable_path),
                 str(desktop_path),
@@ -161,6 +170,79 @@ class InstallManager:
             self.tooling.run(
                 [self.tooling.tools.update_desktop_database, str(self.paths.desktop_entries_dir)]
             )
+
+    def _resolve_install_target(
+        self,
+        inspection: AppImageInspection,
+        request: InstallRequest,
+    ) -> tuple[IdentityResolution, IdentityResolution, ManagedAppRecord | None, str, str, int | None]:
+        base_identity = self.id_resolver.resolve(inspection)
+        base_display_name = (
+            request.display_name_override or inspection.detected_name or request.source_path.stem
+        )
+
+        if request.install_action != "copy":
+            existing = self.store.load(base_identity.internal_id)
+            if existing:
+                existing = self.runtime_service.reconcile_record(existing)
+            return (
+                base_identity,
+                base_identity,
+                existing,
+                self._install_mode(existing, inspection.detected_version),
+                base_display_name,
+                None,
+            )
+
+        copy_index = self._next_copy_index(base_identity)
+        display_name = self._copy_display_name(
+            base_display_name,
+            copy_index,
+            custom_name=request.display_name_override,
+        )
+        identity = self.id_resolver.resolve_copy(base_identity, display_name, copy_index)
+        while self.store.load(identity.internal_id) is not None:
+            copy_index += 1
+            display_name = self._copy_display_name(
+                base_display_name,
+                copy_index,
+                custom_name=request.display_name_override,
+            )
+            identity = self.id_resolver.resolve_copy(base_identity, display_name, copy_index)
+        return identity, base_identity, None, "copy", display_name, copy_index
+
+    def _next_copy_index(self, base_identity: IdentityResolution) -> int:
+        indexes = [0]
+        for record in self.store.load_all():
+            if record.identity_fingerprint == base_identity.identity_fingerprint:
+                indexes.append(0)
+            if record.base_identity_fingerprint == base_identity.identity_fingerprint:
+                indexes.append(record.copy_index or 1)
+        return max(indexes) + 1
+
+    def _copy_display_name(
+        self,
+        base_display_name: str,
+        copy_index: int,
+        *,
+        custom_name: str | None,
+    ) -> str:
+        existing_names = {record.display_name.casefold() for record in self.store.load_all()}
+        if custom_name and custom_name.casefold() not in existing_names:
+            return custom_name
+
+        root_name = custom_name or base_display_name
+        suffix_index = 1 if custom_name else copy_index
+        candidate = self._copy_name_for_index(root_name, suffix_index)
+        while candidate.casefold() in existing_names:
+            suffix_index += 1
+            candidate = self._copy_name_for_index(root_name, suffix_index)
+        return candidate
+
+    def _copy_name_for_index(self, display_name: str, copy_index: int) -> str:
+        if copy_index <= 1:
+            return f"{display_name} Copy"
+        return f"{display_name} Copy {copy_index}"
 
     def _install_mode(self, existing: ManagedAppRecord | None, detected_version: str | None) -> str:
         if existing is None:

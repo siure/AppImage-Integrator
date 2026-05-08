@@ -227,6 +227,79 @@ def test_cli_install_list_details_reinstall_and_uninstall(test_paths, tooling) -
     assert "Removed CLI Demo" in stdout
 
 
+def test_cli_install_copy_creates_separate_record(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-copy.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    source.chmod(0o644)
+    extracted = test_paths.cache_extract_dir / "extract-cli-copy"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    original = json.loads(stdout)["record"]
+
+    code, stdout, stderr = run_args(
+        parser,
+        services,
+        "install",
+        str(source),
+        "--trust",
+        "--copy",
+        "--json",
+    )
+    assert code == 0, stderr
+    copied = json.loads(stdout)
+    assert copied["mode"] == "copy"
+    assert copied["record"]["internal_id"] != original["internal_id"]
+
+    code, stdout, stderr = run_args(parser, services, "list", "--json")
+    assert code == 0, stderr
+    assert len(json.loads(stdout)) == 2
+
+
+def test_cli_install_copy_with_name(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-copy-name.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    source.chmod(0o644)
+    extracted = test_paths.cache_extract_dir / "extract-cli-copy-name"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+
+    code, stdout, stderr = run_args(
+        parser,
+        services,
+        "install",
+        str(source),
+        "--trust",
+        "--copy",
+        "--name",
+        "CLI Demo Nightly",
+        "--json",
+    )
+    assert code == 0, stderr
+    assert json.loads(stdout)["record"]["display_name"] == "CLI Demo Nightly"
+
+
 def test_cli_inspect_requires_trust_for_non_executable_source(test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "inspect.AppImage"
     source.parent.mkdir(parents=True)

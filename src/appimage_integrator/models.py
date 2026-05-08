@@ -9,6 +9,7 @@ from appimage_integrator.config import SCHEMA_VERSION
 
 ValidationStatus = Literal["ok", "warning", "error"]
 AppImageType = Literal["type1", "type2", "unknown"]
+InstallAction = Literal["auto", "copy"]
 UpdateMatchKind = Literal["identity", "filename"]
 UpdateSourceDirKind = Literal["source_dir", "downloads", "managed_payload_dir"]
 
@@ -85,6 +86,7 @@ class InstallRequest:
     arg_preset_id: str | None
     allow_update: bool
     allow_reinstall: bool
+    install_action: InstallAction = "auto"
 
 
 @dataclass(frozen=True)
@@ -122,6 +124,8 @@ class ManagedAppRecord:
     last_validation_messages: list[str]
     managed_payload_path: str | None = None
     managed_payload_dir: str | None = None
+    base_identity_fingerprint: str | None = None
+    copy_index: int | None = None
     schema_version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
@@ -133,6 +137,8 @@ class ManagedAppRecord:
         data.setdefault("managed_payload_path", None)
         data.setdefault("managed_payload_dir", None)
         data.setdefault("managed_files", [])
+        data.setdefault("base_identity_fingerprint", None)
+        data.setdefault("copy_index", None)
         data.setdefault("schema_version", SCHEMA_VERSION)
         return cls(**data)
 
@@ -147,7 +153,7 @@ class RepairReport:
 
 @dataclass(frozen=True)
 class InstallResult:
-    mode: Literal["install", "update", "reinstall", "repair"]
+    mode: Literal["install", "copy", "update", "reinstall", "repair"]
     record: ManagedAppRecord
     warnings: list[str]
     validation_messages: list[str]

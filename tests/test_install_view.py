@@ -175,6 +175,62 @@ def test_load_path_enters_busy_state_and_apply_inspection_reveals_editor(
     assert view.comment_entry.get_text() == "A demo app"
     assert view.install_button.get_label() == "Update"
     assert view.install_button.get_sensitive() is True
+    assert view.install_menu_button.get_visible() is True
+    assert view.install_menu_button.get_sensitive() is True
+
+
+def test_apply_inspection_without_existing_hides_split_copy_action(tmp_path: Path) -> None:
+    Gtk.init()
+    appimage_path = tmp_path / "demo.AppImage"
+    view = InstallView(DummyInstallManager(), lambda: None, lambda _message: None)
+
+    view._apply_inspection(_make_inspection(appimage_path), None, "install")
+
+    assert view.install_button.get_label() == "Install"
+    assert view.install_menu_button.get_visible() is False
+
+
+def test_install_copy_action_submits_copy_request(tmp_path: Path) -> None:
+    Gtk.init()
+    appimage_path = tmp_path / "demo.AppImage"
+    submitted = []
+    view = InstallView(DummyInstallManager(), lambda: None, lambda _message: None)
+    view.current_source_path = appimage_path
+    view._apply_inspection(_make_inspection(appimage_path), _make_record(tmp_path), "update")
+    view._submit_install_request = lambda request: submitted.append(request)
+
+    view._on_install_copy_clicked(view.install_copy_button)
+
+    assert submitted[0].install_action == "copy"
+
+
+def test_install_copy_uses_none_override_when_name_unchanged(tmp_path: Path) -> None:
+    Gtk.init()
+    appimage_path = tmp_path / "demo.AppImage"
+    submitted = []
+    view = InstallView(DummyInstallManager(), lambda: None, lambda _message: None)
+    view.current_source_path = appimage_path
+    view._apply_inspection(_make_inspection(appimage_path), _make_record(tmp_path), "update")
+    view._submit_install_request = lambda request: submitted.append(request)
+
+    view._on_install_copy_clicked(view.install_copy_button)
+
+    assert submitted[0].display_name_override is None
+
+
+def test_install_copy_uses_override_when_name_edited(tmp_path: Path) -> None:
+    Gtk.init()
+    appimage_path = tmp_path / "demo.AppImage"
+    submitted = []
+    view = InstallView(DummyInstallManager(), lambda: None, lambda _message: None)
+    view.current_source_path = appimage_path
+    view._apply_inspection(_make_inspection(appimage_path), _make_record(tmp_path), "update")
+    view.name_entry.set_text("Demo Nightly")
+    view._submit_install_request = lambda request: submitted.append(request)
+
+    view._on_install_copy_clicked(view.install_copy_button)
+
+    assert submitted[0].display_name_override == "Demo Nightly"
 
 
 def test_reset_cleans_current_inspection(tmp_path: Path) -> None:

@@ -227,7 +227,14 @@ class ManagedAppRuntimeService:
                 continue
             inspection = self.inspector.inspect(candidate_path)
             identity = self.id_resolver.resolve(inspection)
-            if identity.internal_id == record.internal_id or identity.identity_fingerprint == record.identity_fingerprint:
+            if (
+                identity.internal_id == record.internal_id
+                or identity.identity_fingerprint == record.identity_fingerprint
+                or (
+                    record.base_identity_fingerprint is not None
+                    and identity.identity_fingerprint == record.base_identity_fingerprint
+                )
+            ):
                 candidates.append(
                     _ReplacementCandidate(
                         path=candidate_path,

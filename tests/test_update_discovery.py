@@ -131,6 +131,38 @@ def test_update_discovery_finds_higher_version_in_source_directory(test_paths) -
     assert result.same_or_unknown_candidates == []
 
 
+def test_update_discovery_matches_copy_base_identity(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-update"
+    extracted.mkdir(parents=True)
+    inspection = make_inspection(candidate, extracted, version="2.0.0")
+    base_identity = IdResolver().resolve(inspection)
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "internal_id": "demo-browser-copy-a1b2c3d4",
+            "identity_fingerprint": "copy-fingerprint",
+            "base_identity_fingerprint": base_identity.identity_fingerprint,
+            "copy_index": 1,
+        }
+    )
+    service = UpdateDiscoveryService(
+        test_paths,
+        MappingInspector({candidate: inspection}),
+        IdResolver(),
+    )
+
+    match = service.evaluate_candidate(record, candidate)
+
+    assert match is not None
+    assert match.match_kind == "identity"
+    assert match.match_score == 92
+
+
 def test_update_discovery_uses_downloads_and_ignores_current_and_managed_payload(test_paths) -> None:
     source = test_paths.home / "Apps" / "demo-v1.AppImage"
     source.parent.mkdir(parents=True)

@@ -41,6 +41,7 @@ class InstallView(Gtk.Box):
         self.current_source_path: Path | None = None
         self.current_inspection: AppImageInspection | None = None
         self.current_existing: ManagedAppRecord | None = None
+        self.current_default_display_name: str | None = None
         self.current_mode = "install"
         self._busy = False
         self._tech_rows: list[Gtk.Widget] = []
@@ -181,16 +182,52 @@ class InstallView(Gtk.Box):
 
         cancel_btn = Gtk.Button(label="Cancel")
         cancel_btn.add_css_class("pill")
+        cancel_btn.add_css_class("install-footer-button")
+        cancel_btn.set_size_request(88, -1)
         cancel_btn.connect("clicked", lambda _btn: self.reset())
         self.cancel_button = cancel_btn
         footer.append(cancel_btn)
 
+        split_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        split_box.add_css_class("install-split-button")
+
         install_btn = Gtk.Button(label="Install")
         install_btn.add_css_class("pill")
         install_btn.add_css_class("suggested-action")
+        install_btn.add_css_class("install-footer-button")
+        install_btn.add_css_class("install-primary-action")
+        install_btn.set_size_request(88, -1)
         install_btn.connect("clicked", self._on_install_clicked)
         self.install_button = install_btn
-        footer.append(install_btn)
+        split_box.append(install_btn)
+
+        popover = Gtk.Popover()
+        popover.add_css_class("menu")
+        menu_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        menu_box.set_margin_top(6)
+        menu_box.set_margin_bottom(6)
+        menu_box.set_margin_start(6)
+        menu_box.set_margin_end(6)
+        self.install_copy_button = Gtk.Button(label="Install a copy")
+        self.install_copy_button.add_css_class("flat")
+        self.install_copy_button.set_halign(Gtk.Align.FILL)
+        self.install_copy_button.connect("clicked", self._on_install_copy_clicked)
+        menu_box.append(self.install_copy_button)
+        popover.set_child(menu_box)
+        self.install_menu_popover = popover
+
+        install_menu_btn = Gtk.Button()
+        install_menu_btn.add_css_class("pill")
+        install_menu_btn.add_css_class("suggested-action")
+        install_menu_btn.add_css_class("install-footer-button")
+        install_menu_btn.add_css_class("install-secondary-action")
+        install_menu_btn.set_size_request(34, -1)
+        install_menu_btn.set_child(Gtk.Image.new_from_icon_name("pan-down-symbolic"))
+        install_menu_btn.connect("clicked", self._on_install_menu_clicked)
+        self.install_menu_button = install_menu_btn
+        split_box.append(install_menu_btn)
+
+        footer.append(split_box)
 
         form_box.append(footer)
 
@@ -202,6 +239,7 @@ class InstallView(Gtk.Box):
             self.tech_expander.widget,
             self.cancel_button,
             self.install_button,
+            self.install_menu_button,
         ]
 
     def _show_editor(self, visible: bool) -> None:
@@ -221,10 +259,15 @@ class InstallView(Gtk.Box):
             widget.set_sensitive(sensitive)
 
         if self._busy:
+            self.install_menu_button.set_visible(False)
             return
 
+        self.install_menu_button.set_visible(False)
         if self.current_inspection is not None:
-            self.install_button.set_sensitive(inspection_can_install(self.current_inspection))
+            can_install = inspection_can_install(self.current_inspection)
+            self.install_button.set_sensitive(can_install)
+            self.install_menu_button.set_visible(self.current_existing is not None)
+            self.install_menu_button.set_sensitive(can_install)
             return
 
         if self.current_source_path is not None:
@@ -436,6 +479,7 @@ class InstallView(Gtk.Box):
         self.comment_label.set_text(comment or "Embedded metadata will be reused when possible.")
         self.name_entry.set_text(name)
         self.comment_entry.set_text(comment)
+        self.current_default_display_name = name
         self.install_button.set_label(mode.capitalize())
         self._set_preview_icon(inspection=inspection)
         self._populate_tech_details(inspection, existing)
@@ -478,6 +522,7 @@ class InstallView(Gtk.Box):
         self.current_existing = record
         self.current_mode = button_label.lower()
         self.current_inspection = None
+        self.current_default_display_name = record.display_name
         self.name_label.set_text(record.display_name)
         self.comment_label.set_text(record.comment or "Reuse the current managed metadata.")
         self.name_entry.set_text(record.display_name)
@@ -515,10 +560,33 @@ class InstallView(Gtk.Box):
     def _on_install_clicked(self, _button: Gtk.Button) -> None:
         if self.current_source_path is None:
             return
+        self._submit_current_source_install("auto")
+
+    def _on_install_menu_clicked(self, button: Gtk.Button) -> None:
+        self.install_menu_popover.set_parent(button)
+        self.install_menu_popover.popup()
+
+    def _on_install_copy_clicked(self, _button: Gtk.Button) -> None:
+        self.install_menu_popover.popdown()
+        if self.current_source_path is None:
+            return
+        self._submit_current_source_install("copy")
+
+    def _submit_current_source_install(self, install_action: str) -> None:
+        if self.current_source_path is None:
+            return
+        name_text = self.name_entry.get_text().strip()
+        display_name_override = name_text or None
+        if (
+            install_action == "copy"
+            and self.current_default_display_name is not None
+            and name_text == self.current_default_display_name
+        ):
+            display_name_override = None
         self._submit_install_request(
             InstallRequest(
                 source_path=self.current_source_path,
-                display_name_override=self.name_entry.get_text().strip() or None,
+                display_name_override=display_name_override,
                 comment_override=self.comment_entry.get_text().strip() or None,
                 extra_args=shlex.split(self.args_entry.get_text().strip())
                 if self.args_entry.get_text().strip()
@@ -528,6 +596,7 @@ class InstallView(Gtk.Box):
                 ),
                 allow_update=True,
                 allow_reinstall=True,
+                install_action=install_action,
             )
         )
 
@@ -541,6 +610,7 @@ class InstallView(Gtk.Box):
                 arg_preset_id=record.arg_preset_id,
                 allow_update=True,
                 allow_reinstall=True,
+                install_action="auto",
             )
         )
 
@@ -589,8 +659,10 @@ class InstallView(Gtk.Box):
         self.args_entry.set_text("")
         self.preset_combo.set_selected(0)
         self.install_button.set_label("Install")
+        self.install_menu_button.set_visible(False)
         self.tech_expander.set_expanded(False)
         self.current_existing = None
+        self.current_default_display_name = None
         self.current_mode = "install"
         self._clear_tech_rows()
         self._set_preview_icon()
