@@ -11,7 +11,13 @@ ValidationStatus = Literal["ok", "warning", "error"]
 AppImageType = Literal["type1", "type2", "unknown"]
 InstallAction = Literal["auto", "copy"]
 UpdateMatchKind = Literal["identity", "filename"]
-UpdateSourceDirKind = Literal["source_dir", "downloads", "managed_payload_dir"]
+UpdateSourceDirKind = Literal[
+    "source_dir",
+    "downloads",
+    "managed_payload_dir",
+    "recovery_payload_dir",
+    "recovery_stable_dir",
+]
 
 
 @dataclass(frozen=True)
@@ -87,6 +93,7 @@ class InstallRequest:
     allow_update: bool
     allow_reinstall: bool
     install_action: InstallAction = "auto"
+    target_internal_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -192,6 +199,7 @@ class UpdateDiscoveryResult:
     higher_version_candidates: list[UpdateCandidate]
     same_or_unknown_candidates: list[UpdateCandidate]
     skipped_paths: list[str]
+    stopped_after_priority_match: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -200,4 +208,5 @@ class UpdateDiscoveryResult:
             "higher_version_candidates": [candidate.to_dict() for candidate in self.higher_version_candidates],
             "same_or_unknown_candidates": [candidate.to_dict() for candidate in self.same_or_unknown_candidates],
             "skipped_paths": list(self.skipped_paths),
+            "stopped_after_priority_match": self.stopped_after_priority_match,
         }

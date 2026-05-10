@@ -8,6 +8,11 @@ from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection
 from appimage_integrator.paths import AppPaths
+from appimage_integrator.services.cancellation import (
+    CancelCallback,
+    OperationCancelled,
+    raise_if_cancelled,
+)
 from appimage_integrator.services.desktop_entry import parse_desktop_entry
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.tooling import Tooling
@@ -19,7 +24,12 @@ class AppImageInspector:
         self.tooling = tooling
         self.icon_resolver = icon_resolver
 
-    def inspect(self, source_path: Path) -> AppImageInspection:
+    def inspect(
+        self,
+        source_path: Path,
+        should_cancel: CancelCallback | None = None,
+    ) -> AppImageInspection:
+        raise_if_cancelled(should_cancel)
         warnings: list[str] = []
         errors: list[str] = []
         source_path = source_path.expanduser().resolve()
@@ -47,8 +57,8 @@ class AppImageInspector:
                 errors=["The selected file does not exist."],
             )
 
-        file_description = self._file_description(source_path)
-        appimage_type = self._detect_type(source_path, is_executable)
+        file_description = self._file_description(source_path, should_cancel)
+        appimage_type = self._detect_type(source_path, is_executable, should_cancel)
         is_appimage = "appimage" in file_description.lower() or appimage_type != "unknown"
         if not is_appimage:
             warnings.append("The file does not strongly identify itself as an AppImage.")
@@ -57,6 +67,7 @@ class AppImageInspector:
             appimage_type,
             is_executable,
             warnings,
+            should_cancel,
         )
 
         desktop_entry = None
@@ -136,16 +147,28 @@ class AppImageInspector:
         if inspection.extracted_dir and inspection.extracted_dir.exists():
             shutil.rmtree(inspection.extracted_dir, ignore_errors=True)
 
-    def _file_description(self, source_path: Path) -> str:
+    def _file_description(
+        self,
+        source_path: Path,
+        should_cancel: CancelCallback | None = None,
+    ) -> str:
         if not self.tooling.tools.file_cmd:
             return ""
-        result = self.tooling.run([self.tooling.tools.file_cmd, "-b", str(source_path)])
+        result = self.tooling.run(
+            [self.tooling.tools.file_cmd, "-b", str(source_path)],
+            should_cancel=should_cancel,
+        )
         return result.stdout.strip()
 
-    def _detect_type(self, source_path: Path, is_executable: bool) -> str:
+    def _detect_type(
+        self,
+        source_path: Path,
+        is_executable: bool,
+        should_cancel: CancelCallback | None = None,
+    ) -> str:
         if not is_executable:
             return "unknown"
-        result = self.tooling.run([str(source_path), "--appimage-version"])
+        result = self.tooling.run([str(source_path), "--appimage-version"], should_cancel=should_cancel)
         output = f"{result.stdout} {result.stderr}".lower()
         if "type 1" in output:
             return "type1"
@@ -161,36 +184,50 @@ class AppImageInspector:
         appimage_type: str,
         is_executable: bool,
         warnings: list[str],
+        should_cancel: CancelCallback | None = None,
     ) -> tuple[Path | None, bool]:
+        raise_if_cancelled(should_cancel)
         extract_dir = Path(
             tempfile.mkdtemp(prefix="extract-", dir=self.paths.cache_extract_dir)
         )
-        if is_executable and (appimage_type == "type2" or appimage_type == "unknown"):
-            result = self.tooling.run(
-                [str(source_path), "--appimage-extract"],
-                cwd=extract_dir,
-            )
-            squashed = extract_dir / "squashfs-root"
-            if result.returncode == 0 and squashed.exists():
-                return squashed, False
-        if self.tooling.tools.unsquashfs:
-            result = self.tooling.run(
-                [self.tooling.tools.unsquashfs, "-f", "-d", str(extract_dir / "squashfs-root"), str(source_path)]
-            )
-            squashed = extract_dir / "squashfs-root"
-            if result.returncode == 0 and squashed.exists():
-                return squashed, False
-        elif not is_executable:
-            warnings.append(
-                "Extraction was skipped because the AppImage is not executable and unsquashfs is unavailable."
-            )
+        try:
+            if is_executable and (appimage_type == "type2" or appimage_type == "unknown"):
+                result = self.tooling.run(
+                    [str(source_path), "--appimage-extract"],
+                    cwd=extract_dir,
+                    should_cancel=should_cancel,
+                )
+                squashed = extract_dir / "squashfs-root"
+                if result.returncode == 0 and squashed.exists():
+                    return squashed, False
+            if self.tooling.tools.unsquashfs:
+                result = self.tooling.run(
+                    [
+                        self.tooling.tools.unsquashfs,
+                        "-f",
+                        "-d",
+                        str(extract_dir / "squashfs-root"),
+                        str(source_path),
+                    ],
+                    should_cancel=should_cancel,
+                )
+                squashed = extract_dir / "squashfs-root"
+                if result.returncode == 0 and squashed.exists():
+                    return squashed, False
+            elif not is_executable:
+                warnings.append(
+                    "Extraction was skipped because the AppImage is not executable and unsquashfs is unavailable."
+                )
+                shutil.rmtree(extract_dir, ignore_errors=True)
+                return None, False
+            if appimage_type == "type1":
+                warnings.append("Type 1 AppImage support is best-effort and metadata may be incomplete.")
+            warnings.append("Extraction failed; install may continue with a fallback launcher.")
             shutil.rmtree(extract_dir, ignore_errors=True)
-            return None, False
-        if appimage_type == "type1":
-            warnings.append("Type 1 AppImage support is best-effort and metadata may be incomplete.")
-        warnings.append("Extraction failed; install may continue with a fallback launcher.")
-        shutil.rmtree(extract_dir, ignore_errors=True)
-        return None, True
+            return None, True
+        except OperationCancelled:
+            shutil.rmtree(extract_dir, ignore_errors=True)
+            raise
 
     def _find_desktop_file(self, extracted_dir: Path) -> Path | None:
         desktop_files = sorted(extracted_dir.rglob("*.desktop"))

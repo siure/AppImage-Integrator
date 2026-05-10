@@ -63,7 +63,29 @@ class InstallManager:
             existing = self.runtime_service.reconcile_record(existing)
         return inspection, existing, self._install_mode(existing, inspection.detected_version)
 
+    def related_records_for_inspection(self, inspection: AppImageInspection) -> list[ManagedAppRecord]:
+        identity = self.id_resolver.resolve(inspection)
+        related = [
+            self.runtime_service.reconcile_record(record, allow_payload_inspection=False)
+            for record in self.store.load_all()
+            if (
+                record.identity_fingerprint == identity.identity_fingerprint
+                or record.base_identity_fingerprint == identity.identity_fingerprint
+            )
+        ]
+        return sorted(
+            related,
+            key=lambda record: (
+                0 if record.identity_fingerprint == identity.identity_fingerprint else 1,
+                record.copy_index or 0,
+                record.display_name.lower(),
+                record.internal_id,
+            ),
+        )
+
     def install(self, request: InstallRequest) -> InstallResult:
+        if request.target_internal_id is not None and request.install_action == "copy":
+            raise ValueError("Cannot install a copy into an explicit update target.")
         inspection = self.inspector.inspect(request.source_path)
         fatal_errors = [
             message
@@ -78,10 +100,14 @@ class InstallManager:
             self.inspector.cleanup(inspection)
             raise ValueError(f"Could not install AppImage: {message}")
 
-        identity, base_identity, existing, mode, display_name, copy_index = self._resolve_install_target(
-            inspection,
-            request,
-        )
+        try:
+            identity, base_identity, existing, mode, display_name, copy_index = self._resolve_install_target(
+                inspection,
+                request,
+            )
+        except Exception:
+            self.inspector.cleanup(inspection)
+            raise
 
         placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
         if is_self_internal_id(identity.internal_id):
@@ -91,15 +117,22 @@ class InstallManager:
             identity.internal_id,
             inspection.chosen_icon_candidate,
         )
+        comment = (
+            request.comment_override
+            if request.comment_override is not None
+            else (existing.comment if request.target_internal_id and existing else inspection.detected_comment)
+        )
+        extra_args = request.extra_args
+        arg_preset_id = request.arg_preset_id
         desktop_text, validation_messages, exec_template = self.desktop_service.build_desktop_text(
             internal_id=identity.internal_id,
             inspection=inspection,
             appimage_path=placement.stable_path,
             icon_value=icon_value,
             display_name=display_name,
-            comment=request.comment_override if request.comment_override is not None else inspection.detected_comment,
-            extra_args=request.extra_args,
-            arg_preset_id=request.arg_preset_id,
+            comment=comment,
+            extra_args=extra_args,
+            arg_preset_id=arg_preset_id,
         )
         desktop_path = (
             self.paths.self_desktop_entry_path
@@ -113,7 +146,7 @@ class InstallManager:
         record = ManagedAppRecord(
             internal_id=identity.internal_id,
             display_name=display_name,
-            comment=request.comment_override if request.comment_override is not None else inspection.detected_comment,
+            comment=comment,
             version=inspection.detected_version,
             appstream_id=inspection.appstream_id,
             embedded_desktop_basename=inspection.embedded_desktop_filename,
@@ -124,8 +157,8 @@ class InstallManager:
             source_file_name_at_install=request.source_path.name,
             source_path_last_seen=str(request.source_path),
             desktop_exec_template=exec_template,
-            extra_args=request.extra_args,
-            arg_preset_id=request.arg_preset_id,
+            extra_args=extra_args,
+            arg_preset_id=arg_preset_id,
             installed_at=existing.installed_at if existing else timestamp,
             updated_at=timestamp,
             appimage_type=inspection.appimage_type,
@@ -133,9 +166,11 @@ class InstallManager:
             managed_payload_path=str(placement.payload_path),
             managed_payload_dir=str(placement.payload_dir),
             base_identity_fingerprint=(
-                base_identity.identity_fingerprint if request.install_action == "copy" else None
+                existing.base_identity_fingerprint
+                if existing
+                else (base_identity.identity_fingerprint if request.install_action == "copy" else None)
             ),
-            copy_index=copy_index if request.install_action == "copy" else None,
+            copy_index=existing.copy_index if existing else (copy_index if request.install_action == "copy" else None),
             managed_files=[
                 str(placement.stable_path),
                 str(desktop_path),
@@ -177,6 +212,30 @@ class InstallManager:
         request: InstallRequest,
     ) -> tuple[IdentityResolution, IdentityResolution, ManagedAppRecord | None, str, str, int | None]:
         base_identity = self.id_resolver.resolve(inspection)
+        if request.target_internal_id is not None:
+            existing = self.store.load(request.target_internal_id)
+            if existing is None:
+                raise ValueError("The selected update target could not be found.")
+            existing = self.runtime_service.reconcile_record(existing)
+            mode = self._install_mode(existing, inspection.detected_version)
+            if request.source_path.resolve(strict=False) != Path(
+                existing.source_path_last_seen
+            ).expanduser().resolve(strict=False):
+                mode = "update"
+            identity = IdentityResolution(
+                internal_id=existing.internal_id,
+                identity_fingerprint=existing.identity_fingerprint,
+                basis=existing.internal_id,
+            )
+            return (
+                identity,
+                base_identity,
+                existing,
+                mode,
+                request.display_name_override or existing.display_name,
+                existing.copy_index,
+            )
+
         base_display_name = (
             request.display_name_override or inspection.detected_name or request.source_path.stem
         )

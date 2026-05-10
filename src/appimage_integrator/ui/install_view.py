@@ -41,8 +41,10 @@ class InstallView(Gtk.Box):
         self.current_source_path: Path | None = None
         self.current_inspection: AppImageInspection | None = None
         self.current_existing: ManagedAppRecord | None = None
+        self.current_related_records: list[ManagedAppRecord] = []
         self.current_default_display_name: str | None = None
         self.current_mode = "install"
+        self._target_index_to_record: dict[int, ManagedAppRecord] = {}
         self._busy = False
         self._tech_rows: list[Gtk.Widget] = []
 
@@ -154,6 +156,11 @@ class InstallView(Gtk.Box):
         form_box.append(display_group)
 
         launch_group = Adw.PreferencesGroup(title="Launch Options")
+        self.target_model = Gtk.StringList.new([])
+        self.target_combo = CompatComboRow("Update Target", self.target_model)
+        self.target_combo.connect_changed(self._on_target_changed)
+        launch_group.add(self.target_combo.widget)
+
         preset_labels = list(PRESET_LABELS.values())
         preset_model = Gtk.StringList.new(preset_labels)
         self.preset_combo = CompatComboRow("Preset", preset_model)
@@ -234,6 +241,7 @@ class InstallView(Gtk.Box):
         self._editable_widgets = [
             self.name_entry.widget,
             self.comment_entry.widget,
+            self.target_combo.widget,
             self.preset_combo.widget,
             self.args_entry.widget,
             self.tech_expander.widget,
@@ -311,6 +319,22 @@ class InstallView(Gtk.Box):
         row.set_subtitle_selectable(True)
         self.tech_expander.add_row(row)
         self._tech_rows.append(row)
+
+    def _set_target_options(self, records: list[ManagedAppRecord]) -> None:
+        self.current_related_records = list(records)
+        self._target_index_to_record = {index: record for index, record in enumerate(records)}
+        while self.target_model.get_n_items() > 0:
+            self.target_model.remove(0)
+        for record in records:
+            self.target_model.append(self._target_label(record))
+        self.target_combo.widget.set_visible(bool(records))
+        self.target_combo.set_selected(0)
+
+    def _selected_target_record(self) -> ManagedAppRecord | None:
+        return self._target_index_to_record.get(self.target_combo.get_selected())
+
+    def _target_label(self, record: ManagedAppRecord) -> str:
+        return f"{record.display_name} ({record.version or 'unknown'}) - {record.internal_id[:8]}"
 
     def _show_alert_dialog(self, title: str, body: str) -> None:
         dialog = CompatMessageDialog(self, title, body)
@@ -467,25 +491,53 @@ class InstallView(Gtk.Box):
         if self.current_inspection is not None and self.current_inspection is not inspection:
             self.install_manager.inspector.cleanup(self.current_inspection)
         self.current_inspection = inspection
-        self.current_existing = existing
+        related_records = self.install_manager.related_records_for_inspection(inspection)
+        self._set_target_options(related_records)
+        self.current_existing = related_records[0] if related_records else existing
+        if related_records and mode == "install":
+            mode = "update"
         self.current_mode = mode
 
         name = inspection.detected_name or (
             self.current_source_path.stem if self.current_source_path is not None else "AppImage"
         )
         comment = inspection.detected_comment or ""
+        self._populate_editable_fields_from_inspection(name, comment)
+        self.install_button.set_label(mode.capitalize())
+        self._set_preview_icon(inspection=inspection)
+        self._populate_tech_details(inspection, existing)
+        self._apply_selected_target_fields()
+        self._set_busy_state(None)
+        self._show_editor(True)
+        return False
 
+    def _populate_editable_fields_from_inspection(self, name: str, comment: str) -> None:
         self.name_label.set_text(name)
         self.comment_label.set_text(comment or "Embedded metadata will be reused when possible.")
         self.name_entry.set_text(name)
         self.comment_entry.set_text(comment)
+        self.args_entry.set_text("")
+        self.preset_combo.set_selected(0)
         self.current_default_display_name = name
-        self.install_button.set_label(mode.capitalize())
-        self._set_preview_icon(inspection=inspection)
-        self._populate_tech_details(inspection, existing)
-        self._set_busy_state(None)
-        self._show_editor(True)
-        return False
+
+    def _apply_selected_target_fields(self) -> None:
+        target = self._selected_target_record()
+        if target is None:
+            return
+        self.current_existing = target
+        self.name_label.set_text(target.display_name)
+        self.comment_label.set_text(target.comment or "Reuse the current managed metadata.")
+        self.name_entry.set_text(target.display_name)
+        self.comment_entry.set_text(target.comment or "")
+        self.args_entry.set_text(shlex.join(target.extra_args))
+        self.preset_combo.set_selected(
+            self._preset_id_to_index.get(target.arg_preset_id or "none", 0)
+        )
+        self.current_default_display_name = target.display_name
+
+    def _on_target_changed(self, *_args) -> None:
+        self._apply_selected_target_fields()
+        self._update_action_sensitivity()
 
     def _apply_inspection_error(self, message: str) -> bool:
         self._show_alert_dialog("Inspection failed", message)
@@ -520,6 +572,7 @@ class InstallView(Gtk.Box):
 
     def _populate_record_fields(self, record: ManagedAppRecord, button_label: str) -> None:
         self.current_existing = record
+        self._set_target_options([])
         self.current_mode = button_label.lower()
         self.current_inspection = None
         self.current_default_display_name = record.display_name
@@ -575,6 +628,7 @@ class InstallView(Gtk.Box):
     def _submit_current_source_install(self, install_action: str) -> None:
         if self.current_source_path is None:
             return
+        target_record = self._selected_target_record() if install_action != "copy" else None
         name_text = self.name_entry.get_text().strip()
         display_name_override = name_text or None
         if (
@@ -597,6 +651,7 @@ class InstallView(Gtk.Box):
                 allow_update=True,
                 allow_reinstall=True,
                 install_action=install_action,
+                target_internal_id=target_record.internal_id if target_record else None,
             )
         )
 
@@ -611,6 +666,7 @@ class InstallView(Gtk.Box):
                 allow_update=True,
                 allow_reinstall=True,
                 install_action="auto",
+                target_internal_id=record.internal_id,
             )
         )
 
@@ -662,6 +718,8 @@ class InstallView(Gtk.Box):
         self.install_menu_button.set_visible(False)
         self.tech_expander.set_expanded(False)
         self.current_existing = None
+        self.current_related_records = []
+        self._set_target_options([])
         self.current_default_display_name = None
         self.current_mode = "install"
         self._clear_tech_rows()

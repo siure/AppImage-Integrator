@@ -383,9 +383,30 @@ def _cmd_update(
         stderr.write(f"{exc}\n")
         return 1
 
-    discovery = services.update_discovery.discover_updates(record)
+    validated_record, status, messages = services.library_manager.validate_record(
+        record,
+        allow_reconcile_inspection=False,
+    )
+    if validated_record != record:
+        services.store.save(validated_record)
+        record = validated_record
+    prefer_error_recovery = status == "error" and any(
+        message == "Managed AppImage is missing." for message in messages
+    )
+    discovery = services.update_discovery.discover_updates(
+        record,
+        prefer_error_recovery=prefer_error_recovery,
+        stop_after_first_recovery_match=prefer_error_recovery,
+    )
     interaction_output = stderr if args.json else stdout
     chosen_path = _choose_update_source(record, discovery, interaction_output, stderr, stdin)
+    if chosen_path == "__continue_search__":
+        discovery = services.update_discovery.discover_updates(
+            record,
+            prefer_error_recovery=prefer_error_recovery,
+            stop_after_first_recovery_match=False,
+        )
+        chosen_path = _choose_update_source(record, discovery, interaction_output, stderr, stdin)
     if chosen_path is None:
         return 0
     matched_candidate = _candidate_from_discovery(discovery, chosen_path)
@@ -429,6 +450,7 @@ def _install_from_record_source(
                 allow_update=True,
                 allow_reinstall=True,
                 install_action="auto",
+                target_internal_id=record.internal_id,
             )
         )
     except ValueError as exc:
@@ -499,7 +521,7 @@ def _prepare_source_path_with_prompt(
     return _prepare_source_path(path, services, True, stderr)
 
 
-def _choose_update_source(record, discovery, stdout: TextIO, stderr: TextIO, stdin: TextIO) -> Path | None:
+def _choose_update_source(record, discovery, stdout: TextIO, stderr: TextIO, stdin: TextIO) -> Path | str | None:
     if discovery.higher_version_candidates:
         candidate = discovery.higher_version_candidates[0]
         stdout.write(
@@ -509,6 +531,19 @@ def _choose_update_source(record, discovery, stdout: TextIO, stderr: TextIO, std
             f"- File: {candidate.path}\n"
             f"- Match: {candidate.match_kind}\n"
         )
+        if discovery.stopped_after_priority_match:
+            choice = _prompt(
+                stdin,
+                stdout,
+                "Choose an action [1=update detected, 2=continue search, 3=choose AppImage, 4=cancel]: ",
+            ).strip()
+            if choice == "1":
+                return candidate.path
+            if choice == "2":
+                return "__continue_search__"
+            if choice == "3":
+                return _prompt_for_update_path(stdin, stdout, stderr)
+            return None
         choice = _prompt(
             stdin,
             stdout,

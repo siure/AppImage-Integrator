@@ -6,8 +6,9 @@ gi.require_version("Adw", "1")
 gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gtk
 
-from appimage_integrator.models import ManagedAppRecord, UpdateCandidate
+from appimage_integrator.models import ManagedAppRecord, UpdateCandidate, UpdateDiscoveryResult
 from appimage_integrator.ui.dialogs import _resolve_parent
+from appimage_integrator.ui.form_rows import CompatComboRow
 
 
 class UpdateSourceDialog:
@@ -15,8 +16,13 @@ class UpdateSourceDialog:
         self,
         parent: Gtk.Widget | Gtk.Window | None,
         record: ManagedAppRecord,
-        candidates: list[UpdateCandidate],
+        related_records: list[ManagedAppRecord],
+        discoveries: dict[str, UpdateDiscoveryResult],
     ) -> None:
+        related_records = related_records or [record]
+        self._related_records = related_records
+        self._discoveries = discoveries
+        self._target_index_to_record = {index: item for index, item in enumerate(related_records)}
         self._parent = _resolve_parent(parent)
         self._window = Gtk.Window(
             title="Choose AppImage Update",
@@ -40,10 +46,11 @@ class UpdateSourceDialog:
         content.set_margin_start(20)
         content.set_margin_end(20)
 
+        total_candidates = sum(len(self._candidates_for_record(item)) for item in related_records)
         intro = Gtk.Label(
             label=(
-                f"AppImage Integrator found {len(candidates)} matching AppImages for {record.display_name}.\n\n"
-                "Select one to continue, or browse for a different file."
+                f"AppImage Integrator found {total_candidates} matching AppImages for {record.display_name}.\n\n"
+                "Choose the integration to update, then select a file or browse for a different AppImage."
             )
         )
         intro.add_css_class("dialog-body")
@@ -51,6 +58,20 @@ class UpdateSourceDialog:
         intro.set_xalign(0)
         intro.set_justify(Gtk.Justification.LEFT)
         content.append(intro)
+
+        target_labels = [self._target_label(item) for item in related_records]
+        self._target_combo = CompatComboRow("Update Target", Gtk.StringList.new(target_labels))
+        selected_index = next(
+            (
+                index
+                for index, item in enumerate(related_records)
+                if item.internal_id == record.internal_id
+            ),
+            0,
+        )
+        self._target_combo.set_selected(selected_index)
+        self._target_combo.connect_changed(self._on_target_changed)
+        content.append(self._target_combo.widget)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_hexpand(True)
@@ -83,13 +104,7 @@ class UpdateSourceDialog:
         use_button.set_sensitive(False)
         self.use_button = use_button
 
-        for candidate in candidates:
-            list_box.append(self._build_row(candidate))
-
-        first_row = list_box.get_row_at_index(0)
-        if first_row is not None:
-            list_box.select_row(first_row)
-        self._sync_row_selection_classes()
+        self._reload_candidates()
 
     def _add_response(self, container: Gtk.Box, response_id: str, label: str) -> Gtk.Button:
         button = Gtk.Button(label=label)
@@ -143,9 +158,38 @@ class UpdateSourceDialog:
     def present(self) -> None:
         self._window.present()
 
+    def get_selected_target_record(self) -> ManagedAppRecord:
+        return self._target_index_to_record.get(self._target_combo.get_selected(), self._related_records[0])
+
     def get_selected_candidate(self) -> UpdateCandidate | None:
         row = self.list_box.get_selected_row()
         return getattr(row, "_candidate", None) if row is not None else None
+
+    def _on_target_changed(self, *_args) -> None:
+        self._reload_candidates()
+
+    def _reload_candidates(self) -> None:
+        while True:
+            row = self.list_box.get_row_at_index(0)
+            if row is None:
+                break
+            self.list_box.remove(row)
+        for candidate in self._candidates_for_record(self.get_selected_target_record()):
+            self.list_box.append(self._build_row(candidate))
+        first_row = self.list_box.get_row_at_index(0)
+        if first_row is not None:
+            self.list_box.select_row(first_row)
+        self.use_button.set_sensitive(first_row is not None)
+        self._sync_row_selection_classes()
+
+    def _candidates_for_record(self, record: ManagedAppRecord) -> list[UpdateCandidate]:
+        discovery = self._discoveries.get(record.internal_id)
+        if discovery is None:
+            return []
+        return [*discovery.higher_version_candidates, *discovery.same_or_unknown_candidates]
+
+    def _target_label(self, record: ManagedAppRecord) -> str:
+        return f"{record.display_name} ({record.version or 'unknown'}) - {record.internal_id[:8]}"
 
     def _on_row_selected(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow | None) -> None:
         self.use_button.set_sensitive(row is not None)
@@ -166,8 +210,9 @@ class UpdateSourceDialog:
             return
         self._response_emitted = True
         selected = self.get_selected_candidate()
+        target_record = self.get_selected_target_record()
         for callback, args in self._response_handlers:
-            callback(self, response_id, selected, *args)
+            callback(self, response_id, selected, target_record, *args)
         self._window.close()
 
     def _on_close_request(self, _window: Gtk.Window) -> bool:

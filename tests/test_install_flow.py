@@ -259,6 +259,115 @@ def test_install_copy_creates_second_record_for_same_identity(test_paths, toolin
     assert store.load(original.record.internal_id).managed_payload_path == original_payload
 
 
+def test_targeted_update_of_copy_does_not_update_original(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    update_source = source.parent / "demo-v2.AppImage"
+    update_source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-copy-target-update"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, store, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(update_source, extracted, "2.0.0"),
+        ],
+    )
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    copied = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+            install_action="copy",
+        )
+    )
+
+    updated = manager.install(
+        InstallRequest(
+            source_path=update_source,
+            display_name_override=copied.record.display_name,
+            comment_override=copied.record.comment,
+            extra_args=copied.record.extra_args,
+            arg_preset_id=copied.record.arg_preset_id,
+            allow_update=True,
+            allow_reinstall=True,
+            target_internal_id=copied.record.internal_id,
+        )
+    )
+
+    original_after = store.load(original.record.internal_id)
+    copy_after = store.load(copied.record.internal_id)
+    assert updated.mode == "update"
+    assert original_after.version == "1.0.0"
+    assert copy_after.version == "2.0.0"
+    assert copy_after.internal_id == copied.record.internal_id
+    assert copy_after.base_identity_fingerprint == copied.record.base_identity_fingerprint
+    assert copy_after.copy_index == copied.record.copy_index
+    assert Path(copy_after.managed_payload_path).name == "demo-v2.AppImage"
+    assert Path(copy_after.managed_desktop_path).read_text(encoding="utf-8").count(copy_after.internal_id) >= 1
+
+
+def test_targeted_update_rejects_copy_action(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-target-copy.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-target-copy"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    manager, _, _, _, _, _ = build_manager(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0"), make_inspection(source, extracted, "1.0.0")],
+    )
+    original = manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+
+    with pytest.raises(ValueError, match="copy"):
+        manager.install(
+            InstallRequest(
+                source_path=source,
+                display_name_override=None,
+                comment_override=None,
+                extra_args=[],
+                arg_preset_id="none",
+                allow_update=True,
+                allow_reinstall=True,
+                install_action="copy",
+                target_internal_id=original.record.internal_id,
+            )
+        )
+
+
 def test_install_copy_uses_custom_display_name(test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "demo.AppImage"
     source.parent.mkdir(parents=True)

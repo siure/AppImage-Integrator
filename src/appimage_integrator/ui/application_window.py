@@ -15,6 +15,7 @@ from appimage_integrator.assets import APP_BRAND_LOGO_PATH
 from appimage_integrator.config import APP_NAME
 from appimage_integrator.launcher import build_managed_app_launch_command
 from appimage_integrator.models import ManagedAppRecord, UpdateCandidate, UpdateDiscoveryResult
+from appimage_integrator.services.cancellation import OperationCancelled
 from appimage_integrator.ui.containers import CompatToolbarView
 from appimage_integrator.ui.dialogs import (
     CompatFileChooserDialog,
@@ -39,7 +40,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_detail: Gtk.Label | None = None
         self._update_progress_bar: Gtk.ProgressBar | None = None
         self._update_progress_pulse_id: int | None = None
+        self._update_cancel_event: threading.Event | None = None
+        self._closing_update_progress_dialog = False
         self._library_refresh_request_id = 0
+        self._startup_recovery_started = False
+        self._startup_recovery_status = self._build_startup_recovery_status()
         self.add_css_class("integrator-window")
         self.set_title(APP_NAME)
         self.set_resizable(True)
@@ -114,6 +119,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.library_view.set_vexpand(True)
 
         content.append(self.install_view)
+        content.append(self._startup_recovery_status)
         content.append(self.library_view)
         toolbar.set_content(scrolled)
 
@@ -127,6 +133,24 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
     def show_toast(self, message: str) -> None:
         self.toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def _build_startup_recovery_status(self) -> Gtk.Box:
+        status = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        status.add_css_class("startup-recovery-status")
+        status.set_margin_top(4)
+        status.set_margin_bottom(4)
+        status.set_visible(False)
+
+        spinner = Gtk.Spinner(spinning=True)
+        spinner.set_valign(Gtk.Align.CENTER)
+        status.append(spinner)
+
+        label = Gtk.Label(label="Checking broken integrations…", xalign=0)
+        label.add_css_class("dim-label")
+        label.set_hexpand(True)
+        label.set_wrap(True)
+        status.append(label)
+        return status
 
     def _handle_dropped_path(self, path: Path) -> None:
         self.install_view.load_path(path)
@@ -192,6 +216,65 @@ class ApplicationWindow(Adw.ApplicationWindow):
             records.append(self._update_record_validation(validated_record, status, messages))
 
         self.library_view.set_records(records)
+        if not self._startup_recovery_started:
+            self._startup_recovery_started = True
+            self._start_startup_recovery(records)
+        return False
+
+    def _start_startup_recovery(self, records: list[ManagedAppRecord]) -> None:
+        broken_records = [
+            record for record in records if record.last_validation_status == "error"
+        ]
+        if not broken_records:
+            return
+        self._startup_recovery_status.set_visible(True)
+
+        def worker(snapshot: list[ManagedAppRecord]) -> None:
+            recovered_rows: list[tuple[ManagedAppRecord, str, list[str]]] = []
+            discoveries: dict[str, UpdateDiscoveryResult] = {}
+            for record in snapshot:
+                try:
+                    validated_record, status, messages = self.services.library_manager.validate_record(
+                        record,
+                        allow_reconcile_inspection=True,
+                    )
+                    recovered_rows.append((validated_record, status, messages))
+                    if status == "error":
+                        discovery = self.services.update_discovery.discover_updates(
+                            validated_record,
+                            prefer_error_recovery=True,
+                            stop_after_first_recovery_match=True,
+                        )
+                        if discovery.higher_version_candidates:
+                            discoveries[validated_record.internal_id] = discovery
+                except Exception:  # noqa: BLE001
+                    continue
+            GLib.idle_add(self._finish_startup_recovery, recovered_rows, discoveries)
+
+        threading.Thread(target=worker, args=(broken_records,), daemon=True).start()
+
+    def _finish_startup_recovery(
+        self,
+        recovered_rows: list[tuple[ManagedAppRecord, str, list[str]]],
+        discoveries: dict[str, UpdateDiscoveryResult],
+    ) -> bool:
+        self._startup_recovery_status.set_visible(False)
+        records = self.services.library_manager.list_records()
+        updated_by_id: dict[str, ManagedAppRecord] = {}
+        for validated_record, status, messages in recovered_rows:
+            updated_by_id[validated_record.internal_id] = self._update_record_validation(
+                validated_record,
+                status,
+                messages,
+            )
+        if updated_by_id:
+            records = [updated_by_id.get(record.internal_id, record) for record in records]
+            self.library_view.set_records(records)
+        if discoveries:
+            target_id = next(iter(discoveries))
+            discovery = discoveries[target_id]
+            candidate = discovery.higher_version_candidates[0]
+            self._show_recovery_candidate_prompt(discovery.record, candidate)
         return False
 
     def launch_record(self, record: ManagedAppRecord) -> None:
@@ -226,22 +309,64 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.present()
 
     def update_record(self, record: ManagedAppRecord) -> None:
+        record = self._sync_record_validation(record, allow_reconcile_inspection=False)
+        prefer_error_recovery = record.last_validation_status == "error"
+        self._begin_update_search(
+            record,
+            prefer_error_recovery=prefer_error_recovery,
+            stop_after_first_recovery_match=prefer_error_recovery,
+        )
+
+    def _begin_update_search(
+        self,
+        record: ManagedAppRecord,
+        *,
+        prefer_error_recovery: bool,
+        stop_after_first_recovery_match: bool,
+    ) -> None:
+        cancel_event = threading.Event()
+        self._update_cancel_event = cancel_event
         self._show_update_progress_dialog(record)
+        related_records = self.services.library_manager.related_records(record)
 
         def worker() -> None:
             try:
-                discovery = self.services.update_discovery.discover_updates(
-                    record,
-                    progress_callback=lambda title, detail: GLib.idle_add(
-                        self._set_update_progress_status,
-                        title,
-                        detail,
-                    ),
-                )
-            except Exception as exc:  # noqa: BLE001
-                GLib.idle_add(self._finish_update_discovery, record, None, str(exc))
+                discoveries = {}
+                for related_record in related_records:
+                    if cancel_event.is_set():
+                        raise OperationCancelled()
+                    discoveries[related_record.internal_id] = self.services.update_discovery.discover_updates(
+                        related_record,
+                        progress_callback=lambda title, detail: GLib.idle_add(
+                            self._set_update_progress_status,
+                            title,
+                            detail,
+                        ),
+                        prefer_error_recovery=prefer_error_recovery,
+                        stop_after_first_recovery_match=stop_after_first_recovery_match,
+                        should_cancel=cancel_event.is_set,
+                    )
+            except OperationCancelled:
+                GLib.idle_add(self._finish_cancelled_update_discovery, cancel_event)
                 return
-            GLib.idle_add(self._finish_update_discovery, record, discovery, None)
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(
+                    self._finish_update_discovery,
+                    cancel_event,
+                    record,
+                    related_records,
+                    None,
+                    str(exc),
+                )
+                return
+            GLib.idle_add(
+                self._finish_update_discovery,
+                cancel_event,
+                record,
+                related_records,
+                discoveries,
+                None,
+            )
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -324,8 +449,16 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self.show_toast(f"Updated {record.display_name}")
         self.refresh_library()
 
-    def _sync_record_validation(self, record: ManagedAppRecord) -> ManagedAppRecord:
-        validated_record, status, messages = self.services.library_manager.validate_record(record)
+    def _sync_record_validation(
+        self,
+        record: ManagedAppRecord,
+        *,
+        allow_reconcile_inspection: bool = True,
+    ) -> ManagedAppRecord:
+        validated_record, status, messages = self.services.library_manager.validate_record(
+            record,
+            allow_reconcile_inspection=allow_reconcile_inspection,
+        )
         if status == validated_record.last_validation_status and messages == validated_record.last_validation_messages:
             if validated_record != record:
                 self.services.store.save(validated_record)
@@ -409,6 +542,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         )
         dialog.add_css_class("update-progress-dialog")
         dialog.set_default_size(420, 180)
+        dialog.connect("close-request", self._on_update_progress_close_request)
 
         header = Adw.HeaderBar()
         header.set_title_widget(Gtk.Label(label="Searching for updates"))
@@ -458,6 +592,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_bar = progress
         self._update_progress_pulse_id = GLib.timeout_add(120, self._pulse_update_progress)
 
+    def _on_update_progress_close_request(self, _dialog: Gtk.Window) -> bool:
+        if not self._closing_update_progress_dialog and self._update_cancel_event is not None:
+            self._update_cancel_event.set()
+        return False
+
     def _pulse_update_progress(self) -> bool:
         if self._update_progress_bar is None:
             return False
@@ -476,7 +615,11 @@ class ApplicationWindow(Adw.ApplicationWindow):
             GLib.source_remove(self._update_progress_pulse_id)
             self._update_progress_pulse_id = None
         if self._update_progress_dialog is not None:
-            self._update_progress_dialog.close()
+            self._closing_update_progress_dialog = True
+            try:
+                self._update_progress_dialog.close()
+            finally:
+                self._closing_update_progress_dialog = False
         self._update_progress_dialog = None
         self._update_progress_title = None
         self._update_progress_detail = None
@@ -484,10 +627,15 @@ class ApplicationWindow(Adw.ApplicationWindow):
 
     def _finish_update_discovery(
         self,
+        cancel_event: threading.Event,
         record: ManagedAppRecord,
-        discovery,
+        related_records: list[ManagedAppRecord],
+        discoveries,
         error_message: str | None,
     ) -> bool:
+        if cancel_event is not self._update_cancel_event or cancel_event.is_set():
+            return False
+        self._update_cancel_event = None
         self._close_update_progress_dialog()
         if error_message is not None:
             self._show_repair_result_dialog(
@@ -495,21 +643,51 @@ class ApplicationWindow(Adw.ApplicationWindow):
                 f"AppImage Integrator could not complete the update search.\n\n{error_message}",
             )
             return False
-        assert discovery is not None
-        return self._present_update_discovery(record, discovery)
+        assert discoveries is not None
+        return self._present_update_discovery(record, related_records, discoveries)
 
-    def _present_update_discovery(self, record: ManagedAppRecord, discovery: UpdateDiscoveryResult) -> bool:
+    def _finish_cancelled_update_discovery(self, cancel_event: threading.Event) -> bool:
+        if cancel_event is self._update_cancel_event:
+            self._update_cancel_event = None
+            self._close_update_progress_dialog()
+        return False
+
+    def _present_update_discovery(
+        self,
+        record: ManagedAppRecord,
+        related_records: list[ManagedAppRecord],
+        discoveries: dict[str, UpdateDiscoveryResult],
+    ) -> bool:
+        priority_discovery = next(
+            (
+                discovery
+                for discovery in discoveries.values()
+                if discovery.stopped_after_priority_match and discovery.higher_version_candidates
+            ),
+            None,
+        )
+        if priority_discovery is not None:
+            self._show_recovery_candidate_prompt(
+                priority_discovery.record,
+                priority_discovery.higher_version_candidates[0],
+            )
+            return False
+
         automatic_candidates = [
-            *discovery.higher_version_candidates,
-            *discovery.same_or_unknown_candidates,
+            candidate
+            for discovery in discoveries.values()
+            for candidate in [*discovery.higher_version_candidates, *discovery.same_or_unknown_candidates]
         ]
-        if automatic_candidates:
-            dialog = UpdateSourceDialog(self, record, automatic_candidates)
-            dialog.connect("response", self._on_update_source_dialog_response, record)
+        if automatic_candidates or len(related_records) > 1:
+            dialog = UpdateSourceDialog(self, record, related_records, discoveries)
+            dialog.connect("response", self._on_update_source_dialog_response)
             dialog.present()
             return False
 
-        searched = "\n".join(str(path) for path in discovery.searched_directories) or "No searchable directories were available."
+        searched_paths = []
+        for discovery in discoveries.values():
+            searched_paths.extend(discovery.searched_directories)
+        searched = "\n".join(str(path) for path in dict.fromkeys(searched_paths)) or "No searchable directories were available."
         dialog = CompatMessageDialog(
             self,
             "No newer AppImage found",
@@ -525,6 +703,51 @@ class ApplicationWindow(Adw.ApplicationWindow):
         dialog.connect("response", self._on_no_update_found_response, record)
         dialog.present()
         return False
+
+    def _show_recovery_candidate_prompt(
+        self,
+        record: ManagedAppRecord,
+        candidate: UpdateCandidate,
+    ) -> None:
+        dialog = CompatMessageDialog(
+            self,
+            "Renamed AppImage Found",
+            "AppImage Integrator found a higher-version AppImage in the old AppImage folder.\n\n"
+            f"Current version: {record.version or 'unknown'}\n"
+            f"Detected version: {candidate.detected_version or 'unknown'}\n"
+            f"File: {candidate.path}\n"
+            f"Folder: {candidate.path.parent}\n\n"
+            "Update to this file, continue searching other folders, or cancel this check.",
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("continue", "Continue Search")
+        dialog.add_response("update", "Update")
+        dialog.set_default_response("update")
+        dialog.set_close_response("cancel")
+        dialog.set_response_appearance("update", Adw.ResponseAppearance.SUGGESTED)
+        dialog.connect("response", self._on_recovery_candidate_response, record, candidate)
+        dialog.present()
+
+    def _on_recovery_candidate_response(
+        self,
+        dialog,
+        response: str,
+        record: ManagedAppRecord,
+        candidate: UpdateCandidate,
+    ) -> None:
+        if response == "update":
+            self._prepare_update_source(
+                record,
+                candidate.path,
+                validate_selection=False,
+            )
+            return
+        if response == "continue":
+            self._begin_update_search(
+                record,
+                prefer_error_recovery=True,
+                stop_after_first_recovery_match=False,
+            )
 
     def _on_update_source_dialog_response(
         self,

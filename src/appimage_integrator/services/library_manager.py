@@ -23,6 +23,28 @@ class LibraryManager:
     def list_records(self) -> list[ManagedAppRecord]:
         return sorted(self.store.load_all(), key=lambda record: record.display_name.lower())
 
+    def related_records(self, record: ManagedAppRecord) -> list[ManagedAppRecord]:
+        root_identity = record.base_identity_fingerprint or record.identity_fingerprint
+        related = [
+            candidate
+            for candidate in self.store.load_all()
+            if (
+                candidate.internal_id == record.internal_id
+                or candidate.identity_fingerprint == root_identity
+                or candidate.base_identity_fingerprint == root_identity
+            )
+        ]
+        return sorted(
+            related,
+            key=lambda candidate: (
+                0 if candidate.internal_id == record.internal_id else 1,
+                1 if candidate.base_identity_fingerprint else 0,
+                candidate.copy_index or 0,
+                candidate.display_name.lower(),
+                candidate.internal_id,
+            ),
+        )
+
     def validate_record(
         self,
         record: ManagedAppRecord,

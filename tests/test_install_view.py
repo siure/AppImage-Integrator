@@ -18,6 +18,9 @@ class DummyInstallManager:
     def inspect(self, _path: Path):
         raise AssertionError("inspect should not run in this test")
 
+    def related_records_for_inspection(self, _inspection):
+        return []
+
     def install(self, _request):
         raise AssertionError("install should not run in this test")
 
@@ -110,6 +113,32 @@ def _make_record(tmp_path: Path) -> ManagedAppRecord:
     )
 
 
+def _make_copy_record(tmp_path: Path) -> ManagedAppRecord:
+    return ManagedAppRecord.from_dict(
+        {
+            **_make_record(tmp_path).to_dict(),
+            "internal_id": "demo-copy",
+            "display_name": "Demo Copy",
+            "comment": "Copy comment",
+            "version": "1.0.0",
+            "identity_fingerprint": "copy",
+            "managed_appimage_path": str(tmp_path / "Applications" / "demo-copy.AppImage"),
+            "managed_desktop_path": str(tmp_path / ".local" / "share" / "applications" / "demo-copy.desktop"),
+            "extra_args": ["--copy"],
+            "base_identity_fingerprint": "abc",
+            "copy_index": 1,
+        }
+    )
+
+
+class RelatedInstallManager(DummyInstallManager):
+    def __init__(self, records: list[ManagedAppRecord]) -> None:
+        self.records = records
+
+    def related_records_for_inspection(self, _inspection):
+        return self.records
+
+
 def _make_inspection(source_path: Path) -> AppImageInspection:
     return AppImageInspection(
         source_path=source_path,
@@ -177,6 +206,33 @@ def test_load_path_enters_busy_state_and_apply_inspection_reveals_editor(
     assert view.install_button.get_sensitive() is True
     assert view.install_menu_button.get_visible() is True
     assert view.install_menu_button.get_sensitive() is True
+
+
+def test_apply_inspection_shows_update_target_dropdown_for_matching_records(tmp_path: Path) -> None:
+    Gtk.init()
+    appimage_path = tmp_path / "demo.AppImage"
+    original = _make_record(tmp_path)
+    copied = _make_copy_record(tmp_path)
+    submitted = []
+    view = InstallView(RelatedInstallManager([original, copied]), lambda: None, lambda _message: None)
+    view.current_source_path = appimage_path
+
+    view._apply_inspection(_make_inspection(appimage_path), original, "update")
+
+    assert view.target_combo.widget.get_visible() is True
+    assert view.name_entry.get_text() == "Demo"
+    assert view.args_entry.get_text() == "--demo"
+
+    view.target_combo.set_selected(1)
+    assert view.name_entry.get_text() == "Demo Copy"
+    assert view.comment_entry.get_text() == "Copy comment"
+    assert view.args_entry.get_text() == "--copy"
+
+    view._submit_install_request = lambda request: submitted.append(request)
+    view._on_install_clicked(view.install_button)
+
+    assert submitted[0].install_action == "auto"
+    assert submitted[0].target_internal_id == "demo-copy"
 
 
 def test_apply_inspection_without_existing_hides_split_copy_action(tmp_path: Path) -> None:

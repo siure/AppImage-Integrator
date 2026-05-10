@@ -30,6 +30,9 @@ class DummyLibraryManager:
     def list_records(self):
         return []
 
+    def related_records(self, record):
+        return [record]
+
     def validate_record(self, record, allow_reconcile_inspection=False):
         return record, record.last_validation_status, record.last_validation_messages
 
@@ -116,7 +119,8 @@ def test_application_window_uses_single_page_layout() -> None:
 
     first_child = window.content_root.get_first_child()
     assert first_child is window.install_view
-    assert first_child.get_next_sibling() is window.library_view
+    assert first_child.get_next_sibling() is window._startup_recovery_status
+    assert first_child.get_next_sibling().get_next_sibling() is window.library_view
 
     window.destroy()
 
@@ -140,9 +144,17 @@ def test_application_window_delegates_root_drop_to_install_view(monkeypatch, tmp
 def test_update_source_dialog_lists_candidates_and_defaults_to_first_higher(tmp_path: Path) -> None:
     Gtk.init()
     parent = Gtk.Window()
+    record = _make_record(tmp_path)
     candidate_one = _make_candidate(tmp_path / "demo-v2.AppImage", version="2.0.0", is_executable=True)
     candidate_two = _make_candidate(tmp_path / "demo-v1-build2.AppImage", version=None, is_executable=False)
-    dialog = UpdateSourceDialog(parent, _make_record(tmp_path), [candidate_one, candidate_two])
+    discovery = UpdateDiscoveryResult(
+        record=record,
+        searched_directories=[tmp_path],
+        higher_version_candidates=[candidate_one],
+        same_or_unknown_candidates=[candidate_two],
+        skipped_paths=[],
+    )
+    dialog = UpdateSourceDialog(parent, record, [record], {record.internal_id: discovery})
 
     rows: list[Gtk.ListBoxRow] = []
     row = dialog.list_box.get_first_child()
@@ -183,8 +195,15 @@ def test_application_window_uses_update_source_dialog_for_all_matches(monkeypatc
     presented: list[list[UpdateCandidate]] = []
 
     class FakeUpdateSourceDialog:
-        def __init__(self, _parent, _record, candidates) -> None:
-            presented.append(list(candidates))
+        def __init__(self, _parent, _record, related_records, discoveries) -> None:
+            presented.append(
+                [
+                    candidate
+                    for item in discoveries.values()
+                    for candidate in [*item.higher_version_candidates, *item.same_or_unknown_candidates]
+                ]
+            )
+            assert related_records == [record]
 
         def connect(self, *_args) -> None:
             return None
@@ -194,7 +213,7 @@ def test_application_window_uses_update_source_dialog_for_all_matches(monkeypatc
 
     monkeypatch.setattr(application_window_module, "UpdateSourceDialog", FakeUpdateSourceDialog)
 
-    window._present_update_discovery(record, discovery)
+    window._present_update_discovery(record, [record], {record.internal_id: discovery})
 
     assert presented == [[higher, same]]
     window.destroy()
@@ -365,9 +384,200 @@ def test_application_window_no_automatic_candidates_keeps_manual_choose_flow(mon
     monkeypatch.setattr(application_window_module, "CompatMessageDialog", FakeMessageDialog)
     monkeypatch.setattr(window, "_open_update_file_chooser", lambda candidate_record: opened.append(candidate_record))
 
-    window._present_update_discovery(record, discovery)
+    window._present_update_discovery(record, [record], {record.internal_id: discovery})
 
     assert shown
     assert shown[0][0] == "No newer AppImage found"
     assert opened == [record]
+    window.destroy()
+
+
+def test_update_progress_close_cancels_and_suppresses_results(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.update-cancel-progress")
+    window = ApplicationWindow(app, _make_services())
+    record = _make_record(tmp_path)
+    cancel_event = application_window_module.threading.Event()
+    window._update_cancel_event = cancel_event
+    presented: list[bool] = []
+    monkeypatch.setattr(window, "_present_update_discovery", lambda *_args: presented.append(True))
+
+    window._show_update_progress_dialog(record)
+    window._on_update_progress_close_request(window._update_progress_dialog)
+    window._finish_update_discovery(cancel_event, record, [record], {}, None)
+
+    assert cancel_event.is_set()
+    assert presented == []
+    window.destroy()
+
+
+def test_recovery_priority_discovery_shows_recovery_prompt(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.recovery-prompt")
+    window = ApplicationWindow(app, _make_services())
+    record = _make_record(tmp_path)
+    candidate = _make_candidate(tmp_path / "demo-v2.AppImage", version="2.0.0", is_executable=True)
+    discovery = UpdateDiscoveryResult(
+        record=record,
+        searched_directories=[tmp_path],
+        higher_version_candidates=[candidate],
+        same_or_unknown_candidates=[],
+        skipped_paths=[],
+        stopped_after_priority_match=True,
+    )
+    prompts: list[tuple[ManagedAppRecord, UpdateCandidate]] = []
+    monkeypatch.setattr(
+        window,
+        "_show_recovery_candidate_prompt",
+        lambda prompt_record, prompt_candidate: prompts.append((prompt_record, prompt_candidate)),
+    )
+
+    window._present_update_discovery(record, [record], {record.internal_id: discovery})
+
+    assert prompts == [(record, candidate)]
+    window.destroy()
+
+
+def test_recovery_prompt_update_uses_candidate(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.recovery-update")
+    window = ApplicationWindow(app, _make_services())
+    record = _make_record(tmp_path)
+    candidate = _make_candidate(tmp_path / "demo-v2.AppImage", version="2.0.0", is_executable=True)
+    prepared: list[tuple[ManagedAppRecord, Path, bool]] = []
+    monkeypatch.setattr(
+        window,
+        "_prepare_update_source",
+        lambda selected_record, path, *, validate_selection: prepared.append(
+            (selected_record, path, validate_selection)
+        ),
+    )
+
+    window._on_recovery_candidate_response(None, "update", record, candidate)
+
+    assert prepared == [(record, candidate.path, False)]
+    window.destroy()
+
+
+def test_recovery_prompt_continue_search_restarts_full_scan(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.recovery-continue")
+    window = ApplicationWindow(app, _make_services())
+    record = _make_record(tmp_path)
+    candidate = _make_candidate(tmp_path / "demo-v2.AppImage", version="2.0.0", is_executable=True)
+    searches: list[tuple[ManagedAppRecord, bool, bool]] = []
+    monkeypatch.setattr(
+        window,
+        "_begin_update_search",
+        lambda selected_record, *, prefer_error_recovery, stop_after_first_recovery_match: searches.append(
+            (selected_record, prefer_error_recovery, stop_after_first_recovery_match)
+        ),
+    )
+
+    window._on_recovery_candidate_response(None, "continue", record, candidate)
+
+    assert searches == [(record, True, False)]
+    window.destroy()
+
+
+def test_error_update_search_uses_recovery_without_reconcile(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.update-error-recovery")
+    services = _make_services()
+    record = ManagedAppRecord.from_dict(
+        {
+            **_make_record(tmp_path).to_dict(),
+            "last_validation_status": "error",
+            "last_validation_messages": ["Managed AppImage is missing."],
+        }
+    )
+    validate_flags: list[bool] = []
+    discovery_flags: list[tuple[bool, bool]] = []
+
+    def validate_record(candidate_record, allow_reconcile_inspection=False):
+        validate_flags.append(allow_reconcile_inspection)
+        return candidate_record, "error", ["Managed AppImage is missing."]
+
+    services.library_manager.validate_record = validate_record
+    services.library_manager.related_records = lambda candidate_record: [candidate_record]
+    services.update_discovery.discover_updates = lambda _record, **kwargs: (
+        discovery_flags.append(
+            (
+                kwargs["prefer_error_recovery"],
+                kwargs["stop_after_first_recovery_match"],
+            )
+        ),
+        UpdateDiscoveryResult(
+            record=record,
+            searched_directories=[],
+            higher_version_candidates=[],
+            same_or_unknown_candidates=[],
+            skipped_paths=[],
+        ),
+    )[1]
+
+    class ImmediateThread:
+        def __init__(self, target, args=(), daemon=None) -> None:
+            self._target = target
+            self._args = args
+
+        def start(self) -> None:
+            self._target(*self._args)
+
+    monkeypatch.setattr(application_window_module.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(application_window_module.GLib, "idle_add", lambda func, *args: func(*args))
+    monkeypatch.setattr(ApplicationWindow, "_show_update_progress_dialog", lambda *_args: None)
+    monkeypatch.setattr(ApplicationWindow, "_close_update_progress_dialog", lambda *_args: None)
+    window = ApplicationWindow(app, services)
+
+    window.update_record(record)
+
+    assert validate_flags[-1] is False
+    assert discovery_flags[-1] == (True, True)
+    window.destroy()
+
+
+def test_startup_recovery_shows_status_and_uses_safe_reconcile(monkeypatch, tmp_path: Path) -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.startup-recovery")
+    services = _make_services()
+    calls: list[bool] = []
+    record = ManagedAppRecord.from_dict(
+        {
+            **_make_record(tmp_path).to_dict(),
+            "last_validation_status": "error",
+            "last_validation_messages": ["Managed AppImage is missing."],
+        }
+    )
+
+    def validate_record(candidate_record, allow_reconcile_inspection=False):
+        calls.append(allow_reconcile_inspection)
+        return candidate_record, "ok", []
+
+    services.library_manager.validate_record = validate_record
+    services.library_manager.list_records = lambda: [record]
+    services.update_discovery.discover_updates = lambda *_args, **_kwargs: UpdateDiscoveryResult(
+        record=record,
+        searched_directories=[],
+        higher_version_candidates=[],
+        same_or_unknown_candidates=[],
+        skipped_paths=[],
+    )
+
+    class ImmediateThread:
+        def __init__(self, target, args=(), daemon=None) -> None:
+            self._target = target
+            self._args = args
+
+        def start(self) -> None:
+            self._target(*self._args)
+
+    monkeypatch.setattr(application_window_module.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(application_window_module.GLib, "idle_add", lambda func, *args: func(*args))
+    window = ApplicationWindow(app, services)
+
+    window._start_startup_recovery([record])
+
+    assert calls[-1] is True
+    assert window._startup_recovery_status.get_visible() is False
     window.destroy()

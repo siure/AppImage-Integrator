@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import re
 import shlex
-from collections.abc import Callable
 from collections import OrderedDict
+from collections.abc import Callable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -144,9 +144,7 @@ class DesktopEntryService:
     def _require_launcher_command(self) -> list[str]:
         launcher_command = self._resolve_launcher_command()
         if launcher_command is None:
-            raise ValueError(
-                "Could not resolve a concrete launcher path for desktop integration."
-            )
+            raise ValueError("Could not resolve a concrete launcher path for desktop integration.")
         return launcher_command
 
     def rewrite_exec_tokens(
@@ -222,7 +220,14 @@ class DesktopEntryService:
     ) -> str:
         launcher_command = self._require_launcher_command()
         passthrough_tokens = self.rewrite_exec_tokens(entry, extra_args, arg_preset_id)
-        exec_tokens = [*launcher_command, "launch", internal_id, "--desktop", "--", *passthrough_tokens]
+        exec_tokens = [
+            *launcher_command,
+            "launch",
+            internal_id,
+            "--desktop",
+            "--",
+            *passthrough_tokens,
+        ]
         return serialize_exec_tokens(exec_tokens)
 
     def build_exec_template_from_record(
@@ -266,7 +271,9 @@ class DesktopEntryService:
         )
         return self._build_desktop_text_from_entry(
             current_entry,
-            icon_value=current_entry.parsed_fields.get("Icon") or record.managed_icon_path or "application-x-executable",
+            icon_value=current_entry.parsed_fields.get("Icon")
+            or record.managed_icon_path
+            or "application-x-executable",
             display_name=display_name,
             fallback_name=record.display_name,
             comment=comment,
@@ -349,12 +356,16 @@ class DesktopEntryService:
         validation_messages.extend(self.validate_text(desktop_text))
         return desktop_text, validation_messages, exec_template
 
-    def inspection_from_managed_record(self, record: ManagedAppRecord, desktop_text: str) -> AppImageInspection:
+    def inspection_from_managed_record(
+        self, record: ManagedAppRecord, desktop_text: str
+    ) -> AppImageInspection:
         entry = parse_desktop_entry(desktop_text, "managed.desktop")
         return AppImageInspection(
             source_path=Path(record.managed_appimage_path),
             is_appimage=True,
-            appimage_type=record.appimage_type if record.appimage_type in {"type1", "type2", "unknown"} else "unknown",
+            appimage_type=record.appimage_type
+            if record.appimage_type in {"type1", "type2", "unknown"}
+            else "unknown",
             is_executable=Path(record.managed_appimage_path).exists(),
             detected_name=record.display_name,
             detected_comment=record.comment,
@@ -393,18 +404,24 @@ class DesktopEntryService:
         except ValueError as exc:
             raise ValueError(f"Could not parse the saved launch command: {exc}") from exc
         if "--" not in tokens:
-            raise ValueError("The saved launch command is missing the expected passthrough separator.")
+            raise ValueError(
+                "The saved launch command is missing the expected passthrough separator."
+            )
         passthrough = tokens[tokens.index("--") + 1 :]
         while passthrough and PLACEHOLDER_RE.match(passthrough[-1]):
             passthrough.pop()
         if record.extra_args:
             if passthrough[-len(record.extra_args) :] != record.extra_args:
-                raise ValueError("The saved launch arguments could not be reconciled with the current metadata.")
+                raise ValueError(
+                    "The saved launch arguments could not be reconciled with the current metadata."
+                )
             del passthrough[-len(record.extra_args) :]
         preset_args = list(PRESET_ARGUMENTS.get(record.arg_preset_id or "none", ()))
         if preset_args:
             if passthrough[-len(preset_args) :] != preset_args:
-                raise ValueError("The saved launch preset could not be reconciled with the current metadata.")
+                raise ValueError(
+                    "The saved launch preset could not be reconciled with the current metadata."
+                )
             del passthrough[-len(preset_args) :]
         return passthrough
 

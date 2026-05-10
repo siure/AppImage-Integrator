@@ -13,7 +13,7 @@ from appimage_integrator.services.desktop_entry import DesktopEntryService, part
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.self_integration import is_self_internal_id, is_self_record
-from appimage_integrator.services.versioning import compare_versions
+from appimage_integrator.services.versioning import compare_update_versions
 
 
 @dataclass(frozen=True)
@@ -258,7 +258,9 @@ class ManagedAppRuntimeService:
         return chosen
 
     def _candidate_is_better(self, candidate: _ReplacementCandidate, current: _ReplacementCandidate) -> bool:
-        version_cmp = compare_versions(candidate.version, current.version)
+        version_cmp = compare_update_versions(candidate.version, current.version)
+        if version_cmp is None:
+            return False
         if version_cmp != 0:
             return version_cmp > 0
         candidate_mtime = candidate.path.stat().st_mtime

@@ -3,8 +3,11 @@ from __future__ import annotations
 import logging
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
+
+from appimage_integrator.services.cancellation import CancelCallback, OperationCancelled, raise_if_cancelled
 
 DEFAULT_COMMAND_TIMEOUT_SECONDS = 120
 MAX_CAPTURED_OUTPUT_BYTES = 2_000_000
@@ -42,39 +45,56 @@ class Tooling:
         check: bool = False,
         capture_output: bool = True,
         timeout: float | None = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+        should_cancel: CancelCallback | None = None,
     ) -> subprocess.CompletedProcess[str]:
         self.logger.info("Running command: %s", " ".join(args))
+        raise_if_cancelled(should_cancel)
+        stdout_pipe = subprocess.PIPE if capture_output else None
+        stderr_pipe = subprocess.PIPE if capture_output else None
+        started_at = time.monotonic()
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 args,
                 cwd=cwd,
-                check=check,
-                capture_output=capture_output,
+                stdout=stdout_pipe,
+                stderr=stderr_pipe,
                 text=True,
-                timeout=timeout,
             )
+            while True:
+                try:
+                    stdout, stderr = process.communicate(timeout=0.1)
+                    break
+                except subprocess.TimeoutExpired:
+                    if should_cancel is not None and should_cancel():
+                        process.kill()
+                        process.communicate()
+                        raise OperationCancelled()
+                    if timeout is not None and time.monotonic() - started_at >= timeout:
+                        process.kill()
+                        stdout, stderr = process.communicate()
+                        self.logger.info("Command timed out after %s seconds", timeout)
+                        return subprocess.CompletedProcess(
+                            args,
+                            124,
+                            self._coerce_output(stdout),
+                            self._coerce_output(stderr) or f"Command timed out after {timeout} seconds.",
+                        )
         except OSError as exc:
             self.logger.info("Command failed before execution: %s", exc)
             return subprocess.CompletedProcess(args, 127, "", str(exc))
-        except subprocess.TimeoutExpired as exc:
-            self.logger.info("Command timed out after %s seconds", exc.timeout)
-            return subprocess.CompletedProcess(
-                args,
-                124,
-                self._coerce_output(exc.stdout),
-                self._coerce_output(exc.stderr) or f"Command timed out after {exc.timeout} seconds.",
-            )
         result = subprocess.CompletedProcess(
-            result.args,
-            result.returncode,
-            self._limit_output(result.stdout),
-            self._limit_output(result.stderr),
+            args,
+            process.returncode,
+            self._coerce_output(stdout),
+            self._coerce_output(stderr),
         )
         self.logger.info("Command exited %s", result.returncode)
         if result.stdout:
             self.logger.info("stdout: %s", self._preview_output(result.stdout))
         if result.stderr:
             self.logger.info("stderr: %s", self._preview_output(result.stderr))
+        if check and result.returncode:
+            raise subprocess.CalledProcessError(result.returncode, args, result.stdout, result.stderr)
         return result
 
     def _coerce_output(self, output: str | bytes | None) -> str:

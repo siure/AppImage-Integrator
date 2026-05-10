@@ -27,7 +27,9 @@ class FakeInspector:
         self.inspections = inspections
         self.cleanup_calls = 0
 
-    def inspect(self, _source_path: Path) -> AppImageInspection:
+    def inspect(self, _source_path: Path, should_cancel=None) -> AppImageInspection:
+        if should_cancel is not None and should_cancel():
+            raise AssertionError("unexpected cancellation in CLI test")
         return self.inspections.pop(0)
 
     def cleanup(self, _inspection: AppImageInspection) -> None:
@@ -298,6 +300,48 @@ def test_cli_install_copy_with_name(test_paths, tooling) -> None:
     )
     assert code == 0, stderr
     assert json.loads(stdout)["record"]["display_name"] == "CLI Demo Nightly"
+
+
+def test_cli_update_copy_targets_copy_record(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-copy-update-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    source.chmod(0o755)
+    update_source = source.parent / "demo-copy-update-v2.AppImage"
+    update_source.write_text("appimage", encoding="utf-8")
+    update_source.chmod(0o755)
+    extracted = test_paths.cache_extract_dir / "extract-cli-copy-update"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    services = build_services(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(update_source, extracted, "2.0.0"),
+            make_inspection(update_source, extracted, "2.0.0"),
+            make_inspection(update_source, extracted, "2.0.0"),
+        ],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    original = json.loads(stdout)["record"]
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--copy", "--json")
+    assert code == 0, stderr
+    copied = json.loads(stdout)["record"]
+
+    code, stdout, stderr = run_args(parser, services, "update", copied["internal_id"], "--json", stdin_text="1\n")
+
+    assert code == 0, stderr
+    payload = json.loads(stdout)
+    assert payload["mode"] == "update"
+    assert payload["record"]["internal_id"] == copied["internal_id"]
+    assert services.store.load(copied["internal_id"]).version == "2.0.0"
+    assert services.store.load(original["internal_id"]).version == "1.0.0"
 
 
 def test_cli_inspect_requires_trust_for_non_executable_source(test_paths, tooling) -> None:
@@ -652,6 +696,97 @@ def test_cli_update_falls_back_to_manual_path_when_no_higher_version_exists(test
         internal_id,
         "--json",
         stdin_text=f"{manual_source}\n",
+    )
+
+    assert code == 0, stderr
+    payload = json.loads(stdout)
+    assert payload["mode"] == "update"
+    assert payload["record"]["source_path_last_seen"] == str(manual_source)
+
+
+def test_cli_update_prefers_renamed_payload_sibling_when_managed_appimage_missing(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-cli-recovery-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    source.chmod(0o755)
+    extracted = test_paths.cache_extract_dir / "extract-cli-recovery"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    services = build_services(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+        ],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    record = services.store.load(json.loads(stdout)["record"]["internal_id"])
+    assert record is not None
+    old_payload = Path(record.managed_payload_path)
+    old_payload.unlink()
+    renamed_payload = old_payload.with_name("demo-cli-recovery-v2.AppImage")
+    renamed_payload.write_text("appimage", encoding="utf-8")
+    renamed_payload.chmod(0o755)
+
+    code, stdout, stderr = run_args(parser, services, "update", record.internal_id, "--json", stdin_text="1\n")
+
+    assert code == 0, stderr
+    payload = json.loads(stdout)
+    assert payload["mode"] == "update"
+    assert payload["record"]["source_path_last_seen"] == str(renamed_payload)
+
+
+def test_cli_update_can_continue_from_recovery_prompt_to_manual_choice(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-cli-continue-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    source.chmod(0o755)
+    manual_source = test_paths.home / "Manual" / "demo-cli-continue-v3.AppImage"
+    manual_source.parent.mkdir(parents=True)
+    manual_source.write_text("appimage", encoding="utf-8")
+    manual_source.chmod(0o755)
+    extracted = test_paths.cache_extract_dir / "extract-cli-continue"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    services = build_services(
+        test_paths,
+        tooling,
+        [
+            make_inspection(source, extracted, "1.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "2.0.0"),
+            make_inspection(source, extracted, "3.0.0"),
+            make_inspection(manual_source, extracted, "3.0.0"),
+            make_inspection(manual_source, extracted, "3.0.0"),
+            make_inspection(manual_source, extracted, "3.0.0"),
+        ],
+    )
+    parser = build_parser()
+
+    code, stdout, stderr = run_args(parser, services, "install", str(source), "--trust", "--json")
+    assert code == 0, stderr
+    record = services.store.load(json.loads(stdout)["record"]["internal_id"])
+    assert record is not None
+    old_payload = Path(record.managed_payload_path)
+    old_payload.unlink()
+    renamed_payload = old_payload.with_name("demo-cli-continue-v2.AppImage")
+    renamed_payload.write_text("appimage", encoding="utf-8")
+    renamed_payload.chmod(0o755)
+
+    code, stdout, stderr = run_args(
+        parser,
+        services,
+        "update",
+        record.internal_id,
+        "--json",
+        stdin_text=f"2\n2\n{manual_source}\n",
     )
 
     assert code == 0, stderr

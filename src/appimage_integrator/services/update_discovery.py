@@ -14,8 +14,9 @@ from appimage_integrator.models import (
 )
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.services.appimage_inspector import AppImageInspector
+from appimage_integrator.services.cancellation import CancelCallback, raise_if_cancelled
 from appimage_integrator.services.id_resolver import IdResolver
-from appimage_integrator.services.versioning import compare_versions
+from appimage_integrator.services.versioning import compare_update_versions, compare_versions
 
 _ARCH_TOKENS = {
     "x86",
@@ -49,13 +50,21 @@ class UpdateDiscoveryService:
         self,
         record: ManagedAppRecord,
         progress_callback: UpdateProgressCallback | None = None,
+        *,
+        prefer_error_recovery: bool = False,
+        stop_after_first_recovery_match: bool = False,
+        should_cancel: CancelCallback | None = None,
     ) -> UpdateDiscoveryResult:
+        raise_if_cancelled(should_cancel)
         self._emit_progress(
             progress_callback,
             "Preparing search",
             f"Resolving where to search for updates to {record.display_name}.",
         )
-        searched_directories = self._search_directories(record)
+        searched_directories = self._search_directories(
+            record,
+            prefer_error_recovery=prefer_error_recovery,
+        )
         higher_version_candidates: list[UpdateCandidate] = []
         same_or_unknown_candidates: list[UpdateCandidate] = []
         skipped_paths: list[str] = []
@@ -63,12 +72,14 @@ class UpdateDiscoveryService:
         seen_candidate_paths: set[Path] = set()
 
         for directory, source_dir_kind in searched_directories:
+            raise_if_cancelled(should_cancel)
             self._emit_progress(
                 progress_callback,
                 "Scanning directories",
                 f"Looking for AppImages in {directory}.",
             )
             for candidate_path in self._iter_appimages(directory):
+                raise_if_cancelled(should_cancel)
                 resolved_candidate = candidate_path.resolve(strict=False)
                 if resolved_candidate in seen_candidate_paths:
                     continue
@@ -77,26 +88,49 @@ class UpdateDiscoveryService:
                     continue
                 candidate_entries.append((candidate_path, source_dir_kind))
 
-        likely_candidates, fallback_candidates = self._partition_candidates(record, candidate_entries)
-        self._inspect_candidates(
-            record,
-            likely_candidates,
-            higher_version_candidates,
-            same_or_unknown_candidates,
-            skipped_paths,
-            progress_callback,
-            stage_title="Checking likely matches",
-        )
-        if not higher_version_candidates and not same_or_unknown_candidates and fallback_candidates:
-            self._inspect_candidates(
+        recovery_entries = [
+            entry for entry in candidate_entries if self._is_recovery_source_kind(entry[1])
+        ]
+        remaining_entries = [
+            entry for entry in candidate_entries if not self._is_recovery_source_kind(entry[1])
+        ]
+        stopped_after_priority_match = False
+        if stop_after_first_recovery_match and recovery_entries:
+            self._discover_from_entries(
                 record,
-                fallback_candidates,
+                recovery_entries,
                 higher_version_candidates,
                 same_or_unknown_candidates,
                 skipped_paths,
                 progress_callback,
-                stage_title="Checking remaining files",
+                should_cancel,
             )
+            if higher_version_candidates:
+                stopped_after_priority_match = True
+                self._emit_progress(
+                    progress_callback,
+                    "Ranking results",
+                    "Sorting matching candidates from the recovery folder.",
+                )
+                return UpdateDiscoveryResult(
+                    record=record,
+                    searched_directories=[directory for directory, _kind in searched_directories],
+                    higher_version_candidates=self._sort_candidates(higher_version_candidates, record),
+                    same_or_unknown_candidates=self._sort_candidates(same_or_unknown_candidates, record),
+                    skipped_paths=sorted(skipped_paths),
+                    stopped_after_priority_match=stopped_after_priority_match,
+                )
+
+        entries_to_scan = remaining_entries if stop_after_first_recovery_match else candidate_entries
+        self._discover_from_entries(
+            record,
+            entries_to_scan,
+            higher_version_candidates,
+            same_or_unknown_candidates,
+            skipped_paths,
+            progress_callback,
+            should_cancel,
+        )
 
         self._emit_progress(
             progress_callback,
@@ -110,22 +144,65 @@ class UpdateDiscoveryService:
             higher_version_candidates=self._sort_candidates(higher_version_candidates, record),
             same_or_unknown_candidates=self._sort_candidates(same_or_unknown_candidates, record),
             skipped_paths=sorted(skipped_paths),
+            stopped_after_priority_match=stopped_after_priority_match,
         )
+
+    def _discover_from_entries(
+        self,
+        record: ManagedAppRecord,
+        candidate_entries: list[tuple[Path, str]],
+        higher_version_candidates: list[UpdateCandidate],
+        same_or_unknown_candidates: list[UpdateCandidate],
+        skipped_paths: list[str],
+        progress_callback: UpdateProgressCallback | None,
+        should_cancel: CancelCallback | None,
+    ) -> None:
+        likely_candidates, fallback_candidates = self._partition_candidates(record, candidate_entries)
+        starting_match_count = len(higher_version_candidates) + len(same_or_unknown_candidates)
+        self._inspect_candidates(
+            record,
+            likely_candidates,
+            higher_version_candidates,
+            same_or_unknown_candidates,
+            skipped_paths,
+            progress_callback,
+            stage_title="Checking likely matches",
+            should_cancel=should_cancel,
+        )
+        current_match_count = len(higher_version_candidates) + len(same_or_unknown_candidates)
+        if current_match_count == starting_match_count and fallback_candidates:
+            self._inspect_candidates(
+                record,
+                fallback_candidates,
+                higher_version_candidates,
+                same_or_unknown_candidates,
+                skipped_paths,
+                progress_callback,
+                stage_title="Checking remaining files",
+                should_cancel=should_cancel,
+            )
 
     def evaluate_candidate(
         self,
         record: ManagedAppRecord,
         candidate_path: Path,
         source_dir_kind: str = "source_dir",
+        should_cancel: CancelCallback | None = None,
     ) -> UpdateCandidate | None:
-        inspection = self.inspector.inspect(candidate_path)
+        raise_if_cancelled(should_cancel)
+        inspection = self.inspector.inspect(candidate_path, should_cancel=should_cancel)
         try:
             identity = self.id_resolver.resolve(inspection)
             return self._match_candidate(record, candidate_path, inspection, identity, source_dir_kind)
         finally:
             self.inspector.cleanup(inspection)
 
-    def _search_directories(self, record: ManagedAppRecord) -> list[tuple[Path, str]]:
+    def _search_directories(
+        self,
+        record: ManagedAppRecord,
+        *,
+        prefer_error_recovery: bool = False,
+    ) -> list[tuple[Path, str]]:
         source_parent = Path(record.source_path_last_seen).expanduser().resolve(strict=False).parent
         downloads = (self.paths.home / "Downloads").resolve(strict=False)
         managed_payload_dir = None
@@ -133,10 +210,13 @@ class UpdateDiscoveryService:
             managed_payload_dir = Path(record.managed_payload_dir).resolve(strict=False)
         elif record.managed_payload_path:
             managed_payload_dir = Path(record.managed_payload_path).resolve(strict=False).parent
-        candidates = [
+        candidates: list[tuple[Path, str]] = []
+        if prefer_error_recovery:
+            candidates.extend(self._recovery_directories(record))
+        candidates.extend([
             (source_parent, "source_dir"),
             (downloads, "downloads"),
-        ]
+        ])
         if managed_payload_dir is not None:
             candidates.append((managed_payload_dir, "managed_payload_dir"))
         directories: list[tuple[Path, str]] = []
@@ -147,6 +227,33 @@ class UpdateDiscoveryService:
             seen.add(directory)
             directories.append((directory, kind))
         return directories
+
+    def _recovery_directories(self, record: ManagedAppRecord) -> list[tuple[Path, str]]:
+        candidates: list[tuple[Path, str]] = []
+        if record.managed_payload_path:
+            candidates.append(
+                (
+                    Path(record.managed_payload_path).expanduser().resolve(strict=False).parent,
+                    "recovery_payload_dir",
+                )
+            )
+        if record.managed_payload_dir:
+            candidates.append(
+                (
+                    Path(record.managed_payload_dir).expanduser().resolve(strict=False),
+                    "recovery_payload_dir",
+                )
+            )
+        candidates.append(
+            (
+                Path(record.managed_appimage_path).expanduser().resolve(strict=False).parent,
+                "recovery_stable_dir",
+            )
+        )
+        return candidates
+
+    def _is_recovery_source_kind(self, source_dir_kind: str) -> bool:
+        return source_dir_kind.startswith("recovery_")
 
     def _iter_appimages(self, directory: Path) -> list[Path]:
         candidates: list[Path] = []
@@ -257,25 +364,34 @@ class UpdateDiscoveryService:
         progress_callback: UpdateProgressCallback | None,
         *,
         stage_title: str,
+        should_cancel: CancelCallback | None,
     ) -> None:
         total = len(candidate_entries)
         if total == 0:
             return
 
         for index, (candidate_path, source_dir_kind) in enumerate(candidate_entries, start=1):
+            raise_if_cancelled(should_cancel)
             self._emit_progress(
                 progress_callback,
                 stage_title,
                 f"Inspecting {candidate_path.name} ({index}/{total}).",
             )
             try:
-                match = self.evaluate_candidate(record, candidate_path, source_dir_kind)
+                match = self.evaluate_candidate(
+                    record,
+                    candidate_path,
+                    source_dir_kind,
+                    should_cancel=should_cancel,
+                )
             except OSError as exc:
                 skipped_paths.append(f"{candidate_path}: {exc}")
                 continue
             if match is None:
                 continue
-            version_cmp = compare_versions(match.detected_version, record.version)
+            version_cmp = compare_update_versions(match.detected_version, record.version)
+            if version_cmp is None:
+                continue
             if match.detected_version and record.version and version_cmp > 0:
                 higher_version_candidates.append(match)
             elif not match.detected_version or not record.version or version_cmp == 0:
@@ -393,6 +509,7 @@ class UpdateDiscoveryService:
         return sorted(
             candidates,
             key=lambda candidate: (
+                0 if self._is_recovery_source_kind(candidate.source_dir_kind) else 1,
                 0 if candidate.match_kind == "identity" else 1,
                 -candidate.match_score,
                 -self._version_rank(candidate.detected_version, record.version),
@@ -402,7 +519,8 @@ class UpdateDiscoveryService:
         )
 
     def _version_rank(self, candidate_version: str | None, current_version: str | None) -> int:
-        return compare_versions(candidate_version, current_version)
+        version_cmp = compare_update_versions(candidate_version, current_version)
+        return version_cmp if version_cmp is not None else -1
 
     def _normalize_name(self, value: str) -> str:
         lowered = value.lower().strip()

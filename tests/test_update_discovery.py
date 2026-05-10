@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection, ManagedAppRecord
+from appimage_integrator.services.cancellation import OperationCancelled
 from appimage_integrator.services.desktop_entry import parse_desktop_entry
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
@@ -15,7 +16,9 @@ class MappingInspector:
         self.inspections = {path.resolve(): inspection for path, inspection in inspections.items()}
         self.cleanup_calls = 0
 
-    def inspect(self, source_path: Path) -> AppImageInspection:
+    def inspect(self, source_path: Path, should_cancel=None) -> AppImageInspection:
+        if should_cancel is not None and should_cancel():
+            raise OperationCancelled()
         return self.inspections[source_path.resolve()]
 
     def cleanup(self, _inspection: AppImageInspection) -> None:
@@ -161,6 +164,75 @@ def test_update_discovery_matches_copy_base_identity(test_paths) -> None:
     assert match is not None
     assert match.match_kind == "identity"
     assert match.match_score == 92
+
+
+def test_update_discovery_detects_newer_nightly_for_nightly_channel(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-nightly-old.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-nightly-new.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-nightly-update"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "version": "v0.0.22-nightly.20260505.201",
+        }
+    )
+    service = UpdateDiscoveryService(
+        test_paths,
+        MappingInspector(
+            {
+                candidate: make_inspection(
+                    candidate,
+                    extracted,
+                    version="v0.0.22-nightly.20260506.201",
+                ),
+            }
+        ),
+        IdResolver(),
+    )
+
+    result = service.discover_updates(record)
+
+    assert [item.path for item in result.higher_version_candidates] == [candidate]
+
+
+def test_update_discovery_does_not_auto_promote_stable_to_nightly(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-stable.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-nightly.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-stable-nightly"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "version": "v0.0.22",
+        }
+    )
+    service = UpdateDiscoveryService(
+        test_paths,
+        MappingInspector(
+            {
+                candidate: make_inspection(
+                    candidate,
+                    extracted,
+                    version="v0.0.23-nightly.20260506.201",
+                ),
+            }
+        ),
+        IdResolver(),
+    )
+
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates == []
+    assert result.same_or_unknown_candidates == []
 
 
 def test_update_discovery_uses_downloads_and_ignores_current_and_managed_payload(test_paths) -> None:
@@ -540,3 +612,151 @@ def test_update_discovery_skips_active_payload_but_discovers_renamed_payload_sib
 
     assert [item.path for item in result.higher_version_candidates] == [renamed_payload]
     assert active_payload not in [item.path for item in result.higher_version_candidates]
+
+
+def test_update_discovery_prefers_missing_payload_parent_for_recovery(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    missing_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v1.AppImage"
+    missing_payload.parent.mkdir(parents=True)
+    recovery_candidate = missing_payload.parent / "demo-v2.AppImage"
+    recovery_candidate.write_text("appimage", encoding="utf-8")
+    downloads_candidate = source.parent / "demo-v3.AppImage"
+    downloads_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-recovery-parent"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            recovery_candidate: make_inspection(recovery_candidate, extracted, version="2.0.0"),
+            downloads_candidate: make_inspection(downloads_candidate, extracted, version="3.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": str(missing_payload),
+        }
+    )
+
+    result = service.discover_updates(record, prefer_error_recovery=True)
+
+    assert result.searched_directories[0] == missing_payload.parent
+    assert [item.path for item in result.higher_version_candidates] == [
+        recovery_candidate,
+        downloads_candidate,
+    ]
+    assert result.higher_version_candidates[0].source_dir_kind == "recovery_payload_dir"
+
+
+def test_update_discovery_uses_legacy_stable_parent_for_recovery(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    stable_parent = test_paths.applications_dir
+    stable_parent.mkdir(parents=True)
+    recovery_candidate = stable_parent / "demo-v2.AppImage"
+    recovery_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-recovery-stable"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            recovery_candidate: make_inspection(recovery_candidate, extracted, version="2.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": None,
+            "managed_payload_dir": None,
+        }
+    )
+
+    result = service.discover_updates(record, prefer_error_recovery=True)
+
+    assert result.searched_directories[0] == stable_parent
+    assert [item.path for item in result.higher_version_candidates] == [recovery_candidate]
+    assert result.higher_version_candidates[0].source_dir_kind == "recovery_stable_dir"
+
+
+def test_update_discovery_stops_after_recovery_match(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    missing_payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v1.AppImage"
+    missing_payload.parent.mkdir(parents=True)
+    recovery_candidate = missing_payload.parent / "demo-v2.AppImage"
+    recovery_candidate.write_text("appimage", encoding="utf-8")
+    downloads_candidate = source.parent / "demo-v3.AppImage"
+    downloads_candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-discovery-stop"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector(
+        {
+            recovery_candidate: make_inspection(recovery_candidate, extracted, version="2.0.0"),
+            downloads_candidate: make_inspection(downloads_candidate, extracted, version="3.0.0"),
+        }
+    )
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": str(missing_payload),
+        }
+    )
+
+    result = service.discover_updates(
+        record,
+        prefer_error_recovery=True,
+        stop_after_first_recovery_match=True,
+    )
+
+    assert result.stopped_after_priority_match is True
+    assert [item.path for item in result.higher_version_candidates] == [recovery_candidate]
+    assert inspector.cleanup_calls == 1
+
+
+def test_update_discovery_cancels_before_candidate_inspection(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    service = UpdateDiscoveryService(test_paths, MappingInspector({}), IdResolver())
+
+    try:
+        service.discover_updates(make_record(test_paths, source), should_cancel=lambda: True)
+    except OperationCancelled:
+        cancelled = True
+    else:
+        cancelled = False
+
+    assert cancelled is True
+
+
+def test_update_discovery_cancels_during_candidate_inspection(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    inspector = MappingInspector({})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    checks = iter([False, False, True])
+
+    try:
+        service.discover_updates(
+            make_record(test_paths, source),
+            should_cancel=lambda: next(checks, True),
+        )
+    except OperationCancelled:
+        cancelled = True
+    else:
+        cancelled = False
+
+    assert cancelled is True
