@@ -165,6 +165,47 @@ def test_record_editor_updates_name_comment_and_exec_template(test_paths, toolin
     assert store.load_index()[updated.internal_id]["display_name"] == "Renamed Browser"
 
 
+def test_record_editor_clears_comment_from_desktop_file(test_paths, tooling) -> None:
+    source = test_paths.home / "Downloads" / "demo-clear-comment.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-clear-comment"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    install_manager, editor, _, _, _ = build_editor(
+        test_paths,
+        tooling,
+        [make_inspection(source, extracted, "1.0.0")],
+    )
+    result = install_manager.install(
+        InstallRequest(
+            source_path=source,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+
+    updated = editor.update_record(
+        ManagedRecordUpdateRequest(
+            internal_id=result.record.internal_id,
+            display_name=result.record.display_name,
+            comment="",
+            arg_preset_id="none",
+            extra_args=[],
+        )
+    )
+
+    assert updated.comment is None
+    desktop_text = Path(updated.managed_desktop_path).read_text(encoding="utf-8")
+    assert "Name=Demo Browser" in desktop_text
+    assert "Comment=" not in desktop_text
+
+
 def test_record_editor_preview_uses_structured_launch_inputs(test_paths, tooling) -> None:
     source = test_paths.home / "Downloads" / "demo-preview.AppImage"
     source.parent.mkdir(parents=True)

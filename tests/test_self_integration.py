@@ -174,3 +174,81 @@ def test_install_manager_routes_self_app_to_reserved_paths(test_paths, tooling) 
     assert result.record.managed_desktop_path == str(test_paths.self_desktop_entry_path)
     assert test_paths.self_appimage_path.is_symlink()
     assert test_paths.self_command_path.exists()
+
+
+def test_install_manager_updates_self_app_and_keeps_cli_wrapper(test_paths, tooling) -> None:
+    source_v1 = test_paths.home / "Downloads" / "AppImage-Integrator-1.AppImage"
+    source_v2 = test_paths.home / "Downloads" / "AppImage-Integrator-2.AppImage"
+    source_v1.parent.mkdir(parents=True, exist_ok=True)
+    source_v1.write_text("appimage-v1", encoding="utf-8")
+    source_v2.write_text("appimage-v2", encoding="utf-8")
+    source_v1.chmod(0o755)
+    source_v2.chmod(0o755)
+
+    extracted = test_paths.cache_extract_dir / "extract-self-update"
+    extracted.mkdir(parents=True, exist_ok=True)
+    (extracted / f"{APP_ID}.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+
+    inspector = FakeInspector(
+        [
+            make_self_inspection(source_v1, extracted, "1.0.0"),
+            make_self_inspection(source_v2, extracted, "2.0.0"),
+        ]
+    )
+    store = MetadataStore(test_paths)
+    desktop_service = DesktopEntryService(
+        tooling,
+        launcher_command_resolver=lambda: [str(test_paths.self_command_path)],
+    )
+    runtime_service = ManagedAppRuntimeService(
+        test_paths,
+        inspector,
+        desktop_service,
+        IconResolver(test_paths),
+        IdResolver(),
+    )
+    install_manager = InstallManager(
+        test_paths,
+        inspector,
+        desktop_service,
+        IconResolver(test_paths),
+        IdResolver(),
+        runtime_service,
+        store,
+        tooling,
+    )
+
+    first = install_manager.install(
+        InstallRequest(
+            source_path=source_v1,
+            display_name_override=None,
+            comment_override=None,
+            extra_args=[],
+            arg_preset_id="none",
+            allow_update=True,
+            allow_reinstall=True,
+        )
+    )
+    updated = install_manager.install(
+        InstallRequest(
+            source_path=source_v2,
+            display_name_override=first.record.display_name,
+            comment_override=first.record.comment,
+            extra_args=first.record.extra_args,
+            arg_preset_id=first.record.arg_preset_id,
+            allow_update=True,
+            allow_reinstall=True,
+            target_internal_id=first.record.internal_id,
+        )
+    )
+
+    assert updated.mode == "update"
+    assert updated.record.internal_id == SELF_INTERNAL_ID
+    assert updated.record.version == "2.0.0"
+    assert updated.record.managed_appimage_path == str(test_paths.self_appimage_path)
+    assert Path(updated.record.managed_payload_path).read_text(encoding="utf-8") == "appimage-v2"
+    assert test_paths.self_appimage_path.resolve(strict=True) == Path(updated.record.managed_payload_path)
+    assert test_paths.self_command_path.read_text(encoding="utf-8") == (
+        "#!/bin/sh\n"
+        f'exec "{test_paths.self_appimage_path}" "$@"\n'
+    )

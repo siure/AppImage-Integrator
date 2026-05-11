@@ -90,3 +90,36 @@ def test_sync_self_library_record_reuses_existing_record_without_inspection(test
     assert inspector.inspect_calls == 0
     assert inspector.cleanup_calls == 0
     assert saved_records == []
+
+
+def test_install_current_appimage_for_self_uses_install_manager(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "AppImage-Integrator.AppImage"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("appimage", encoding="utf-8")
+    record = build_self_record(test_paths, source_path_last_seen=source)
+    requests = []
+
+    fake_app = SimpleNamespace(
+        paths=test_paths,
+        services=SimpleNamespace(
+            store=SimpleNamespace(load=lambda _internal_id: None),
+            install_manager=SimpleNamespace(
+                install=lambda request: (
+                    requests.append(request),
+                    SimpleNamespace(record=record),
+                )[1],
+            ),
+            logger=logging.getLogger("tests.application"),
+        ),
+    )
+    fake_app._current_appimage_matches_existing_self_install = lambda _path, _existing: False
+    fake_app._write_self_integration_state = lambda value: (
+        AppImageIntegratorApplication._write_self_integration_state(fake_app, value)
+    )
+
+    changed = AppImageIntegratorApplication._install_current_appimage_for_self(fake_app, source)
+
+    assert changed is True
+    assert requests[0].source_path == source
+    assert requests[0].target_internal_id is None
+    assert test_paths.self_integration_state_path.read_text(encoding="utf-8") == "accepted\n"

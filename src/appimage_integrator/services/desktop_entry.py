@@ -277,7 +277,8 @@ class DesktopEntryService:
             display_name=display_name,
             fallback_name=record.display_name,
             comment=comment,
-            fallback_comment=record.comment,
+            fallback_comment=None,
+            preserve_existing_comment=False,
             exec_template=exec_template,
         )
 
@@ -291,6 +292,7 @@ class DesktopEntryService:
         comment: str | None,
         fallback_comment: str | None,
         exec_template: str,
+        preserve_existing_comment: bool = True,
     ) -> tuple[str, list[str], str]:
         validation_messages: list[str] = []
         fields = OrderedDict()
@@ -316,6 +318,8 @@ class DesktopEntryService:
         sanitized_comment = sanitize_value(comment) if comment is not None else None
         if sanitized_comment is not None:
             fields["Comment"] = sanitized_comment
+        elif not preserve_existing_comment:
+            fields.pop("Comment", None)
         elif "Comment" not in fields and fallback_comment:
             fields["Comment"] = sanitize_value(fallback_comment) or ""
         if sanitize_value(fields.get("Comment")) == fields["Name"]:

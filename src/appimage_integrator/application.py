@@ -21,6 +21,7 @@ from appimage_integrator.launcher import (
     install_self_command,
     resolve_launcher_command,
 )
+from appimage_integrator.models import InstallRequest
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.self_integration import build_self_record, SELF_INTERNAL_ID
 from appimage_integrator.ui.dialogs import CompatMessageDialog
@@ -55,9 +56,6 @@ class AppImageIntegratorApplication(Adw.Application):
         GLib.idle_add(self._begin_desktop_integration, window)
 
     def _begin_desktop_integration(self, window: Gtk.Window) -> bool:
-        if self._should_offer_self_install():
-            self._prompt_self_install(window)
-            return False
         threading.Thread(target=self._run_desktop_integration, daemon=True).start()
         return False
 
@@ -87,7 +85,8 @@ class AppImageIntegratorApplication(Adw.Application):
         self.paths.ensure_directories()
         icon_changed = self._ensure_icon_integration()
 
-        if current_appimage_path() is None:
+        appimage_path = current_appimage_path()
+        if appimage_path is None:
             launcher_command = resolve_launcher_command(self.paths)
             if launcher_command is None:
                 self.services.logger.warning(
@@ -101,16 +100,66 @@ class AppImageIntegratorApplication(Adw.Application):
                 self._refresh_desktop_metadata()
             return
 
-        if self.paths.self_appimage_path.exists() and self.paths.self_command_path.exists():
-            launcher_command = [str(self.paths.self_appimage_path)]
-            desktop_changed = self._write_app_desktop_entry(launcher_command)
-            self._sync_self_library_record(
-                source_path_last_seen=current_appimage_path(),
-                launcher_command=launcher_command,
-                force_inspect=False,
+        integration_changed = self._install_current_appimage_for_self(appimage_path)
+        if icon_changed or integration_changed:
+            self._refresh_desktop_metadata()
+            window = self.props.active_window
+            if isinstance(window, ApplicationWindow):
+                GLib.idle_add(window.refresh_library)
+
+    def _install_current_appimage_for_self(self, appimage_path: Path) -> bool:
+        existing = self.services.store.load(SELF_INTERNAL_ID)
+        if self._current_appimage_matches_existing_self_install(appimage_path, existing):
+            return False
+
+        try:
+            result = self.services.install_manager.install(
+                InstallRequest(
+                    source_path=appimage_path,
+                    display_name_override=existing.display_name if existing else None,
+                    comment_override=existing.comment if existing else None,
+                    extra_args=list(existing.extra_args) if existing else [],
+                    arg_preset_id=existing.arg_preset_id if existing else "none",
+                    allow_update=True,
+                    allow_reinstall=True,
+                    target_internal_id=SELF_INTERNAL_ID if existing else None,
+                )
             )
-            if icon_changed or desktop_changed:
-                self._refresh_desktop_metadata()
+        except Exception as exc:  # noqa: BLE001
+            self.services.logger.warning("Could not install self AppImage integration: %s", exc)
+            return False
+
+        if result.record.internal_id != SELF_INTERNAL_ID:
+            self.services.logger.warning(
+                "Current AppImage resolved to %s instead of expected self id %s.",
+                result.record.internal_id,
+                SELF_INTERNAL_ID,
+            )
+            return False
+        self._write_self_integration_state("accepted")
+        return True
+
+    def _current_appimage_matches_existing_self_install(
+        self,
+        appimage_path: Path,
+        existing,
+    ) -> bool:
+        if existing is None:
+            return False
+        if not (
+            self.paths.self_appimage_path.exists()
+            and self.paths.self_command_path.exists()
+            and self.paths.self_desktop_entry_path.exists()
+        ):
+            return False
+
+        active_path_text = existing.managed_payload_path or existing.managed_appimage_path
+        try:
+            active_path = Path(active_path_text).expanduser().resolve(strict=False)
+            current_path = appimage_path.expanduser().resolve(strict=False)
+        except OSError:
+            return False
+        return active_path == current_path
 
     def _ensure_icon_integration(self) -> bool:
         icon_target = self.paths.self_icon_path
