@@ -60,6 +60,8 @@ class InstallView(Gtk.Box):
 
         text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         text_box.set_hexpand(True)
+        text_box.set_valign(Gtk.Align.CENTER)
+        text_box.add_css_class("install-compact-text")
 
         title = Gtk.Label(label="Add AppImage", xalign=0)
         title.add_css_class("title-5")
@@ -67,6 +69,9 @@ class InstallView(Gtk.Box):
         text_box.append(title)
 
         hint = Gtk.Label(label="Browse or drop anywhere in the window", xalign=0)
+        hint.set_wrap(True)
+        hint.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        hint.set_max_width_chars(30)
         hint.add_css_class("dim-label")
         hint.add_css_class("install-compact-hint")
         text_box.append(hint)
