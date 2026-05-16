@@ -74,9 +74,13 @@ viewport,
     font-weight: 700;
 }
 
-.install-compact-hint,
 .install-source-label {
     font-size: 0.92rem;
+}
+
+.install-compact-hint {
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 
 .install-footer-button,
