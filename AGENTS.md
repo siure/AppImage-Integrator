@@ -17,9 +17,8 @@ Use the CLI, not the GTK GUI.
 Typical local setup:
 
 ```bash
-python3 -m venv --system-site-packages .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
+uv venv --system-site-packages .venv
+uv sync --extra dev
 ```
 
 Run without installing:
@@ -56,8 +55,8 @@ Agent guidance:
 Before closing work, run:
 
 ```bash
-pytest
-ruff check src tests
+uv run pytest
+uv run ruff check src tests
 ```
 
 ## Repository notes

@@ -40,16 +40,18 @@ sudo pacman -S python-gobject gtk4 libadwaita
 
 ## Development
 
-Create a virtual environment with access to system site-packages, then install
-the project in editable mode:
+Create a uv-managed virtual environment with access to system site-packages,
+then install the project with the development tools:
 
 ```bash
-python3 -m venv --system-site-packages .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
+uv venv --system-site-packages .venv
+uv sync --extra dev
 ```
 
-If you prefer a `requirements.txt` workflow, use:
+The `--system-site-packages` flag is required so the environment can see
+distribution-provided GTK/PyGObject packages such as `python3-gobject`.
+
+If you need a pip-compatible fallback, use:
 
 ```bash
 python3 -m venv --system-site-packages .venv
@@ -88,7 +90,6 @@ PYTHONPATH=src python3 -m appimage_integrator
 Run checks:
 
 ```bash
-pytest
-ruff check .
+uv run pytest
+uv run ruff check src tests
 ```
-
