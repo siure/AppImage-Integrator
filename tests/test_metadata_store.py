@@ -55,3 +55,26 @@ def test_metadata_store_delete_updates_index(test_paths) -> None:
     store.delete(record.internal_id)
     assert store.load(record.internal_id) is None
     assert json.loads(test_paths.metadata_index_path.read_text(encoding="utf-8")) == {}
+
+
+def test_load_summaries_reads_index_without_full_records(test_paths, monkeypatch) -> None:
+    store = MetadataStore(test_paths)
+    record = make_record()
+    store.save(record)
+    monkeypatch.setattr(store, "load_all", lambda: (_ for _ in ()).throw(AssertionError("full load")))
+
+    summaries = store.load_summaries()
+
+    assert summaries[0].internal_id == record.internal_id
+    assert summaries[0].display_name == "Demo"
+
+
+def test_load_summaries_rebuilds_corrupt_index(test_paths) -> None:
+    store = MetadataStore(test_paths)
+    record = make_record()
+    store.save(record)
+    test_paths.metadata_index_path.write_text("{bad json", encoding="utf-8")
+
+    summaries = store.load_summaries()
+
+    assert [summary.internal_id for summary in summaries] == [record.internal_id]

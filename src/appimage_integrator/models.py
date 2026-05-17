@@ -84,6 +84,44 @@ class AppImageInspection:
 
 
 @dataclass(frozen=True)
+class CachedAppImageInspection:
+    source_path: str
+    is_appimage: bool
+    appimage_type: AppImageType
+    is_executable: bool
+    detected_name: str | None
+    detected_comment: str | None
+    detected_version: str | None
+    appstream_id: str | None
+    embedded_desktop_filename: str | None
+    startup_wm_class: str | None
+    mime_types: list[str]
+    categories: list[str]
+    terminal: bool | None
+    startup_notify: bool | None
+    exec_placeholders: list[str]
+    warnings: list[str]
+    errors: list[str]
+    identity_internal_id: str
+    identity_fingerprint: str
+    identity_basis: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "CachedAppImageInspection":
+        return cls(**payload)
+
+
+@dataclass(frozen=True)
+class AppImageInspectionCacheKey:
+    resolved_path: str
+    size: int
+    mtime_ns: int
+
+
+@dataclass(frozen=True)
 class InstallRequest:
     source_path: Path
     display_name_override: str | None
@@ -148,6 +186,32 @@ class ManagedAppRecord:
         data.setdefault("copy_index", None)
         data.setdefault("schema_version", SCHEMA_VERSION)
         return cls(**data)
+
+
+@dataclass(frozen=True)
+class ManagedAppSummary:
+    internal_id: str
+    display_name: str
+    version: str | None
+    managed_appimage_path: str
+    managed_desktop_path: str
+    managed_icon_path: str | None
+    last_validation_status: ValidationStatus
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_index_entry(cls, internal_id: str, payload: dict[str, Any]) -> "ManagedAppSummary":
+        return cls(
+            internal_id=internal_id,
+            display_name=payload["display_name"],
+            version=payload.get("version"),
+            managed_appimage_path=payload["managed_appimage_path"],
+            managed_desktop_path=payload["managed_desktop_path"],
+            managed_icon_path=payload.get("managed_icon_path"),
+            last_validation_status=payload["last_validation_status"],
+        )
 
 
 @dataclass(frozen=True)

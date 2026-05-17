@@ -82,6 +82,10 @@ class AppPaths:
         return self.app_data_dir / "self-integration-state"
 
     @property
+    def inspection_cache_path(self) -> Path:
+        return self.cache_extract_dir.parent / "inspection-cache.json"
+
+    @property
     def self_icon_path(self) -> Path:
         return (
             self.home

@@ -23,10 +23,22 @@ class IconResolver:
         return 0
 
     def collect_candidates(self, extracted_dir: Path, desktop_icon_key: str | None) -> list[IconCandidate]:
+        return self.collect_candidates_from_files(
+            extracted_dir,
+            desktop_icon_key,
+            list(extracted_dir.rglob("*")),
+        )
+
+    def collect_candidates_from_files(
+        self,
+        extracted_dir: Path,
+        desktop_icon_key: str | None,
+        files: list[Path],
+    ) -> list[IconCandidate]:
         preferred_candidates: list[IconCandidate] = []
         if desktop_icon_key:
             key_path = extracted_dir / desktop_icon_key
-            for path in self._candidate_paths_for_key(extracted_dir, key_path, desktop_icon_key):
+            for path in self._candidate_paths_for_key(extracted_dir, key_path, desktop_icon_key, files):
                 icon = self._candidate_from_path(extracted_dir, path)
                 if icon:
                     preferred_candidates.append(icon)
@@ -36,7 +48,7 @@ class IconResolver:
             icon = self._candidate_from_path(extracted_dir, dir_icon.resolve())
             if icon:
                 preferred_candidates.append(icon)
-        for path in extracted_dir.rglob("*"):
+        for path in files:
             icon = self._candidate_from_path(extracted_dir, path)
             if icon:
                 fallback_candidates.append(icon)
@@ -55,12 +67,17 @@ class IconResolver:
                 ordered_candidates.append(candidate)
         return ordered_candidates
 
-    def choose_for_inspection(self, inspection: AppImageInspection) -> IconCandidate | None:
+    def choose_for_inspection(
+        self,
+        inspection: AppImageInspection,
+        files: list[Path] | None = None,
+    ) -> IconCandidate | None:
         if inspection.extracted_dir is None:
             return None
-        candidates = self.collect_candidates(
+        candidates = self.collect_candidates_from_files(
             inspection.extracted_dir,
             inspection.desktop_entry.icon_key if inspection.desktop_entry else None,
+            files if files is not None else list(inspection.extracted_dir.rglob("*")),
         )
         return candidates[0] if candidates else None
 
@@ -73,7 +90,13 @@ class IconResolver:
         shutil.copy2(candidate.source_path, destination)
         return str(destination), str(destination), True
 
-    def _candidate_paths_for_key(self, extracted_dir: Path, key_path: Path, key_name: str) -> list[Path]:
+    def _candidate_paths_for_key(
+        self,
+        extracted_dir: Path,
+        key_path: Path,
+        key_name: str,
+        files: list[Path],
+    ) -> list[Path]:
         paths = []
         if key_path.exists():
             paths.append(key_path)
@@ -81,7 +104,7 @@ class IconResolver:
             candidate = extracted_dir / f"{key_name}{ext}"
             if candidate.exists():
                 paths.append(candidate)
-            paths.extend(extracted_dir.rglob(f"{key_name}{ext}"))
+            paths.extend(path for path in files if path.name == f"{key_name}{ext}")
         return paths
 
     def _candidate_from_path(self, extracted_dir: Path, path: Path) -> IconCandidate | None:

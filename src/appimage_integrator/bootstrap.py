@@ -10,6 +10,7 @@ from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.desktop_entry import DesktopEntryService
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services.inspection_cache import InspectionCache
 from appimage_integrator.services.install_manager import InstallManager
 from appimage_integrator.services.library_manager import LibraryManager
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
@@ -86,7 +87,8 @@ def build_service_container(
         runtime_service,
         store,
     )
-    update_discovery = UpdateDiscoveryService(paths, inspector, id_resolver)
+    inspection_cache = InspectionCache(paths)
+    update_discovery = UpdateDiscoveryService(paths, inspector, id_resolver, inspection_cache)
     return ServiceContainer(
         paths=paths,
         logger=logger,

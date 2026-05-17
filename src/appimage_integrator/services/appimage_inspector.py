@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
 
 from appimage_integrator.models import AppImageInspection
@@ -16,6 +17,14 @@ from appimage_integrator.services.cancellation import (
 from appimage_integrator.services.desktop_entry import parse_desktop_entry
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.tooling import Tooling
+
+
+@dataclass(frozen=True)
+class ExtractedAppDirIndex:
+    files: list[Path]
+    desktop_files: list[Path]
+    appstream_files: list[Path]
+    icon_like_files: list[Path]
 
 
 class AppImageInspector:
@@ -83,8 +92,9 @@ class AppImageInspector:
         startup_notify = None
         exec_placeholders: list[str] = []
 
-        if extracted_dir:
-            desktop_path = self._find_desktop_file(extracted_dir)
+        extracted_index = self._index_extracted_dir(extracted_dir) if extracted_dir else None
+        if extracted_dir and extracted_index:
+            desktop_path = self._find_desktop_file(extracted_dir, extracted_index)
             if desktop_path:
                 desktop_filename = desktop_path.name
                 desktop_entry = parse_desktop_entry(
@@ -106,7 +116,7 @@ class AppImageInspector:
             else:
                 warnings.append("No embedded desktop file was found. A fallback launcher will be generated.")
 
-            appstream_id = self._find_appstream_id(extracted_dir, desktop_filename, name)
+            appstream_id = self._find_appstream_id(extracted_dir, desktop_filename, name, extracted_index)
 
         if extraction_failed:
             errors.append("Could not extract AppImage contents.")
@@ -135,7 +145,10 @@ class AppImageInspector:
             errors=errors,
             extracted_dir=extracted_dir,
         )
-        chosen_icon = self.icon_resolver.choose_for_inspection(inspection)
+        chosen_icon = self.icon_resolver.choose_for_inspection(
+            inspection,
+            files=extracted_index.icon_like_files if extracted_index else None,
+        )
         return AppImageInspection(
             **{
                 **inspection.__dict__,
@@ -229,8 +242,36 @@ class AppImageInspector:
             shutil.rmtree(extract_dir, ignore_errors=True)
             raise
 
-    def _find_desktop_file(self, extracted_dir: Path) -> Path | None:
-        desktop_files = sorted(extracted_dir.rglob("*.desktop"))
+    def _index_extracted_dir(self, extracted_dir: Path) -> ExtractedAppDirIndex:
+        files: list[Path] = []
+        desktop_files: list[Path] = []
+        appstream_files: list[Path] = []
+        icon_like_files: list[Path] = []
+        for path in extracted_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            files.append(path)
+            suffix = path.suffix.lower()
+            name = path.name
+            if suffix == ".desktop":
+                desktop_files.append(path)
+            if name.endswith(".appdata.xml") or name.endswith(".metainfo.xml"):
+                appstream_files.append(path)
+            if suffix in {".svg", ".png", ".xpm"} or name == ".DirIcon":
+                icon_like_files.append(path)
+        return ExtractedAppDirIndex(
+            files=files,
+            desktop_files=desktop_files,
+            appstream_files=appstream_files,
+            icon_like_files=icon_like_files,
+        )
+
+    def _find_desktop_file(
+        self,
+        extracted_dir: Path,
+        index: ExtractedAppDirIndex | None = None,
+    ) -> Path | None:
+        desktop_files = sorted(index.desktop_files if index else extracted_dir.rglob("*.desktop"))
         return desktop_files[0] if desktop_files else None
 
     def _find_appstream_id(
@@ -238,9 +279,12 @@ class AppImageInspector:
         extracted_dir: Path,
         desktop_filename: str | None,
         detected_name: str | None,
+        index: ExtractedAppDirIndex | None = None,
     ) -> str | None:
         candidates: list[tuple[int, str]] = []
-        xml_files = list(extracted_dir.rglob("*.appdata.xml")) + list(extracted_dir.rglob("*.metainfo.xml"))
+        xml_files = index.appstream_files if index else (
+            list(extracted_dir.rglob("*.appdata.xml")) + list(extracted_dir.rglob("*.metainfo.xml"))
+        )
         desktop_stem = desktop_filename.rsplit(".", 1)[0].casefold() if desktop_filename else ""
         normalized_name = self._normalize_token_string(detected_name)
 

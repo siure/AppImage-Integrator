@@ -13,6 +13,7 @@ from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.install_manager import InstallManager
 from appimage_integrator.services.library_manager import LibraryManager
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
+from appimage_integrator.services import managed_app_runtime as runtime_module
 from appimage_integrator.services.repair_manager import RepairManager
 from appimage_integrator.storage.metadata_store import MetadataStore
 
@@ -81,6 +82,75 @@ def _default_launcher_command(test_paths) -> list[str]:
     return [str(test_paths.self_command_path)]
 
 
+def test_stage_install_skips_copy_when_destination_metadata_matches(test_paths, monkeypatch) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    runtime = ManagedAppRuntimeService(test_paths, None, None, None, None)
+    destination = runtime.payload_dir("demo-id") / source.name
+    destination.parent.mkdir(parents=True)
+    destination.write_text("appimage", encoding="utf-8")
+    os.utime(destination, ns=(source.stat().st_atime_ns, source.stat().st_mtime_ns))
+    copy_calls: list[tuple[Path, Path]] = []
+    monkeypatch.setattr(
+        runtime_module.shutil,
+        "copy2",
+        lambda src, dst: copy_calls.append((Path(src), Path(dst))),
+    )
+
+    runtime.stage_install("demo-id", source)
+
+    assert copy_calls == []
+
+
+def test_stage_install_copies_when_destination_differs(test_paths, monkeypatch) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    runtime = ManagedAppRuntimeService(test_paths, None, None, None, None)
+    destination = runtime.payload_dir("demo-id") / source.name
+    destination.parent.mkdir(parents=True)
+    destination.write_text("different", encoding="utf-8")
+    copy_calls: list[tuple[Path, Path]] = []
+
+    def copy2(src, dst):
+        copy_calls.append((Path(src), Path(dst)))
+        Path(dst).write_bytes(Path(src).read_bytes())
+
+    monkeypatch.setattr(runtime_module.shutil, "copy2", copy2)
+
+    runtime.stage_install("demo-id", source)
+
+    assert copy_calls == [(source, destination)]
+
+
+def test_stage_install_still_ensures_executable_after_copy_skip(test_paths, monkeypatch) -> None:
+    source = test_paths.home / "Downloads" / "demo.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    runtime = ManagedAppRuntimeService(test_paths, None, None, None, None)
+    destination = runtime.payload_dir("demo-id") / source.name
+    destination.parent.mkdir(parents=True)
+    destination.write_text("appimage", encoding="utf-8")
+    destination.chmod(0o644)
+    os.utime(destination, ns=(source.stat().st_atime_ns, source.stat().st_mtime_ns))
+    monkeypatch.setattr(
+        runtime_module.shutil,
+        "copy2",
+        lambda _src, _dst: (_ for _ in ()).throw(AssertionError("copy should be skipped")),
+    )
+
+    runtime.stage_install("demo-id", source)
+
+    assert os.access(destination, os.X_OK)
+
+
+def _replace_desktop_field(text: str, key: str, value: str) -> str:
+    return "\n".join(
+        f"{key}={value}" if line.startswith(f"{key}=") else line for line in text.splitlines()
+    ) + "\n"
+
+
 def build_manager(
     test_paths,
     tooling,
@@ -144,11 +214,17 @@ def test_install_update_and_uninstall_flow(test_paths, tooling) -> None:
     assert Path(first.record.managed_payload_dir).is_dir()
     assert Path(first.record.managed_desktop_path).exists()
     desktop_text = Path(first.record.managed_desktop_path).read_text(encoding="utf-8")
+    desktop_entry = parse_desktop_entry(desktop_text, "managed.desktop")
+    assert desktop_entry.parsed_fields["Exec"].startswith("/bin/sh -c ")
     assert (
-        f"Exec={test_paths.self_command_path} launch {first.record.internal_id} --desktop -- --existing --disable-gpu --user-flag %U"
-        in desktop_text
+        f"{test_paths.self_command_path} launch {first.record.internal_id} --desktop -- --existing --disable-gpu --user-flag"
+        in desktop_entry.parsed_fields["Exec"]
     )
-    assert f"TryExec={test_paths.self_command_path}" in desktop_text
+    assert (
+        f"{first.record.managed_appimage_path} --existing --disable-gpu --user-flag"
+        in desktop_entry.parsed_fields["Exec"]
+    )
+    assert desktop_entry.parsed_fields["TryExec"] == first.record.managed_appimage_path
     assert inspector.cleanup_calls == 1
 
     updated = manager.install(
@@ -728,11 +804,14 @@ def test_repair_regenerates_invalid_desktop(test_paths, tooling) -> None:
     repaired, report = repair.repair(result.record)
 
     assert report.success
-    assert Path(repaired.managed_desktop_path).read_text(encoding="utf-8").startswith("[Desktop Entry]\n")
+    repaired_text = Path(repaired.managed_desktop_path).read_text(encoding="utf-8")
+    repaired_entry = parse_desktop_entry(repaired_text, "managed.desktop")
+    assert repaired_text.startswith("[Desktop Entry]\n")
     assert (
-        f"Exec={test_paths.self_command_path} launch {repaired.internal_id} --desktop -- --existing %U"
-        in Path(repaired.managed_desktop_path).read_text(encoding="utf-8")
+        f"{test_paths.self_command_path} launch {repaired.internal_id} --desktop -- --existing"
+        in repaired_entry.parsed_fields["Exec"]
     )
+    assert repaired_entry.parsed_fields["TryExec"] == repaired.managed_appimage_path
 
 
 def test_library_validation_adopts_managed_replacement(test_paths, tooling) -> None:
@@ -774,10 +853,15 @@ def test_library_validation_adopts_managed_replacement(test_paths, tooling) -> N
     assert updated_record.version == "2.0.0"
     assert Path(updated_record.managed_appimage_path).is_symlink()
     assert Path(updated_record.managed_appimage_path).resolve() == replacement.resolve()
-    assert (
-        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing %U"
-        in Path(updated_record.managed_desktop_path).read_text(encoding="utf-8")
+    updated_entry = parse_desktop_entry(
+        Path(updated_record.managed_desktop_path).read_text(encoding="utf-8"),
+        "managed.desktop",
     )
+    assert (
+        f"{test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing"
+        in updated_entry.parsed_fields["Exec"]
+    )
+    assert updated_entry.parsed_fields["TryExec"] == updated_record.managed_appimage_path
     assert inspector.cleanup_calls == 2
 
 
@@ -938,10 +1022,15 @@ def test_library_validation_migrates_legacy_record_to_symlink_layout(test_paths,
     assert Path(updated_record.managed_appimage_path).is_symlink()
     assert updated_record.managed_payload_path is not None
     assert Path(updated_record.managed_payload_path).exists()
-    assert (
-        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop --"
-        in Path(updated_record.managed_desktop_path).read_text(encoding="utf-8")
+    updated_entry = parse_desktop_entry(
+        Path(updated_record.managed_desktop_path).read_text(encoding="utf-8"),
+        "managed.desktop",
     )
+    assert (
+        f"{test_paths.self_command_path} launch {updated_record.internal_id} --desktop --"
+        in updated_entry.parsed_fields["Exec"]
+    )
+    assert updated_entry.parsed_fields["TryExec"] == updated_record.managed_appimage_path
 
 
 def test_library_validation_migrates_path_based_launcher_to_absolute_path(test_paths, tooling) -> None:
@@ -968,28 +1057,28 @@ def test_library_validation_migrates_path_based_launcher_to_absolute_path(test_p
             allow_reinstall=True,
         )
     )
-    legacy_exec = (
-        f"Exec=appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U\n"
-    )
-    legacy_tryexec = "TryExec=appimage-integrator\n"
     desktop_path = Path(result.record.managed_desktop_path)
-    desktop_path.write_text(
-        desktop_path.read_text(encoding="utf-8")
-        .replace(f"Exec={test_paths.self_command_path} launch {result.record.internal_id} --desktop -- --existing %U\n", legacy_exec)
-        .replace(f"TryExec={test_paths.self_command_path}\n", legacy_tryexec),
-        encoding="utf-8",
+    legacy_text = _replace_desktop_field(
+        desktop_path.read_text(encoding="utf-8"),
+        "Exec",
+        f"appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U",
     )
+    legacy_text = _replace_desktop_field(legacy_text, "TryExec", "appimage-integrator")
+    desktop_path.write_text(legacy_text, encoding="utf-8")
 
     library = LibraryManager(store, runtime_service, desktop_service)
     updated_record, status, messages = library.validate_record(result.record)
 
     assert status == "ok"
     assert messages == []
+    migrated_entry = parse_desktop_entry(desktop_path.read_text(encoding="utf-8"), "managed.desktop")
+    assert migrated_entry.parsed_fields["Exec"].startswith("/bin/sh -c ")
     assert (
-        f"Exec={test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing %U"
-        in desktop_path.read_text(encoding="utf-8")
+        f"{test_paths.self_command_path} launch {updated_record.internal_id} --desktop -- --existing"
+        in migrated_entry.parsed_fields["Exec"]
     )
-    assert f"TryExec={test_paths.self_command_path}" in desktop_path.read_text(encoding="utf-8")
+    assert updated_record.managed_appimage_path in migrated_entry.parsed_fields["Exec"]
+    assert migrated_entry.parsed_fields["TryExec"] == updated_record.managed_appimage_path
 
 
 def test_library_validation_can_skip_payload_inspection_for_tab_refresh(test_paths, tooling) -> None:
@@ -1021,15 +1110,13 @@ def test_library_validation_can_skip_payload_inspection_for_tab_refresh(test_pat
         f"Exec=appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U\n"
     )
     legacy_tryexec = "TryExec=appimage-integrator\n"
-    desktop_path.write_text(
-        desktop_path.read_text(encoding="utf-8")
-        .replace(
-            f"Exec={test_paths.self_command_path} launch {result.record.internal_id} --desktop -- --existing %U\n",
-            legacy_exec,
-        )
-        .replace(f"TryExec={test_paths.self_command_path}\n", legacy_tryexec),
-        encoding="utf-8",
+    legacy_text = _replace_desktop_field(
+        desktop_path.read_text(encoding="utf-8"),
+        "Exec",
+        f"appimage-integrator launch {result.record.internal_id} --desktop -- --existing %U",
     )
+    legacy_text = _replace_desktop_field(legacy_text, "TryExec", "appimage-integrator")
+    desktop_path.write_text(legacy_text, encoding="utf-8")
 
     library = LibraryManager(store, runtime_service, desktop_service)
     updated_record, status, messages = library.validate_record(

@@ -59,7 +59,8 @@ class ManagedAppRuntimeService:
         payload_dir.mkdir(parents=True, exist_ok=True)
         payload_path = payload_dir / source_path.name
         if source_path.resolve() != payload_path.resolve():
-            shutil.copy2(source_path, payload_path)
+            if not self._same_file_content_metadata(source_path, payload_path):
+                shutil.copy2(source_path, payload_path)
         self._ensure_executable(payload_path)
         self._retarget_symlink(stable_path, payload_path)
         self.prune_inactive_payloads(payload_dir, payload_path)
@@ -67,6 +68,17 @@ class ManagedAppRuntimeService:
             stable_path=stable_path,
             payload_dir=payload_dir,
             payload_path=payload_path,
+        )
+
+    def _same_file_content_metadata(self, source_path: Path, destination_path: Path) -> bool:
+        try:
+            source_stat = source_path.stat()
+            destination_stat = destination_path.stat()
+        except OSError:
+            return False
+        return (
+            source_stat.st_size == destination_stat.st_size
+            and source_stat.st_mtime_ns == destination_stat.st_mtime_ns
         )
 
     def reconcile_record(
@@ -329,7 +341,7 @@ class ManagedAppRuntimeService:
             desktop_text = desktop_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return self._record_with_managed_files(record)
-        if not self.desktop_service.desktop_entry_needs_migration(desktop_text, record.internal_id):
+        if not self.desktop_service.managed_desktop_entry_needs_migration(desktop_text, record):
             return self._record_with_managed_files(record)
         if not allow_payload_inspection:
             return self._record_with_managed_files(record)

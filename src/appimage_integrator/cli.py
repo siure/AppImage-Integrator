@@ -235,7 +235,11 @@ def _cmd_install(args: argparse.Namespace, services, stdout: TextIO, stderr: Tex
 
 
 def _cmd_list(args: argparse.Namespace, services, stdout: TextIO) -> int:
-    records = services.library_manager.list_records()
+    records = (
+        services.library_manager.list_records()
+        if args.json or args.validate
+        else services.library_manager.list_summaries()
+    )
     if args.validate:
         records = [_sync_record_validation(record, services) for record in records]
     if args.json:

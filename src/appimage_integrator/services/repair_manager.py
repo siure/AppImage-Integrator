@@ -6,6 +6,7 @@ from pathlib import Path
 
 from appimage_integrator.models import ManagedAppRecord, RepairReport
 from appimage_integrator.services.appimage_inspector import AppImageInspector
+from appimage_integrator.services.cancellation import CancelCallback, OperationCancelled, raise_if_cancelled
 from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
@@ -27,7 +28,12 @@ class RepairManager:
         self.runtime_service = runtime_service
         self.store = store
 
-    def repair(self, record: ManagedAppRecord) -> tuple[ManagedAppRecord, RepairReport]:
+    def repair(
+        self,
+        record: ManagedAppRecord,
+        should_cancel: CancelCallback | None = None,
+    ) -> tuple[ManagedAppRecord, RepairReport]:
+        raise_if_cancelled(should_cancel)
         record = self.runtime_service.reconcile_record(record)
         issues: list[str] = []
         actions: list[str] = []
@@ -44,7 +50,16 @@ class RepairManager:
             os.chmod(appimage_path, 0o755)
             actions.append("Restored execute permission on the managed AppImage.")
 
-        inspection = self.inspector.inspect(appimage_path)
+        inspection = (
+            self.inspector.inspect(appimage_path)
+            if should_cancel is None
+            else self.inspector.inspect(appimage_path, should_cancel=should_cancel)
+        )
+        try:
+            raise_if_cancelled(should_cancel)
+        except OperationCancelled:
+            self.inspector.cleanup(inspection)
+            raise
 
         should_regenerate_desktop = not desktop_path.exists()
         if not should_regenerate_desktop:
@@ -98,6 +113,11 @@ class RepairManager:
             else:
                 issues.append(f"Could not restore icon. Using fallback icon {icon_value}.")
 
+        try:
+            raise_if_cancelled(should_cancel)
+        except OperationCancelled:
+            self.inspector.cleanup(inspection)
+            raise
         remaining_messages = [*issues, *validation_messages]
         validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         status = "error" if issues or validation_errors else ("warning" if validation_warnings else "ok")

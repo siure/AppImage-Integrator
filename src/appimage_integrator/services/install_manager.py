@@ -19,6 +19,7 @@ from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.self_integration import is_self_internal_id
+from appimage_integrator.services.cancellation import CancelCallback, OperationCancelled, raise_if_cancelled
 from appimage_integrator.services.tooling import Tooling
 from appimage_integrator.services.versioning import compare_versions
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -55,9 +56,23 @@ class InstallManager:
             executable_mode |= stat.S_IXOTH
         os.chmod(source_path, executable_mode)
 
-    def inspect(self, source_path: Path) -> tuple[AppImageInspection, ManagedAppRecord | None, str]:
-        inspection = self.inspector.inspect(source_path)
+    def inspect(
+        self,
+        source_path: Path,
+        should_cancel: CancelCallback | None = None,
+    ) -> tuple[AppImageInspection, ManagedAppRecord | None, str]:
+        raise_if_cancelled(should_cancel)
+        inspection = (
+            self.inspector.inspect(source_path)
+            if should_cancel is None
+            else self.inspector.inspect(source_path, should_cancel=should_cancel)
+        )
         identity = self.id_resolver.resolve(inspection)
+        try:
+            raise_if_cancelled(should_cancel)
+        except Exception:
+            self.inspector.cleanup(inspection)
+            raise
         existing = self.store.load(identity.internal_id)
         if existing:
             existing = self.runtime_service.reconcile_record(existing)
@@ -83,10 +98,19 @@ class InstallManager:
             ),
         )
 
-    def install(self, request: InstallRequest) -> InstallResult:
+    def install(
+        self,
+        request: InstallRequest,
+        should_cancel: CancelCallback | None = None,
+    ) -> InstallResult:
+        raise_if_cancelled(should_cancel)
         if request.target_internal_id is not None and request.install_action == "copy":
             raise ValueError("Cannot install a copy into an explicit update target.")
-        inspection = self.inspector.inspect(request.source_path)
+        inspection = (
+            self.inspector.inspect(request.source_path)
+            if should_cancel is None
+            else self.inspector.inspect(request.source_path, should_cancel=should_cancel)
+        )
         fatal_errors = [
             message
             for message in inspection.errors
@@ -105,14 +129,24 @@ class InstallManager:
                 inspection,
                 request,
             )
-        except Exception:
+        except OperationCancelled:
             self.inspector.cleanup(inspection)
             raise
 
+        try:
+            raise_if_cancelled(should_cancel)
+        except OperationCancelled:
+            self.inspector.cleanup(inspection)
+            raise
         placement = self.runtime_service.stage_install(identity.internal_id, request.source_path)
         if is_self_internal_id(identity.internal_id):
             install_self_command(self.paths, placement.stable_path)
 
+        try:
+            raise_if_cancelled(should_cancel)
+        except OperationCancelled:
+            self.inspector.cleanup(inspection)
+            raise
         icon_value, managed_icon_path, icon_managed = self.icon_resolver.install_icon(
             identity.internal_id,
             inspection.chosen_icon_candidate,
@@ -141,6 +175,11 @@ class InstallManager:
         )
         desktop_path.write_text(desktop_text, encoding="utf-8")
 
+        try:
+            raise_if_cancelled(should_cancel)
+        except OperationCancelled:
+            self.inspector.cleanup(inspection)
+            raise
         timestamp = datetime.now(tz=timezone.utc).isoformat()
         validation_warnings, validation_errors = partition_validation_messages(validation_messages)
         record = ManagedAppRecord(

@@ -13,6 +13,7 @@ from gi.repository import Adw, GLib, Gtk, Pango
 
 from appimage_integrator.config import PRESET_LABELS
 from appimage_integrator.models import AppImageInspection, InstallRequest, ManagedAppRecord
+from appimage_integrator.services.cancellation import OperationCancelled, raise_if_cancelled
 from appimage_integrator.ui.dialogs import (
     CompatFileChooserDialog,
     CompatMessageDialog,
@@ -31,13 +32,24 @@ def inspection_can_install(inspection: AppImageInspection) -> bool:
 
 
 class InstallView(Gtk.Box):
-    def __init__(self, install_manager, on_installed, toast) -> None:
+    def __init__(
+        self,
+        install_manager,
+        on_installed,
+        toast,
+        begin_task=None,
+        update_task=None,
+        finish_task=None,
+    ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.set_hexpand(True)
         self.add_css_class("install-view")
         self.install_manager = install_manager
         self.on_installed = on_installed
         self.toast = toast
+        self._begin_task = begin_task or self._begin_local_task
+        self._update_task = update_task or self._update_local_task
+        self._finish_task = finish_task or self._finish_local_task
         self.current_source_path: Path | None = None
         self.current_inspection: AppImageInspection | None = None
         self.current_existing: ManagedAppRecord | None = None
@@ -51,6 +63,20 @@ class InstallView(Gtk.Box):
         self._build_compact_bar()
         self._build_editor_panel()
         self.reset()
+
+    def _begin_local_task(self, _title: str, _detail: str | None = None):
+        return 0, threading.Event()
+
+    def _update_local_task(
+        self,
+        _task_id: int,
+        _title: str | None = None,
+        _detail: str | None = None,
+    ) -> bool:
+        return False
+
+    def _finish_local_task(self, _task_id: int) -> bool:
+        return False
 
     def _build_compact_bar(self) -> None:
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -476,14 +502,29 @@ class InstallView(Gtk.Box):
         self._show_editor(True)
         self._set_source_label()
         self._set_busy_state("Inspecting AppImage…")
+        task_id, cancel_event = self._begin_task("Inspecting AppImage", path.name)
 
         def worker() -> None:
             try:
-                inspection, existing, mode = self.install_manager.inspect(path)
-            except Exception as exc:  # noqa: BLE001
-                GLib.idle_add(self._apply_inspection_error, str(exc))
+                inspection, existing, mode = self.install_manager.inspect(
+                    path,
+                    should_cancel=cancel_event.is_set,
+                )
+                raise_if_cancelled(cancel_event.is_set)
+            except OperationCancelled:
+                GLib.idle_add(self._finish_cancelled_inspection, task_id)
                 return
-            GLib.idle_add(self._apply_inspection, inspection, existing, mode)
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(self._apply_inspection_error, str(exc), task_id)
+                return
+            GLib.idle_add(
+                self._apply_inspection,
+                inspection,
+                existing,
+                mode,
+                task_id,
+                cancel_event,
+            )
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -492,7 +533,15 @@ class InstallView(Gtk.Box):
         inspection: AppImageInspection,
         existing: ManagedAppRecord | None,
         mode: str,
+        task_id: int | None = None,
+        cancel_event: threading.Event | None = None,
     ) -> bool:
+        if task_id is not None:
+            self._finish_task(task_id)
+        if cancel_event is not None and cancel_event.is_set():
+            self.install_manager.inspector.cleanup(inspection)
+            self.reset()
+            return False
         if self.current_inspection is not None and self.current_inspection is not inspection:
             self.install_manager.inspector.cleanup(self.current_inspection)
         self.current_inspection = inspection
@@ -544,7 +593,14 @@ class InstallView(Gtk.Box):
         self._apply_selected_target_fields()
         self._update_action_sensitivity()
 
-    def _apply_inspection_error(self, message: str) -> bool:
+    def _finish_cancelled_inspection(self, task_id: int) -> bool:
+        self._finish_task(task_id)
+        self.reset()
+        return False
+
+    def _apply_inspection_error(self, message: str, task_id: int | None = None) -> bool:
+        if task_id is not None:
+            self._finish_task(task_id)
         self._show_alert_dialog("Inspection failed", message)
         self.reset()
         return False
@@ -678,17 +734,34 @@ class InstallView(Gtk.Box):
     def _submit_install_request(self, request: InstallRequest) -> None:
         self._show_editor(True)
         self._set_busy_state("Installing…")
+        task_id, cancel_event = self._begin_task("Installing AppImage", request.source_path.name)
 
         def worker() -> None:
             try:
-                result = self.install_manager.install(request)
-                GLib.idle_add(self._apply_install_result, result)
+                result = self.install_manager.install(
+                    request,
+                    should_cancel=cancel_event.is_set,
+                )
+                raise_if_cancelled(cancel_event.is_set)
+                GLib.idle_add(self._apply_install_result, result, task_id, cancel_event)
+            except OperationCancelled:
+                GLib.idle_add(self._finish_cancelled_install, task_id)
             except Exception as exc:  # noqa: BLE001
-                GLib.idle_add(self._apply_install_error, str(exc))
+                GLib.idle_add(self._apply_install_error, str(exc), task_id)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _apply_install_result(self, result) -> bool:
+    def _apply_install_result(
+        self,
+        result,
+        task_id: int | None = None,
+        cancel_event: threading.Event | None = None,
+    ) -> bool:
+        if task_id is not None:
+            self._finish_task(task_id)
+        if cancel_event is not None and cancel_event.is_set():
+            self.reset(clear_selection=True)
+            return False
         messages = [*result.warnings, *result.validation_messages]
         body = f"{result.record.display_name} was processed successfully."
         if messages:
@@ -701,7 +774,14 @@ class InstallView(Gtk.Box):
         self.reset(clear_selection=True)
         return False
 
-    def _apply_install_error(self, message: str) -> bool:
+    def _finish_cancelled_install(self, task_id: int) -> bool:
+        self._finish_task(task_id)
+        self.reset(clear_selection=True)
+        return False
+
+    def _apply_install_error(self, message: str, task_id: int | None = None) -> bool:
+        if task_id is not None:
+            self._finish_task(task_id)
         self._show_alert_dialog("Install failed", message)
         self._set_busy_state(None)
         self._show_editor(self.current_source_path is not None)

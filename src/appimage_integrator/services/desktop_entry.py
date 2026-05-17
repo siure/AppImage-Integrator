@@ -4,6 +4,7 @@ import re
 import shlex
 from collections import OrderedDict
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -13,6 +14,14 @@ from appimage_integrator.services.tooling import Tooling
 
 PLACEHOLDER_RE = re.compile(r"^%[UuFf]$")
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+DESKTOP_EXEC_QUOTE_RE = re.compile(r"[\s\"'\\><~|&;$*?#()`]")
+
+
+@dataclass(frozen=True)
+class DesktopValidationCacheKey:
+    path: str
+    size: int
+    mtime_ns: int
 
 
 def extract_localized_desktop_entry_lines(raw_text: str) -> list[str]:
@@ -91,6 +100,25 @@ def serialize_exec_tokens(tokens: list[str]) -> str:
     return " ".join(escaped)
 
 
+def serialize_desktop_exec_tokens(tokens: list[str]) -> str:
+    escaped: list[str] = []
+    for token in tokens:
+        if PLACEHOLDER_RE.match(token):
+            escaped.append(token)
+        elif token == "" or DESKTOP_EXEC_QUOTE_RE.search(token):
+            escaped.append(
+                '"'
+                + token.replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("$", "\\$")
+                .replace("`", "\\`")
+                + '"'
+            )
+        else:
+            escaped.append(token)
+    return " ".join(escaped)
+
+
 def sanitize_value(value: str | None) -> str | None:
     if value is None:
         return None
@@ -134,6 +162,7 @@ class DesktopEntryService:
     ) -> None:
         self.tooling = tooling
         self._launcher_command_resolver = launcher_command_resolver or (lambda: None)
+        self._validation_cache: dict[DesktopValidationCacheKey, list[str]] = {}
 
     def _resolve_launcher_command(self) -> list[str] | None:
         launcher_command = self._launcher_command_resolver()
@@ -182,6 +211,23 @@ class DesktopEntryService:
             or "--desktop" not in entry.exec_tokens
         )
 
+    def managed_desktop_entry_needs_migration(self, text: str, record: ManagedAppRecord) -> bool:
+        entry = parse_desktop_entry(text, "managed.desktop")
+        launcher_command = self._resolve_launcher_command()
+        if launcher_command is None:
+            return False
+        try:
+            expected_exec = self.build_desktop_exec_template(
+                record.desktop_exec_template,
+                Path(record.managed_appimage_path),
+            )
+        except ValueError:
+            return True
+        return (
+            entry.parsed_fields.get("TryExec") != record.managed_appimage_path
+            or entry.parsed_fields.get("Exec") != expected_exec
+        )
+
     def build_desktop_text(
         self,
         internal_id: str,
@@ -202,6 +248,7 @@ class DesktopEntryService:
         )
         return self._build_desktop_text_from_entry(
             entry,
+            appimage_path=appimage_path,
             icon_value=icon_value,
             display_name=display_name,
             fallback_name=inspection.detected_name or "AppImage",
@@ -229,6 +276,29 @@ class DesktopEntryService:
             *passthrough_tokens,
         ]
         return serialize_exec_tokens(exec_tokens)
+
+    def build_desktop_exec_template(self, exec_template: str, appimage_path: Path) -> str:
+        try:
+            primary_tokens = shlex.split(exec_template)
+        except ValueError as exc:
+            raise ValueError(f"Could not parse the saved launch command: {exc}") from exc
+        if "--" not in primary_tokens:
+            raise ValueError("The saved launch command is missing the expected passthrough separator.")
+
+        passthrough_tokens = primary_tokens[primary_tokens.index("--") + 1 :]
+        launch_tokens = [token for token in passthrough_tokens if not PLACEHOLDER_RE.match(token)]
+        placeholders = [token for token in passthrough_tokens if PLACEHOLDER_RE.match(token)]
+        primary_without_placeholders = [
+            token for token in primary_tokens if not PLACEHOLDER_RE.match(token)
+        ]
+        fallback_tokens = [str(appimage_path), *launch_tokens]
+        script = (
+            f"{serialize_exec_tokens(primary_without_placeholders)} \"$@\""
+            f" || exec {serialize_exec_tokens(fallback_tokens)} \"$@\""
+        )
+        return serialize_desktop_exec_tokens(
+            ["/bin/sh", "-c", script, "appimage-integrator", *placeholders]
+        )
 
     def build_exec_template_from_record(
         self,
@@ -271,6 +341,7 @@ class DesktopEntryService:
         )
         return self._build_desktop_text_from_entry(
             current_entry,
+            appimage_path=Path(record.managed_appimage_path),
             icon_value=current_entry.parsed_fields.get("Icon")
             or record.managed_icon_path
             or "application-x-executable",
@@ -286,6 +357,7 @@ class DesktopEntryService:
         self,
         entry: EmbeddedDesktopEntry | None,
         *,
+        appimage_path: Path,
         icon_value: str,
         display_name: str,
         fallback_name: str,
@@ -324,9 +396,8 @@ class DesktopEntryService:
             fields["Comment"] = sanitize_value(fallback_comment) or ""
         if sanitize_value(fields.get("Comment")) == fields["Name"]:
             fields.pop("Comment", None)
-        launcher_command = self._require_launcher_command()
-        fields["Exec"] = exec_template
-        fields["TryExec"] = launcher_command[0]
+        fields["Exec"] = self.build_desktop_exec_template(exec_template, appimage_path)
+        fields["TryExec"] = str(appimage_path)
         fields["Icon"] = icon_value
         if "Terminal" not in fields:
             fields["Terminal"] = "false"
@@ -445,4 +516,18 @@ class DesktopEntryService:
             messages.append(result.stdout.strip())
         if result.stderr.strip():
             messages.append(result.stderr.strip())
+        return messages
+
+    def validate_path(self, path: Path) -> list[str]:
+        stat = path.stat()
+        key = DesktopValidationCacheKey(
+            path=str(path.resolve(strict=False)),
+            size=stat.st_size,
+            mtime_ns=stat.st_mtime_ns,
+        )
+        cached = self._validation_cache.get(key)
+        if cached is not None:
+            return list(cached)
+        messages = self.validate_text(path.read_text(encoding="utf-8", errors="replace"))
+        self._validation_cache[key] = list(messages)
         return messages

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from appimage_integrator.services.desktop_entry import (
     extract_localized_desktop_entry_lines,
     parse_desktop_entry,
 )
+from appimage_integrator.services.tooling import ToolAvailability
 
 
 def test_parse_desktop_entry_extracts_exec_tokens() -> None:
@@ -70,10 +72,13 @@ def test_build_desktop_text_preserves_args_and_placeholders(tooling) -> None:
     )
 
     assert (
-        "Exec=/home/test/.local/bin/appimage-integrator launch demo-browser-1234abcd --desktop -- --existing --disable-gpu --user-flag %U"
+        'Exec=/bin/sh -c "/home/test/.local/bin/appimage-integrator launch '
+        'demo-browser-1234abcd --desktop -- --existing --disable-gpu --user-flag \\"\\$@\\" '
+        '|| exec /home/test/Applications/demo.AppImage --existing --disable-gpu --user-flag \\"\\$@\\"" '
+        "appimage-integrator %U"
         in text
     )
-    assert "TryExec=/home/test/.local/bin/appimage-integrator" in text
+    assert "TryExec=/home/test/Applications/demo.AppImage" in text
     assert exec_template == (
         "/home/test/.local/bin/appimage-integrator launch demo-browser-1234abcd --desktop -- --existing --disable-gpu --user-flag %U"
     )
@@ -117,6 +122,62 @@ def test_build_desktop_text_generates_fallback(tooling) -> None:
     assert "[Desktop Entry]" in text
     assert "Name=Fallback App" in text
     assert "Terminal=false" in text
+
+
+def test_validate_path_caches_by_stat(tmp_path, tooling) -> None:
+    tooling.tools = ToolAvailability(
+        desktop_file_validate="/usr/bin/desktop-file-validate",
+        appstreamcli=None,
+        update_desktop_database=None,
+        gtk_update_icon_cache=None,
+        unsquashfs=None,
+        file_cmd=None,
+        sha256sum=None,
+    )
+    calls = 0
+
+    def run(args):
+        nonlocal calls
+        calls += 1
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    tooling.run = run
+    service = DesktopEntryService(tooling)
+    desktop = tmp_path / "demo.desktop"
+    desktop.write_text("[Desktop Entry]\nName=Demo\n", encoding="utf-8")
+
+    assert service.validate_path(desktop) == []
+    assert service.validate_path(desktop) == []
+    assert calls == 1
+
+
+def test_validate_path_invalidates_after_desktop_file_change(tmp_path, tooling) -> None:
+    tooling.tools = ToolAvailability(
+        desktop_file_validate="/usr/bin/desktop-file-validate",
+        appstreamcli=None,
+        update_desktop_database=None,
+        gtk_update_icon_cache=None,
+        unsquashfs=None,
+        file_cmd=None,
+        sha256sum=None,
+    )
+    calls = 0
+
+    def run(args):
+        nonlocal calls
+        calls += 1
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    tooling.run = run
+    service = DesktopEntryService(tooling)
+    desktop = tmp_path / "demo.desktop"
+    desktop.write_text("[Desktop Entry]\nName=Demo\n", encoding="utf-8")
+
+    service.validate_path(desktop)
+    desktop.write_text("[Desktop Entry]\nName=Demo Changed\n", encoding="utf-8")
+    service.validate_path(desktop)
+
+    assert calls == 2
 
 
 def test_build_desktop_text_omits_duplicate_comment(tooling) -> None:

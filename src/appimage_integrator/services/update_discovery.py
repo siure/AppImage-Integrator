@@ -1,21 +1,25 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 import os
 import re
 from pathlib import Path
 
 from appimage_integrator.models import (
     AppImageInspection,
+    CachedAppImageInspection,
     IdentityResolution,
     ManagedAppRecord,
     UpdateCandidate,
     UpdateDiscoveryResult,
+    UpdateSourceDirKind,
 )
 from appimage_integrator.paths import AppPaths
 from appimage_integrator.services.appimage_inspector import AppImageInspector
 from appimage_integrator.services.cancellation import CancelCallback, raise_if_cancelled
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services.inspection_cache import InspectionCache
 from appimage_integrator.services.versioning import compare_update_versions, compare_versions
 
 _ARCH_TOKENS = {
@@ -40,11 +44,27 @@ UpdateProgressCallback = Callable[[str, str], None]
 MAX_APPIMAGE_CANDIDATES_PER_DIRECTORY = 200
 
 
+@dataclass(frozen=True)
+class UpdateCandidateEntry:
+    path: Path
+    source_dir_kind: UpdateSourceDirKind
+    resolved_path: Path
+    stat_size: int | None
+    stat_mtime_ns: int | None
+
+
 class UpdateDiscoveryService:
-    def __init__(self, paths: AppPaths, inspector: AppImageInspector, id_resolver: IdResolver) -> None:
+    def __init__(
+        self,
+        paths: AppPaths,
+        inspector: AppImageInspector,
+        id_resolver: IdResolver,
+        inspection_cache: InspectionCache | None = None,
+    ) -> None:
         self.paths = paths
         self.inspector = inspector
         self.id_resolver = id_resolver
+        self.inspection_cache = inspection_cache
 
     def discover_updates(
         self,
@@ -61,38 +81,93 @@ class UpdateDiscoveryService:
             "Preparing search",
             f"Resolving where to search for updates to {record.display_name}.",
         )
-        searched_directories = self._search_directories(
-            record,
+        searched_directories, candidate_entries = self.collect_candidate_entries(
+            [record],
             prefer_error_recovery=prefer_error_recovery,
+            should_cancel=should_cancel,
         )
-        higher_version_candidates: list[UpdateCandidate] = []
-        same_or_unknown_candidates: list[UpdateCandidate] = []
-        skipped_paths: list[str] = []
-        candidate_entries: list[tuple[Path, str]] = []
-        seen_candidate_paths: set[Path] = set()
+        return self.discover_updates_from_entries(
+            record,
+            searched_directories,
+            candidate_entries,
+            progress_callback=progress_callback,
+            prefer_error_recovery=prefer_error_recovery,
+            stop_after_first_recovery_match=stop_after_first_recovery_match,
+            should_cancel=should_cancel,
+        )
 
-        for directory, source_dir_kind in searched_directories:
+    def collect_candidate_entries(
+        self,
+        records: list[ManagedAppRecord],
+        *,
+        prefer_error_recovery: bool,
+        should_cancel: CancelCallback | None = None,
+    ) -> tuple[list[Path], list[UpdateCandidateEntry]]:
+        directories: list[tuple[Path, UpdateSourceDirKind]] = []
+        seen_directories: set[Path] = set()
+        for record in records:
+            for directory, source_dir_kind in self._search_directories(
+                record,
+                prefer_error_recovery=prefer_error_recovery,
+            ):
+                if directory in seen_directories:
+                    continue
+                seen_directories.add(directory)
+                directories.append((directory, source_dir_kind))
+
+        candidate_entries: list[UpdateCandidateEntry] = []
+        seen_candidate_paths: set[Path] = set()
+        for directory, source_dir_kind in directories:
             raise_if_cancelled(should_cancel)
-            self._emit_progress(
-                progress_callback,
-                "Scanning directories",
-                f"Looking for AppImages in {directory}.",
-            )
             for candidate_path in self._iter_appimages(directory):
                 raise_if_cancelled(should_cancel)
                 resolved_candidate = candidate_path.resolve(strict=False)
                 if resolved_candidate in seen_candidate_paths:
                     continue
                 seen_candidate_paths.add(resolved_candidate)
-                if self._should_skip_candidate(record, candidate_path):
-                    continue
-                candidate_entries.append((candidate_path, source_dir_kind))
+                stat_size = None
+                stat_mtime_ns = None
+                try:
+                    stat = resolved_candidate.stat()
+                    stat_size = stat.st_size
+                    stat_mtime_ns = stat.st_mtime_ns
+                except OSError:
+                    pass
+                candidate_entries.append(
+                    UpdateCandidateEntry(
+                        path=candidate_path,
+                        source_dir_kind=source_dir_kind,
+                        resolved_path=resolved_candidate,
+                        stat_size=stat_size,
+                        stat_mtime_ns=stat_mtime_ns,
+                    )
+                )
+        return [directory for directory, _kind in directories], candidate_entries
+
+    def discover_updates_from_entries(
+        self,
+        record: ManagedAppRecord,
+        searched_directories: list[Path],
+        candidate_entries: list[UpdateCandidateEntry],
+        *,
+        progress_callback: UpdateProgressCallback | None = None,
+        prefer_error_recovery: bool = False,
+        stop_after_first_recovery_match: bool = False,
+        should_cancel: CancelCallback | None = None,
+    ) -> UpdateDiscoveryResult:
+        del prefer_error_recovery
+        higher_version_candidates: list[UpdateCandidate] = []
+        same_or_unknown_candidates: list[UpdateCandidate] = []
+        skipped_paths: list[str] = []
+        candidate_entries = [
+            entry for entry in candidate_entries if not self._should_skip_candidate(record, entry.path)
+        ]
 
         recovery_entries = [
-            entry for entry in candidate_entries if self._is_recovery_source_kind(entry[1])
+            entry for entry in candidate_entries if self._is_recovery_source_kind(entry.source_dir_kind)
         ]
         remaining_entries = [
-            entry for entry in candidate_entries if not self._is_recovery_source_kind(entry[1])
+            entry for entry in candidate_entries if not self._is_recovery_source_kind(entry.source_dir_kind)
         ]
         stopped_after_priority_match = False
         if stop_after_first_recovery_match and recovery_entries:
@@ -114,7 +189,7 @@ class UpdateDiscoveryService:
                 )
                 return UpdateDiscoveryResult(
                     record=record,
-                    searched_directories=[directory for directory, _kind in searched_directories],
+                    searched_directories=searched_directories,
                     higher_version_candidates=self._sort_candidates(higher_version_candidates, record),
                     same_or_unknown_candidates=self._sort_candidates(same_or_unknown_candidates, record),
                     skipped_paths=sorted(skipped_paths),
@@ -140,7 +215,7 @@ class UpdateDiscoveryService:
 
         return UpdateDiscoveryResult(
             record=record,
-            searched_directories=[directory for directory, _kind in searched_directories],
+            searched_directories=searched_directories,
             higher_version_candidates=self._sort_candidates(higher_version_candidates, record),
             same_or_unknown_candidates=self._sort_candidates(same_or_unknown_candidates, record),
             skipped_paths=sorted(skipped_paths),
@@ -150,7 +225,7 @@ class UpdateDiscoveryService:
     def _discover_from_entries(
         self,
         record: ManagedAppRecord,
-        candidate_entries: list[tuple[Path, str]],
+        candidate_entries: list[UpdateCandidateEntry],
         higher_version_candidates: list[UpdateCandidate],
         same_or_unknown_candidates: list[UpdateCandidate],
         skipped_paths: list[str],
@@ -190,9 +265,15 @@ class UpdateDiscoveryService:
         should_cancel: CancelCallback | None = None,
     ) -> UpdateCandidate | None:
         raise_if_cancelled(should_cancel)
+        if self.inspection_cache is not None:
+            cached = self.inspection_cache.get(candidate_path)
+            if cached is not None:
+                return self._match_cached_candidate(record, candidate_path, cached, source_dir_kind)
         inspection = self.inspector.inspect(candidate_path, should_cancel=should_cancel)
         try:
             identity = self.id_resolver.resolve(inspection)
+            if self.inspection_cache is not None:
+                self.inspection_cache.put(candidate_path, inspection, identity)
             return self._match_candidate(record, candidate_path, inspection, identity, source_dir_kind)
         finally:
             self.inspector.cleanup(inspection)
@@ -202,7 +283,7 @@ class UpdateDiscoveryService:
         record: ManagedAppRecord,
         *,
         prefer_error_recovery: bool = False,
-    ) -> list[tuple[Path, str]]:
+    ) -> list[tuple[Path, UpdateSourceDirKind]]:
         source_parent = Path(record.source_path_last_seen).expanduser().resolve(strict=False).parent
         downloads = (self.paths.home / "Downloads").resolve(strict=False)
         managed_payload_dir = None
@@ -210,7 +291,7 @@ class UpdateDiscoveryService:
             managed_payload_dir = Path(record.managed_payload_dir).resolve(strict=False)
         elif record.managed_payload_path:
             managed_payload_dir = Path(record.managed_payload_path).resolve(strict=False).parent
-        candidates: list[tuple[Path, str]] = []
+        candidates: list[tuple[Path, UpdateSourceDirKind]] = []
         if prefer_error_recovery:
             candidates.extend(self._recovery_directories(record))
         candidates.extend([
@@ -219,7 +300,7 @@ class UpdateDiscoveryService:
         ])
         if managed_payload_dir is not None:
             candidates.append((managed_payload_dir, "managed_payload_dir"))
-        directories: list[tuple[Path, str]] = []
+        directories: list[tuple[Path, UpdateSourceDirKind]] = []
         seen: set[Path] = set()
         for directory, kind in candidates:
             if directory in seen or not directory.exists() or not directory.is_dir():
@@ -228,8 +309,8 @@ class UpdateDiscoveryService:
             directories.append((directory, kind))
         return directories
 
-    def _recovery_directories(self, record: ManagedAppRecord) -> list[tuple[Path, str]]:
-        candidates: list[tuple[Path, str]] = []
+    def _recovery_directories(self, record: ManagedAppRecord) -> list[tuple[Path, UpdateSourceDirKind]]:
+        candidates: list[tuple[Path, UpdateSourceDirKind]] = []
         if record.managed_payload_path:
             candidates.append(
                 (
@@ -329,10 +410,77 @@ class UpdateDiscoveryService:
             warnings=list(inspection.warnings),
         )
 
+    def _match_cached_candidate(
+        self,
+        record: ManagedAppRecord,
+        candidate_path: Path,
+        cached: CachedAppImageInspection,
+        source_dir_kind: str,
+    ) -> UpdateCandidate | None:
+        identity = IdentityResolution(
+            internal_id=cached.identity_internal_id,
+            identity_fingerprint=cached.identity_fingerprint,
+            basis=cached.identity_basis,
+        )
+        identity_score = self._identity_match_score_values(
+            record,
+            appstream_id=cached.appstream_id,
+            embedded_desktop_filename=cached.embedded_desktop_filename,
+            identity=identity,
+        )
+        if identity_score is not None:
+            return UpdateCandidate(
+                path=candidate_path,
+                detected_version=cached.detected_version,
+                is_executable=cached.is_executable,
+                match_kind="identity",
+                match_score=identity_score,
+                identity_internal_id=identity.internal_id,
+                identity_fingerprint=identity.identity_fingerprint,
+                detected_name=cached.detected_name,
+                source_dir_kind=source_dir_kind,
+                warnings=list(cached.warnings),
+            )
+
+        filename_score = self._filename_match_score_values(
+            record,
+            candidate_path,
+            detected_name=cached.detected_name,
+        )
+        if filename_score is None:
+            return None
+        return UpdateCandidate(
+            path=candidate_path,
+            detected_version=cached.detected_version,
+            is_executable=cached.is_executable,
+            match_kind="filename",
+            match_score=filename_score,
+            identity_internal_id=identity.internal_id,
+            identity_fingerprint=identity.identity_fingerprint,
+            detected_name=cached.detected_name,
+            source_dir_kind=source_dir_kind,
+            warnings=list(cached.warnings),
+        )
+
     def _identity_match_score(
         self,
         record: ManagedAppRecord,
         inspection: AppImageInspection,
+        identity: IdentityResolution,
+    ) -> int | None:
+        return self._identity_match_score_values(
+            record,
+            appstream_id=inspection.appstream_id,
+            embedded_desktop_filename=inspection.embedded_desktop_filename,
+            identity=identity,
+        )
+
+    def _identity_match_score_values(
+        self,
+        record: ManagedAppRecord,
+        *,
+        appstream_id: str | None,
+        embedded_desktop_filename: str | None,
         identity: IdentityResolution,
     ) -> int | None:
         if identity.internal_id == record.internal_id:
@@ -344,12 +492,12 @@ class UpdateDiscoveryService:
             and identity.identity_fingerprint == record.base_identity_fingerprint
         ):
             return 92
-        if inspection.appstream_id and record.appstream_id and inspection.appstream_id == record.appstream_id:
+        if appstream_id and record.appstream_id and appstream_id == record.appstream_id:
             return 90
         if (
-            inspection.embedded_desktop_filename
+            embedded_desktop_filename
             and record.embedded_desktop_basename
-            and inspection.embedded_desktop_filename == record.embedded_desktop_basename
+            and embedded_desktop_filename == record.embedded_desktop_basename
         ):
             return 85
         return None
@@ -357,7 +505,7 @@ class UpdateDiscoveryService:
     def _inspect_candidates(
         self,
         record: ManagedAppRecord,
-        candidate_entries: list[tuple[Path, str]],
+        candidate_entries: list[UpdateCandidateEntry],
         higher_version_candidates: list[UpdateCandidate],
         same_or_unknown_candidates: list[UpdateCandidate],
         skipped_paths: list[str],
@@ -370,22 +518,22 @@ class UpdateDiscoveryService:
         if total == 0:
             return
 
-        for index, (candidate_path, source_dir_kind) in enumerate(candidate_entries, start=1):
+        for index, entry in enumerate(candidate_entries, start=1):
             raise_if_cancelled(should_cancel)
             self._emit_progress(
                 progress_callback,
                 stage_title,
-                f"Inspecting {candidate_path.name} ({index}/{total}).",
+                f"Inspecting {entry.path.name} ({index}/{total}).",
             )
             try:
                 match = self.evaluate_candidate(
                     record,
-                    candidate_path,
-                    source_dir_kind,
+                    entry.path,
+                    entry.source_dir_kind,
                     should_cancel=should_cancel,
                 )
             except OSError as exc:
-                skipped_paths.append(f"{candidate_path}: {exc}")
+                skipped_paths.append(f"{entry.path}: {exc}")
                 continue
             if match is None:
                 continue
@@ -400,17 +548,17 @@ class UpdateDiscoveryService:
     def _partition_candidates(
         self,
         record: ManagedAppRecord,
-        candidate_entries: list[tuple[Path, str]],
-    ) -> tuple[list[tuple[Path, str]], list[tuple[Path, str]]]:
-        likely_candidates: list[tuple[Path, str]] = []
-        fallback_candidates: list[tuple[Path, str]] = []
-        for candidate_path, source_dir_kind in candidate_entries:
-            if self._filename_version_is_known_older(record, candidate_path):
+        candidate_entries: list[UpdateCandidateEntry],
+    ) -> tuple[list[UpdateCandidateEntry], list[UpdateCandidateEntry]]:
+        likely_candidates: list[UpdateCandidateEntry] = []
+        fallback_candidates: list[UpdateCandidateEntry] = []
+        for entry in candidate_entries:
+            if self._filename_version_is_known_older(record, entry.path):
                 continue
-            if self._candidate_name_might_match(record, candidate_path):
-                likely_candidates.append((candidate_path, source_dir_kind))
+            if self._candidate_name_might_match(record, entry.path):
+                likely_candidates.append(entry)
             else:
-                fallback_candidates.append((candidate_path, source_dir_kind))
+                fallback_candidates.append(entry)
         return self._sort_likely_candidate_entries(record, likely_candidates), fallback_candidates
 
     def _candidate_filename_version(self, candidate_path: Path) -> str | None:
@@ -430,14 +578,14 @@ class UpdateDiscoveryService:
     def _sort_likely_candidate_entries(
         self,
         record: ManagedAppRecord,
-        candidate_entries: list[tuple[Path, str]],
-    ) -> list[tuple[Path, str]]:
+        candidate_entries: list[UpdateCandidateEntry],
+    ) -> list[UpdateCandidateEntry]:
         return sorted(
             candidate_entries,
             key=lambda entry: (
-                self._filename_version_sort_group(record, entry[0]),
-                -entry[0].stat().st_mtime,
-                entry[0].name.lower(),
+                self._filename_version_sort_group(record, entry.path),
+                -(entry.stat_mtime_ns or 0),
+                entry.path.name.lower(),
             ),
         )
 
@@ -483,10 +631,23 @@ class UpdateDiscoveryService:
         candidate_path: Path,
         inspection: AppImageInspection,
     ) -> int | None:
+        return self._filename_match_score_values(
+            record,
+            candidate_path,
+            detected_name=inspection.detected_name,
+        )
+
+    def _filename_match_score_values(
+        self,
+        record: ManagedAppRecord,
+        candidate_path: Path,
+        *,
+        detected_name: str | None,
+    ) -> int | None:
         candidate_name = self._normalize_name(candidate_path.stem)
         original_source = self._normalize_name(Path(record.source_path_last_seen).stem)
         display_name = self._normalize_name(record.display_name)
-        detected_name = self._normalize_name(inspection.detected_name or "")
+        detected_name = self._normalize_name(detected_name or "")
 
         source_match = self._names_match(candidate_name, original_source) or self._names_match(candidate_name, display_name)
         if not source_match:

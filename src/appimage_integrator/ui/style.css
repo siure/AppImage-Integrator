@@ -133,6 +133,18 @@ viewport,
     padding: 0 2px;
 }
 
+.startup-recovery-status {
+    min-height: 38px;
+    padding: 8px 12px;
+    background-color: @app_panel;
+    border: 1px solid @app_border;
+    border-radius: 10px;
+}
+
+.startup-recovery-status progressbar {
+    min-width: 140px;
+}
+
 label.dim-label,
 .dim-label {
     color: @app_text_muted;

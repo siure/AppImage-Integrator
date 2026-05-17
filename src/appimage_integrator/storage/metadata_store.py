@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.models import ManagedAppRecord, ManagedAppSummary
 from appimage_integrator.paths import AppPaths
 
 
@@ -70,9 +70,34 @@ class MetadataStore:
         if not self.paths.metadata_index_path.exists():
             return self.rebuild_index()
         try:
-            return json.loads(self.paths.metadata_index_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
+            payload = json.loads(self.paths.metadata_index_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
             return self.rebuild_index()
+        if not isinstance(payload, dict):
+            return self.rebuild_index()
+        return payload
+
+    def load_summaries(self) -> list[ManagedAppSummary]:
+        index = self.load_index()
+        summaries: list[ManagedAppSummary] = []
+        malformed = False
+        for internal_id, payload in index.items():
+            if not isinstance(internal_id, str) or not isinstance(payload, dict):
+                malformed = True
+                continue
+            try:
+                summaries.append(ManagedAppSummary.from_index_entry(internal_id, payload))
+            except (KeyError, TypeError):
+                malformed = True
+        if malformed and not summaries:
+            index = self.rebuild_index()
+            summaries = []
+            for internal_id, payload in index.items():
+                try:
+                    summaries.append(ManagedAppSummary.from_index_entry(internal_id, payload))
+                except (KeyError, TypeError):
+                    continue
+        return summaries
 
     def rebuild_index(self) -> dict[str, dict]:
         index: dict[str, dict] = {}

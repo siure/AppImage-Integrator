@@ -7,18 +7,21 @@ from appimage_integrator.services.cancellation import OperationCancelled
 from appimage_integrator.services.desktop_entry import parse_desktop_entry
 from appimage_integrator.services.icon_resolver import IconResolver
 from appimage_integrator.services.id_resolver import IdResolver
+from appimage_integrator.services.inspection_cache import InspectionCache
 from appimage_integrator.services import update_discovery as update_discovery_module
-from appimage_integrator.services.update_discovery import UpdateDiscoveryService
+from appimage_integrator.services.update_discovery import UpdateCandidateEntry, UpdateDiscoveryService
 
 
 class MappingInspector:
     def __init__(self, inspections: dict[Path, AppImageInspection]) -> None:
         self.inspections = {path.resolve(): inspection for path, inspection in inspections.items()}
         self.cleanup_calls = 0
+        self.inspect_calls = 0
 
     def inspect(self, source_path: Path, should_cancel=None) -> AppImageInspection:
         if should_cancel is not None and should_cancel():
             raise OperationCancelled()
+        self.inspect_calls += 1
         return self.inspections[source_path.resolve()]
 
     def cleanup(self, _inspection: AppImageInspection) -> None:
@@ -132,6 +135,157 @@ def test_update_discovery_finds_higher_version_in_source_directory(test_paths) -
     assert [item.path for item in result.higher_version_candidates] == [candidate]
     assert result.higher_version_candidates[0].match_kind == "identity"
     assert result.same_or_unknown_candidates == []
+
+
+def test_discover_updates_uses_cached_inspection_when_file_stat_matches(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-cache"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector({candidate: make_inspection(candidate, extracted, version="2.0.0")})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver(), InspectionCache(test_paths))
+    record = make_record(test_paths, source)
+
+    service.discover_updates(record)
+    cleanup_calls = inspector.cleanup_calls
+    result = service.discover_updates(record)
+
+    assert result.higher_version_candidates[0].path == candidate
+    assert inspector.inspect_calls == 1
+    assert inspector.cleanup_calls == cleanup_calls
+
+
+def test_discover_updates_invalidates_cache_when_mtime_changes(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-cache-mtime"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector({candidate: make_inspection(candidate, extracted, version="2.0.0")})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver(), InspectionCache(test_paths))
+    record = make_record(test_paths, source)
+
+    service.discover_updates(record)
+    candidate.write_text("changed-appimage", encoding="utf-8")
+    service.discover_updates(record)
+
+    assert inspector.inspect_calls == 2
+
+
+def test_cached_candidate_matching_preserves_identity_scores(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-cache-score"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector({candidate: make_inspection(candidate, extracted, version="2.0.0")})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver(), InspectionCache(test_paths))
+    record = make_record(test_paths, source)
+
+    uncached = service.discover_updates(record).higher_version_candidates[0]
+    cached = service.discover_updates(record).higher_version_candidates[0]
+
+    assert cached.match_kind == uncached.match_kind == "identity"
+    assert cached.match_score == uncached.match_score
+
+
+def test_corrupt_inspection_cache_is_ignored(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    candidate = source.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    test_paths.inspection_cache_path.parent.mkdir(parents=True)
+    test_paths.inspection_cache_path.write_text("{bad json", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-cache-corrupt"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector({candidate: make_inspection(candidate, extracted, version="2.0.0")})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver(), InspectionCache(test_paths))
+
+    result = service.discover_updates(make_record(test_paths, source))
+
+    assert result.higher_version_candidates[0].path == candidate
+    assert inspector.inspect_calls == 1
+
+
+def test_collect_candidate_entries_scans_shared_downloads_once(monkeypatch, test_paths) -> None:
+    source_one = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source_two = test_paths.home / "Downloads" / "demo-copy-v1.AppImage"
+    source_one.parent.mkdir(parents=True)
+    source_one.write_text("appimage", encoding="utf-8")
+    source_two.write_text("appimage", encoding="utf-8")
+    candidate = source_one.parent / "demo-v2.AppImage"
+    candidate.write_text("appimage", encoding="utf-8")
+    service = UpdateDiscoveryService(test_paths, MappingInspector({}), IdResolver())
+    scans: list[Path] = []
+
+    def iter_appimages(directory: Path) -> list[Path]:
+        scans.append(directory)
+        return [candidate]
+
+    monkeypatch.setattr(service, "_iter_appimages", iter_appimages)
+
+    _searched, entries = service.collect_candidate_entries(
+        [make_record(test_paths, source_one), make_record(test_paths, source_two)],
+        prefer_error_recovery=False,
+    )
+
+    assert scans.count(source_one.parent.resolve(strict=False)) == 1
+    assert [entry.path for entry in entries] == [candidate]
+
+
+def test_discover_updates_from_shared_entries_skips_each_record_active_payload(test_paths) -> None:
+    source = test_paths.home / "Downloads" / "demo-v1.AppImage"
+    source.parent.mkdir(parents=True)
+    source.write_text("appimage", encoding="utf-8")
+    payload = test_paths.managed_payloads_root / "org-demo-browser-b3029f72" / "demo-v2.AppImage"
+    payload.parent.mkdir(parents=True)
+    payload.write_text("appimage", encoding="utf-8")
+    extracted = test_paths.cache_extract_dir / "extract-shared-skip"
+    extracted.mkdir(parents=True)
+    (extracted / "demo.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>", encoding="utf-8")
+    inspector = MappingInspector({payload: make_inspection(payload, extracted, version="2.0.0")})
+    service = UpdateDiscoveryService(test_paths, inspector, IdResolver())
+    record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "managed_payload_path": str(payload),
+        }
+    )
+    other_record = ManagedAppRecord.from_dict(
+        {
+            **make_record(test_paths, source).to_dict(),
+            "internal_id": "org-demo-browser-copy",
+            "identity_fingerprint": "copy-fingerprint",
+            "managed_payload_path": None,
+        }
+    )
+    entries = [
+        UpdateCandidateEntry(
+            path=payload,
+            source_dir_kind="managed_payload_dir",
+            resolved_path=payload.resolve(strict=False),
+            stat_size=payload.stat().st_size,
+            stat_mtime_ns=payload.stat().st_mtime_ns,
+        )
+    ]
+
+    skipped = service.discover_updates_from_entries(record, [payload.parent], entries)
+    matched = service.discover_updates_from_entries(other_record, [payload.parent], entries)
+
+    assert skipped.higher_version_candidates == []
+    assert matched.higher_version_candidates[0].path == payload
 
 
 def test_update_discovery_matches_copy_base_identity(test_paths) -> None:

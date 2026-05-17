@@ -41,15 +41,21 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self._update_progress_bar: Gtk.ProgressBar | None = None
         self._update_progress_pulse_id: int | None = None
         self._update_cancel_event: threading.Event | None = None
+        self._update_progress_task_id: int | None = None
         self._closing_update_progress_dialog = False
         self._library_refresh_request_id = 0
         self._startup_recovery_started = False
+        self._background_task_serial = 0
+        self._background_tasks: dict[int, dict[str, object]] = {}
+        self._background_progress_pulse_id: int | None = None
+        self._window_closed = False
         self._startup_recovery_status = self._build_startup_recovery_status()
         self.add_css_class("integrator-window")
         self.set_title(APP_NAME)
         self.set_resizable(True)
         self.set_size_request(self.MIN_WINDOW_WIDTH, self.MIN_WINDOW_HEIGHT)
         self.set_default_size(900, 650)
+        self.connect("close-request", self._on_window_close_request)
 
         self.toast_overlay = Adw.ToastOverlay()
         self.toast_overlay.set_hexpand(True)
@@ -114,6 +120,9 @@ class ApplicationWindow(Adw.ApplicationWindow):
             install_manager=services.install_manager,
             on_installed=self.refresh_library,
             toast=self.show_toast,
+            begin_task=self.begin_background_task,
+            update_task=self.update_background_task,
+            finish_task=self.finish_background_task,
         )
         self.library_view.set_hexpand(True)
         self.library_view.set_vexpand(True)
@@ -145,12 +154,89 @@ class ApplicationWindow(Adw.ApplicationWindow):
         spinner.set_valign(Gtk.Align.CENTER)
         status.append(spinner)
 
-        label = Gtk.Label(label="Checking broken integrations…", xalign=0)
+        label = Gtk.Label(label="Checking background work…", xalign=0)
         label.add_css_class("dim-label")
         label.set_hexpand(True)
         label.set_wrap(True)
+        self._background_status_label = label
         status.append(label)
+
+        progress = Gtk.ProgressBar()
+        progress.set_hexpand(False)
+        progress.set_size_request(140, -1)
+        self._background_status_progress = progress
+        status.append(progress)
         return status
+
+    def begin_background_task(self, title: str, detail: str | None = None) -> tuple[int, threading.Event]:
+        self._background_task_serial += 1
+        task_id = self._background_task_serial
+        cancel_event = threading.Event()
+        self._background_tasks[task_id] = {
+            "title": title,
+            "detail": detail or "",
+            "cancel_event": cancel_event,
+        }
+        self._refresh_background_status()
+        return task_id, cancel_event
+
+    def update_background_task(
+        self,
+        task_id: int,
+        title: str | None = None,
+        detail: str | None = None,
+    ) -> bool:
+        task = self._background_tasks.get(task_id)
+        if task is None:
+            return False
+        if title is not None:
+            task["title"] = title
+        if detail is not None:
+            task["detail"] = detail
+        self._refresh_background_status()
+        return False
+
+    def finish_background_task(self, task_id: int) -> bool:
+        self._background_tasks.pop(task_id, None)
+        self._refresh_background_status()
+        return False
+
+    def _refresh_background_status(self) -> None:
+        if not self._background_tasks:
+            self._startup_recovery_status.set_visible(False)
+            if self._background_progress_pulse_id is not None:
+                GLib.source_remove(self._background_progress_pulse_id)
+                self._background_progress_pulse_id = None
+            return
+
+        latest_id = max(self._background_tasks)
+        latest = self._background_tasks[latest_id]
+        title = str(latest["title"])
+        detail = str(latest["detail"])
+        count = len(self._background_tasks)
+        prefix = f"{count} background tasks" if count > 1 else title
+        self._background_status_label.set_text(
+            f"{prefix}: {detail}" if detail and count == 1 else prefix
+        )
+        self._startup_recovery_status.set_visible(True)
+        if self._background_progress_pulse_id is None:
+            self._background_progress_pulse_id = GLib.timeout_add(120, self._pulse_background_progress)
+
+    def _pulse_background_progress(self) -> bool:
+        if not self._background_tasks:
+            return False
+        self._background_status_progress.pulse()
+        return True
+
+    def _on_window_close_request(self, _window: Gtk.Window) -> bool:
+        self._window_closed = True
+        for task in self._background_tasks.values():
+            cancel_event = task.get("cancel_event")
+            if isinstance(cancel_event, threading.Event):
+                cancel_event.set()
+        if self._update_cancel_event is not None:
+            self._update_cancel_event.set()
+        return False
 
     def _handle_dropped_path(self, path: Path) -> None:
         self.install_view.load_path(path)
@@ -200,7 +286,7 @@ class ApplicationWindow(Adw.ApplicationWindow):
         request_id: int,
         validated_rows: list[tuple[ManagedAppRecord, str, list[str]]],
     ) -> bool:
-        if request_id != self._library_refresh_request_id:
+        if request_id != self._library_refresh_request_id or self._window_closed:
             return False
 
         records: list[ManagedAppRecord] = []
@@ -227,13 +313,24 @@ class ApplicationWindow(Adw.ApplicationWindow):
         ]
         if not broken_records:
             return
-        self._startup_recovery_status.set_visible(True)
+        task_id, cancel_event = self.begin_background_task(
+            "Checking broken integrations",
+            f"Looking for recovery options for {len(broken_records)} integrations.",
+        )
 
         def worker(snapshot: list[ManagedAppRecord]) -> None:
             recovered_rows: list[tuple[ManagedAppRecord, str, list[str]]] = []
             discoveries: dict[str, UpdateDiscoveryResult] = {}
-            for record in snapshot:
+            for index, record in enumerate(snapshot, start=1):
                 try:
+                    if cancel_event.is_set():
+                        raise OperationCancelled()
+                    GLib.idle_add(
+                        self.update_background_task,
+                        task_id,
+                        "Checking broken integrations",
+                        f"Checking {record.display_name} ({index}/{len(snapshot)}).",
+                    )
                     validated_record, status, messages = self.services.library_manager.validate_record(
                         record,
                         allow_reconcile_inspection=True,
@@ -244,12 +341,22 @@ class ApplicationWindow(Adw.ApplicationWindow):
                             validated_record,
                             prefer_error_recovery=True,
                             stop_after_first_recovery_match=True,
+                            should_cancel=cancel_event.is_set,
                         )
                         if discovery.higher_version_candidates:
                             discoveries[validated_record.internal_id] = discovery
+                except OperationCancelled:
+                    GLib.idle_add(self.finish_background_task, task_id)
+                    return
                 except Exception:  # noqa: BLE001
                     continue
-            GLib.idle_add(self._finish_startup_recovery, recovered_rows, discoveries)
+            GLib.idle_add(
+                self._finish_startup_recovery,
+                recovered_rows,
+                discoveries,
+                task_id,
+                cancel_event,
+            )
 
         threading.Thread(target=worker, args=(broken_records,), daemon=True).start()
 
@@ -257,8 +364,12 @@ class ApplicationWindow(Adw.ApplicationWindow):
         self,
         recovered_rows: list[tuple[ManagedAppRecord, str, list[str]]],
         discoveries: dict[str, UpdateDiscoveryResult],
+        task_id: int,
+        cancel_event: threading.Event,
     ) -> bool:
-        self._startup_recovery_status.set_visible(False)
+        self.finish_background_task(task_id)
+        if cancel_event.is_set() or self._window_closed:
+            return False
         records = self.services.library_manager.list_records()
         updated_by_id: dict[str, ManagedAppRecord] = {}
         for validated_record, status, messages in recovered_rows:
@@ -324,28 +435,61 @@ class ApplicationWindow(Adw.ApplicationWindow):
         prefer_error_recovery: bool,
         stop_after_first_recovery_match: bool,
     ) -> None:
-        cancel_event = threading.Event()
+        task_id, cancel_event = self.begin_background_task(
+            "Searching for updates",
+            f"Searching for updates to {record.display_name}.",
+        )
         self._update_cancel_event = cancel_event
+        self._update_progress_task_id = task_id
         self._show_update_progress_dialog(record)
         related_records = self.services.library_manager.related_records(record)
 
         def worker() -> None:
             try:
                 discoveries = {}
-                for related_record in related_records:
-                    if cancel_event.is_set():
-                        raise OperationCancelled()
-                    discoveries[related_record.internal_id] = self.services.update_discovery.discover_updates(
-                        related_record,
-                        progress_callback=lambda title, detail: GLib.idle_add(
-                            self._set_update_progress_status,
-                            title,
-                            detail,
-                        ),
-                        prefer_error_recovery=prefer_error_recovery,
-                        stop_after_first_recovery_match=stop_after_first_recovery_match,
-                        should_cancel=cancel_event.is_set,
+                if hasattr(self.services.update_discovery, "collect_candidate_entries"):
+                    searched_directories, candidate_entries = (
+                        self.services.update_discovery.collect_candidate_entries(
+                            related_records,
+                            prefer_error_recovery=prefer_error_recovery,
+                            should_cancel=cancel_event.is_set,
+                        )
                     )
+                    for related_record in related_records:
+                        if cancel_event.is_set():
+                            raise OperationCancelled()
+                        discoveries[related_record.internal_id] = (
+                            self.services.update_discovery.discover_updates_from_entries(
+                                related_record,
+                                searched_directories,
+                                candidate_entries,
+                                progress_callback=lambda title, detail: GLib.idle_add(
+                                    self._set_update_progress_status,
+                                    title,
+                                    detail,
+                                ),
+                                prefer_error_recovery=prefer_error_recovery,
+                                stop_after_first_recovery_match=stop_after_first_recovery_match,
+                                should_cancel=cancel_event.is_set,
+                            )
+                        )
+                else:
+                    for related_record in related_records:
+                        if cancel_event.is_set():
+                            raise OperationCancelled()
+                        discoveries[related_record.internal_id] = (
+                            self.services.update_discovery.discover_updates(
+                                related_record,
+                                progress_callback=lambda title, detail: GLib.idle_add(
+                                    self._set_update_progress_status,
+                                    title,
+                                    detail,
+                                ),
+                                prefer_error_recovery=prefer_error_recovery,
+                                stop_after_first_recovery_match=stop_after_first_recovery_match,
+                                should_cancel=cancel_event.is_set,
+                            )
+                        )
             except OperationCancelled:
                 GLib.idle_add(self._finish_cancelled_update_discovery, cancel_event)
                 return
@@ -371,7 +515,49 @@ class ApplicationWindow(Adw.ApplicationWindow):
         threading.Thread(target=worker, daemon=True).start()
 
     def repair_record(self, record: ManagedAppRecord) -> None:
-        _, report = self.services.repair_manager.repair(record)
+        task_id, cancel_event = self.begin_background_task(
+            "Repairing integration",
+            f"Repairing {record.display_name}.",
+        )
+
+        def worker() -> None:
+            try:
+                _, report = self.services.repair_manager.repair(
+                    record,
+                    should_cancel=cancel_event.is_set,
+                )
+            except OperationCancelled:
+                GLib.idle_add(self.finish_background_task, task_id)
+                return
+            except Exception as exc:  # noqa: BLE001
+                GLib.idle_add(
+                    self._finish_repair_error,
+                    record,
+                    str(exc),
+                    task_id,
+                    cancel_event,
+                )
+                return
+            GLib.idle_add(
+                self._finish_repair_record,
+                record,
+                report,
+                task_id,
+                cancel_event,
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_repair_record(
+        self,
+        record: ManagedAppRecord,
+        report,
+        task_id: int,
+        cancel_event: threading.Event,
+    ) -> bool:
+        self.finish_background_task(task_id)
+        if cancel_event.is_set() or self._window_closed:
+            return False
         source_path = Path(record.source_path_last_seen)
         if report.success:
             self._show_repair_result_dialog(
@@ -391,6 +577,24 @@ class ApplicationWindow(Adw.ApplicationWindow):
                 ),
             )
         self.refresh_library()
+        return False
+
+    def _finish_repair_error(
+        self,
+        record: ManagedAppRecord,
+        message: str,
+        task_id: int,
+        cancel_event: threading.Event,
+    ) -> bool:
+        self.finish_background_task(task_id)
+        if cancel_event.is_set() or self._window_closed:
+            return False
+        self._show_repair_result_dialog(
+            "Repair failed",
+            f"AppImage Integrator could not repair {record.display_name}.\n\n{message}",
+        )
+        self.refresh_library()
+        return False
 
     def uninstall_record(self, record: ManagedAppRecord) -> None:
         self.services.install_manager.uninstall(record)
@@ -608,6 +812,8 @@ class ApplicationWindow(Adw.ApplicationWindow):
             self._update_progress_title.set_text(title)
         if self._update_progress_detail is not None:
             self._update_progress_detail.set_text(detail)
+        if self._update_progress_task_id is not None:
+            self.update_background_task(self._update_progress_task_id, title, detail)
         return False
 
     def _close_update_progress_dialog(self) -> None:
@@ -636,6 +842,9 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if cancel_event is not self._update_cancel_event or cancel_event.is_set():
             return False
         self._update_cancel_event = None
+        if self._update_progress_task_id is not None:
+            self.finish_background_task(self._update_progress_task_id)
+            self._update_progress_task_id = None
         self._close_update_progress_dialog()
         if error_message is not None:
             self._show_repair_result_dialog(
@@ -649,6 +858,9 @@ class ApplicationWindow(Adw.ApplicationWindow):
     def _finish_cancelled_update_discovery(self, cancel_event: threading.Event) -> bool:
         if cancel_event is self._update_cancel_event:
             self._update_cancel_event = None
+            if self._update_progress_task_id is not None:
+                self.finish_background_task(self._update_progress_task_id)
+                self._update_progress_task_id = None
             self._close_update_progress_dialog()
         return False
 
@@ -865,18 +1077,67 @@ class ApplicationWindow(Adw.ApplicationWindow):
         if not validate_selection:
             self._begin_update_install(record, source_path)
             return
-        try:
-            matched_candidate = self.services.update_discovery.evaluate_candidate(record, source_path)
-        except OSError as exc:
+        task_id, cancel_event = self.begin_background_task(
+            "Checking update file",
+            f"Inspecting {source_path.name}.",
+        )
+
+        def worker() -> None:
+            try:
+                matched_candidate = self.services.update_discovery.evaluate_candidate(
+                    record,
+                    source_path,
+                    should_cancel=cancel_event.is_set,
+                )
+            except OperationCancelled:
+                GLib.idle_add(self.finish_background_task, task_id)
+                return
+            except OSError as exc:
+                GLib.idle_add(
+                    self._finish_update_source_validation,
+                    record,
+                    source_path,
+                    None,
+                    str(exc),
+                    task_id,
+                    cancel_event,
+                )
+                return
+            GLib.idle_add(
+                self._finish_update_source_validation,
+                record,
+                source_path,
+                matched_candidate,
+                None,
+                task_id,
+                cancel_event,
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_update_source_validation(
+        self,
+        record: ManagedAppRecord,
+        source_path: Path,
+        matched_candidate: UpdateCandidate | None,
+        error_message: str | None,
+        task_id: int,
+        cancel_event: threading.Event,
+    ) -> bool:
+        self.finish_background_task(task_id)
+        if cancel_event.is_set() or self._window_closed:
+            return False
+        if error_message is not None:
             self._show_repair_result_dialog(
                 "Update file could not be inspected",
-                f"AppImage Integrator could not inspect the selected AppImage.\n\n{exc}",
+                f"AppImage Integrator could not inspect the selected AppImage.\n\n{error_message}",
             )
-            return
+            return False
         if matched_candidate is None:
             self._show_repair_result_dialog(
                 "AppImage does not match",
                 "The selected AppImage does not appear to be the same application as the managed integration.",
             )
-            return
+            return False
         self._begin_update_install(record, source_path)
+        return False

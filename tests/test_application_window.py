@@ -45,6 +45,15 @@ class DummyStore:
         return None
 
 
+class ImmediateThread:
+    def __init__(self, target, args=(), daemon=None) -> None:
+        self._target = target
+        self._args = args
+
+    def start(self) -> None:
+        self._target(*self._args)
+
+
 def _make_services():
     return SimpleNamespace(
         install_manager=SimpleNamespace(ensure_source_executable=lambda _path: None),
@@ -137,6 +146,40 @@ def test_application_window_delegates_root_drop_to_install_view(monkeypatch, tmp
     window._handle_dropped_path(candidate)
 
     assert dropped_paths == [candidate]
+
+    window.destroy()
+
+
+def test_background_task_status_closing_window_cancels_work() -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.background-status")
+    window = ApplicationWindow(app, _make_services())
+
+    task_id, cancel_event = window.begin_background_task("Checking setup", "Installing CLI wrapper.")
+
+    assert window._startup_recovery_status.get_visible() is True
+    assert cancel_event.is_set() is False
+
+    window._on_window_close_request(window)
+
+    assert cancel_event.is_set() is True
+
+    window.finish_background_task(task_id)
+    window.destroy()
+
+
+def test_refresh_library_does_not_use_background_status() -> None:
+    Gtk.init()
+    app = Adw.Application(application_id="io.github.appimageintegrator.tests.refresh-no-status")
+    services = _make_services()
+    window = ApplicationWindow(app, services)
+    calls: list[str] = []
+    window.begin_background_task = lambda title, detail=None: (calls.append(title), (0, application_window_module.threading.Event()))[1]
+
+    window.refresh_library()
+
+    assert window._startup_recovery_status.get_visible() is False
+    assert calls == []
 
     window.destroy()
 
@@ -283,7 +326,7 @@ def test_application_window_manual_non_executable_candidate_is_validated_after_t
     services.install_manager.ensure_source_executable = lambda path: path.chmod(path.stat().st_mode | 0o100)
     validated: list[Path] = []
     manual_candidate = _make_candidate(tmp_path / "manual-v2.AppImage", version="2.0.0", is_executable=True)
-    services.update_discovery.evaluate_candidate = lambda _record, path: (
+    services.update_discovery.evaluate_candidate = lambda _record, path, **_kwargs: (
         validated.append(path),
         manual_candidate if os.access(path, os.X_OK) else None,
     )[1]
@@ -306,6 +349,8 @@ def test_application_window_manual_non_executable_candidate_is_validated_after_t
         kwargs["on_trusted"]()
 
     monkeypatch.setattr(application_window_module, "prompt_for_appimage_trust", fake_prompt)
+    monkeypatch.setattr(application_window_module.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(application_window_module.GLib, "idle_add", lambda func, *args: func(*args))
 
     window._prepare_update_source(record, candidate, validate_selection=True)
 

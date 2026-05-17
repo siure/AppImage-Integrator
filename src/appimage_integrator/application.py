@@ -23,6 +23,7 @@ from appimage_integrator.launcher import (
 )
 from appimage_integrator.models import InstallRequest
 from appimage_integrator.paths import AppPaths
+from appimage_integrator.services.cancellation import OperationCancelled, raise_if_cancelled
 from appimage_integrator.self_integration import build_self_record, SELF_INTERNAL_ID
 from appimage_integrator.ui.dialogs import CompatMessageDialog
 from appimage_integrator.ui.application_window import ApplicationWindow
@@ -56,7 +57,19 @@ class AppImageIntegratorApplication(Adw.Application):
         GLib.idle_add(self._begin_desktop_integration, window)
 
     def _begin_desktop_integration(self, window: Gtk.Window) -> bool:
-        threading.Thread(target=self._run_desktop_integration, daemon=True).start()
+        if isinstance(window, ApplicationWindow):
+            task_id, cancel_event = window.begin_background_task(
+                "Setting up AppImage Integrator",
+                "Checking desktop launcher and CLI wrapper.",
+            )
+        else:
+            task_id = None
+            cancel_event = threading.Event()
+        threading.Thread(
+            target=self._run_desktop_integration,
+            args=(window, task_id, cancel_event),
+            daemon=True,
+        ).start()
         return False
 
     def _load_css(self) -> None:
@@ -81,50 +94,96 @@ class AppImageIntegratorApplication(Adw.Application):
         icon_theme.add_search_path(str(ICON_THEME_ROOT))
         Gtk.Window.set_default_icon_name(APP_ID)
 
-    def _run_desktop_integration(self) -> None:
-        self.paths.ensure_directories()
-        icon_changed = self._ensure_icon_integration()
+    def _run_desktop_integration(
+        self,
+        window: Gtk.Window | None = None,
+        task_id: int | None = None,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
+        should_cancel = cancel_event.is_set if cancel_event is not None else None
+        try:
+            raise_if_cancelled(should_cancel)
+            self.paths.ensure_directories()
+            icon_changed = self._ensure_icon_integration()
 
-        appimage_path = current_appimage_path()
-        if appimage_path is None:
-            launcher_command = resolve_launcher_command(self.paths)
-            if launcher_command is None:
-                self.services.logger.warning(
-                    "Skipping desktop integration for %s because no concrete launcher path was resolved.",
-                    APP_ID,
+            appimage_path = current_appimage_path()
+            if appimage_path is None:
+                self._update_desktop_integration_task(
+                    window,
+                    task_id,
+                    "Checking desktop launcher",
+                    "Resolving the installed command.",
                 )
+                launcher_command = resolve_launcher_command(self.paths)
+                if launcher_command is None:
+                    self.services.logger.warning(
+                        "Skipping desktop integration for %s because no concrete launcher path was resolved.",
+                        APP_ID,
+                    )
+                    return
+                desktop_changed = self._write_app_desktop_entry(launcher_command)
+                self._sync_self_library_record(launcher_command=launcher_command)
+                if icon_changed or desktop_changed:
+                    self._refresh_desktop_metadata()
                 return
-            desktop_changed = self._write_app_desktop_entry(launcher_command)
-            self._sync_self_library_record(launcher_command=launcher_command)
-            if icon_changed or desktop_changed:
+
+            self._update_desktop_integration_task(
+                window,
+                task_id,
+                "Setting up AppImage Integrator",
+                "Installing the launcher and CLI wrapper.",
+            )
+            integration_changed = self._install_current_appimage_for_self(
+                appimage_path,
+                should_cancel=should_cancel,
+            )
+            if icon_changed or integration_changed:
                 self._refresh_desktop_metadata()
+                active_window = self.props.active_window
+                if isinstance(active_window, ApplicationWindow):
+                    GLib.idle_add(active_window.refresh_library)
+        except OperationCancelled:
             return
+        finally:
+            if isinstance(window, ApplicationWindow) and task_id is not None:
+                GLib.idle_add(window.finish_background_task, task_id)
 
-        integration_changed = self._install_current_appimage_for_self(appimage_path)
-        if icon_changed or integration_changed:
-            self._refresh_desktop_metadata()
-            window = self.props.active_window
-            if isinstance(window, ApplicationWindow):
-                GLib.idle_add(window.refresh_library)
+    def _update_desktop_integration_task(
+        self,
+        window: Gtk.Window | None,
+        task_id: int | None,
+        title: str,
+        detail: str,
+    ) -> None:
+        if isinstance(window, ApplicationWindow) and task_id is not None:
+            GLib.idle_add(window.update_background_task, task_id, title, detail)
 
-    def _install_current_appimage_for_self(self, appimage_path: Path) -> bool:
+    def _install_current_appimage_for_self(
+        self,
+        appimage_path: Path,
+        should_cancel=None,
+    ) -> bool:
         existing = self.services.store.load(SELF_INTERNAL_ID)
         if self._current_appimage_matches_existing_self_install(appimage_path, existing):
             return False
 
         try:
-            result = self.services.install_manager.install(
-                InstallRequest(
-                    source_path=appimage_path,
-                    display_name_override=existing.display_name if existing else None,
-                    comment_override=existing.comment if existing else None,
-                    extra_args=list(existing.extra_args) if existing else [],
-                    arg_preset_id=existing.arg_preset_id if existing else "none",
-                    allow_update=True,
-                    allow_reinstall=True,
-                    target_internal_id=SELF_INTERNAL_ID if existing else None,
-                )
+            request = InstallRequest(
+                source_path=appimage_path,
+                display_name_override=existing.display_name if existing else None,
+                comment_override=existing.comment if existing else None,
+                extra_args=list(existing.extra_args) if existing else [],
+                arg_preset_id=existing.arg_preset_id if existing else "none",
+                allow_update=True,
+                allow_reinstall=True,
+                target_internal_id=SELF_INTERNAL_ID if existing else None,
             )
+            if should_cancel is None:
+                result = self.services.install_manager.install(request)
+            else:
+                result = self.services.install_manager.install(request, should_cancel=should_cancel)
+        except OperationCancelled:
+            raise
         except Exception as exc:  # noqa: BLE001
             self.services.logger.warning("Could not install self AppImage integration: %s", exc)
             return False

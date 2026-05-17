@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from appimage_integrator.models import ManagedAppRecord
+from appimage_integrator.models import ManagedAppRecord, ManagedAppSummary
 from appimage_integrator.services.desktop_entry import DesktopEntryService, partition_validation_messages
 from appimage_integrator.services.managed_app_runtime import ManagedAppRuntimeService
 from appimage_integrator.storage.metadata_store import MetadataStore
@@ -22,6 +22,9 @@ class LibraryManager:
 
     def list_records(self) -> list[ManagedAppRecord]:
         return sorted(self.store.load_all(), key=lambda record: record.display_name.lower())
+
+    def list_summaries(self) -> list[ManagedAppSummary]:
+        return sorted(self.store.load_summaries(), key=lambda summary: summary.display_name.lower())
 
     def related_records(self, record: ManagedAppRecord) -> list[ManagedAppRecord]:
         root_identity = record.base_identity_fingerprint or record.identity_fingerprint
@@ -72,9 +75,7 @@ class LibraryManager:
             launch_blocked = True
         elif self.desktop_service:
             try:
-                desktop_messages = self.desktop_service.validate_text(
-                    desktop_path.read_text(encoding="utf-8", errors="replace")
-                )
+                desktop_messages = self.desktop_service.validate_path(desktop_path)
             except OSError as exc:
                 desktop_messages = [f"Desktop launcher could not be read: {exc}"]
             if desktop_messages:
